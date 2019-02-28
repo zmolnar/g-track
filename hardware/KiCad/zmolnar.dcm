@@ -1,0 +1,26 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP +5V_USB
+D Power flag, +5V
+K power-flag
+$ENDCMP
+#
+$CMP KSSGJ4B20
+D KINGSTATE - KSSGJ4B20 - MAGNETIC TRANSDUCER, SMD TYPE
+K KINGSTATE - KSSGJ4B20 - MAGNETIC TRANSDUCER, SMD TYPE
+F http://www.farnell.com/datasheets/97523.pdf
+$ENDCMP
+#
+$CMP LIS3DSH
+F https://www.st.com/resource/en/datasheet/lis3dsh.pdf
+$ENDCMP
+#
+$CMP LM2940IMP*
+F http://www.ti.com/lit/ds/symlink/lm3940.pdf
+$ENDCMP
+#
+$CMP LM3940IMP*
+F http://www.ti.com/lit/ds/symlink/lm3940.pdf
+$ENDCMP
+#
+#End Doc Library
