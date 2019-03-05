@@ -1,2 +1,5 @@
 *.lst
 *.o
+software/build/*
+software/dep/*
+software/*TAGS*
