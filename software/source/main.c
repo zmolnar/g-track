@@ -16,17 +16,47 @@
 
 #include "ch.h"
 #include "hal.h"
+
+#include "ch_test.h"
 #include "rt_test_root.h"
 #include "oslib_test_root.h"
+
+#include "chprintf.h"
+#include "shell.h"
+
+#include "usbcfg.h"
+
+/*===========================================================================*/
+/* Command line related.                                                     */
+/*===========================================================================*/
+
+#define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
+
+static void cmd_mycommand(BaseSequentialStream *chp, int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
+
+  chprintf(chp, "my command executed\n\r");
+}
+
+static const ShellCommand commands[] = {
+  {"mycommand", cmd_mycommand},
+  {NULL, NULL}
+};
+
+static const ShellConfig shell_cfg1 = {
+  (BaseSequentialStream *)&SDU1,
+  commands
+};
 
 /*
  * Green LED blinker thread, times are in milliseconds.
  */
-static THD_WORKING_AREA(waThread1, 128);
-static THD_FUNCTION(Thread1, arg) {
+static THD_WORKING_AREA(waHeartBeatThread, 128);
+static THD_FUNCTION(HeartBeatThread, arg) {
 
   (void)arg;
-  chRegSetThreadName("blinker");
+  chRegSetThreadName("heartbeat");
   while (true) {
     palClearLine(LINE_LED_3_GREEN);
     chThdSleepMilliseconds(500);
@@ -51,26 +81,45 @@ int main(void) {
   chSysInit();
 
   /*
-   * Activates the serial driver 2 using the driver default configuration.
+   * Shell manager initialization.
    */
-  sdStart(&SD2, NULL);
+  shellInit();
 
   /*
-   * Creates the blinker thread.
+   * Initializes a serial-over-USB CDC driver.
    */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+  sduObjectInit(&SDU1);
+  sduStart(&SDU1, &serusbcfg);
 
   /*
-   * Normal main() thread activity, in this demo it does nothing except
-   * sleeping in a loop and check the button state.
+   * Creates the LED blinker hearbeat thread.
    */
+  chThdCreateStatic(waHeartBeatThread,
+                    sizeof(waHeartBeatThread),
+                    NORMALPRIO,
+                    HeartBeatThread,
+                    NULL);
+
+  /*
+   * Activates the USB driver and then the USB bus pull-up on D+.
+   * Note, a delay is inserted in order to not have to disconnect the cable
+   * after a reset.
+   */
+  usbDisconnectBus(serusbcfg.usbp);
+  chThdSleepMilliseconds(1000);
+  usbStart(serusbcfg.usbp, &usbcfg);
+  usbConnectBus(serusbcfg.usbp);
+
   while (true) {
-#if 0
-    if (!palReadLine(LINE_ARD_D3)) {
-      test_execute((BaseSequentialStream *)&SD2, &rt_test_suite);
-      test_execute((BaseSequentialStream *)&SD2, &oslib_test_suite);
+    if (SDU1.config->usbp->state == USB_ACTIVE) {
+      thread_t *shelltp = chThdCreateFromHeap(NULL,
+                                              SHELL_WA_SIZE,
+                                              "shell",
+                                              NORMALPRIO + 1,
+                                              shellThread,
+                                              (void *)&shell_cfg1);
+      chThdWait(shelltp);               /* Waiting termination.             */
     }
-#endif
-    chThdSleepMilliseconds(500);
+    chThdSleepMilliseconds(1000);
   }
 }

@@ -17,7 +17,7 @@
 /*
  * Board identifier.
  */
-#define BOARD_ST_STM32F746G_DISCOVERY
+#define BOARD_G_TRACK_V_1_0
 #define BOARD_NAME                  "G-track GPS tracker v1.0"
 
 /*
@@ -62,7 +62,7 @@
 #define GPIOA_USB_DP                12U
 #define GPIOA_USB_LED               13U
 #define GPIOA_SWD_SWCLK             14U
-#define GPIOA_LED_2_GREEN           15U
+#define GPIOA_LED_2_RED             15U
 
 #define GPIOB_ACC_INT1              0U
 #define GPIOB_ACC_INT2              1U
@@ -115,7 +115,7 @@
 #define LINE_USB_DP                 PAL_LINE(GPIOA, GPIOA_USB_DP)
 #define LINE_USB_LED                PAL_LINE(GPIOA, GPIOA_USB_LED)
 #define LINE_SWD_SWCLK              PAL_LINE(GPIOA, GPIOA_SWD_SWCLK)
-#define LINE_LED_2_GREEN            PAL_LINE(GPIOA, GPIOA_LED_2_GREEN)
+#define LINE_LED_2_RED              PAL_LINE(GPIOA, GPIOA_LED_2_GREEN)
 
 #define LINE_ACC_INT1               PAL_LINE(GPIOB, GPIOB_ACC_INT1)
 #define LINE_ACC_INT2               PAL_LINE(GPIOB, GPIOB_ACC_INT2)  
@@ -180,7 +180,7 @@
  * PA12 - USB_DP                    (input pullup).
  * PA13 - USB_LED                   (input pullup).
  * PA14 - SWD_SWCLK                 (input pullup).
- * PA15 - LED_2_GREEN               (input pullup).
+ * PA15 - LED_2_RED                 (output push-pull).
  */
 #define VAL_GPIOA_MODER             (PIN_MODE_INPUT(GPIOA_DCM_AIN1)       | \
                                      PIN_MODE_INPUT(GPIOA_DCM_AIN2)       | \
@@ -197,7 +197,7 @@
                                      PIN_MODE_INPUT(GPIOA_USB_DP)         | \
                                      PIN_MODE_INPUT(GPIOA_USB_LED)        | \
                                      PIN_MODE_INPUT(GPIOA_SWD_SWCLK)      | \
-                                     PIN_MODE_INPUT(GPIOA_LED_2_GREEN))
+                                     PIN_MODE_OUTPUT(GPIOA_LED_2_RED))
 #define VAL_GPIOA_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOA_DCM_AIN1)       | \
                                      PIN_OTYPE_PUSHPULL(GPIOA_DCM_AIN2)       | \
                                      PIN_OTYPE_PUSHPULL(GPIOA_DCM_BIN2)       | \
@@ -213,7 +213,7 @@
                                      PIN_OTYPE_PUSHPULL(GPIOA_USB_DP)         | \
                                      PIN_OTYPE_PUSHPULL(GPIOA_USB_LED)        | \
                                      PIN_OTYPE_PUSHPULL(GPIOA_SWD_SWCLK)      | \
-                                     PIN_OTYPE_PUSHPULL(GPIOA_LED_2_GREEN))
+                                     PIN_OTYPE_PUSHPULL(GPIOA_LED_2_RED))
 #define VAL_GPIOA_OSPEEDR           (PIN_OSPEED_HIGH(GPIOA_DCM_AIN1)       | \
                                      PIN_OSPEED_HIGH(GPIOA_DCM_AIN2)       | \
                                      PIN_OSPEED_HIGH(GPIOA_DCM_BIN2)       | \
@@ -229,7 +229,7 @@
                                      PIN_OSPEED_HIGH(GPIOA_USB_DP)         | \
                                      PIN_OSPEED_HIGH(GPIOA_USB_LED)        | \
                                      PIN_OSPEED_HIGH(GPIOA_SWD_SWCLK)      | \
-                                     PIN_OSPEED_HIGH(GPIOA_LED_2_GREEN))
+                                     PIN_OSPEED_HIGH(GPIOA_LED_2_RED))
 #define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLUP(GPIOA_DCM_AIN1)       | \
                                      PIN_PUPDR_PULLUP(GPIOA_DCM_AIN2)       | \
                                      PIN_PUPDR_PULLUP(GPIOA_DCM_BIN2)       | \
@@ -245,7 +245,7 @@
                                      PIN_PUPDR_PULLUP(GPIOA_USB_DP)         | \
                                      PIN_PUPDR_PULLUP(GPIOA_USB_LED)        | \
                                      PIN_PUPDR_PULLUP(GPIOA_SWD_SWCLK)      | \
-                                     PIN_PUPDR_PULLUP(GPIOA_LED_2_GREEN))
+                                     PIN_PUPDR_PULLUP(GPIOA_LED_2_RED))
 #define VAL_GPIOA_ODR               (PIN_ODR_HIGH(GPIOA_DCM_AIN1)       | \
                                      PIN_ODR_HIGH(GPIOA_DCM_AIN2)       | \
                                      PIN_ODR_HIGH(GPIOA_DCM_BIN2)       | \
@@ -261,7 +261,7 @@
                                      PIN_ODR_HIGH(GPIOA_USB_DP)         | \
                                      PIN_ODR_HIGH(GPIOA_USB_LED)        | \
                                      PIN_ODR_HIGH(GPIOA_SWD_SWCLK)      | \
-                                     PIN_ODR_HIGH(GPIOA_LED_2_GREEN))
+                                     PIN_ODR_HIGH(GPIOA_LED_2_RED))
 #define VAL_GPIOA_AFRL              (PIN_AFIO_AF(GPIOA_DCM_AIN1, 0U)       | \
                                      PIN_AFIO_AF(GPIOA_DCM_AIN2, 0U)       | \
                                      PIN_AFIO_AF(GPIOA_DCM_BIN2, 0U)       | \
@@ -277,7 +277,7 @@
                                      PIN_AFIO_AF(GPIOA_USB_DP, 0U)         | \
                                      PIN_AFIO_AF(GPIOA_USB_LED, 0U)        | \
                                      PIN_AFIO_AF(GPIOA_SWD_SWCLK, 0U)      | \
-                                     PIN_AFIO_AF(GPIOA_LED_2_GREEN, 0U))
+                                     PIN_AFIO_AF(GPIOA_LED_2_RED, 0U))
 
 /*
  * GPIOB setup:
@@ -409,7 +409,7 @@
  * PC7  - PC7_NC                    (input pullup).
  * PC8  - PC8_NC                    (input pullup).
  * PC9  - PC9_NC                    (input pullup).
- * PC10 - LED_3_GREEN               (input pullup).
+ * PC10 - LED_3_GREEN               (output push-pull).
  * PC11 - EXT_IGNITION              (input pullup).
  * PC12 - EXT_SW2                   (input pullup).
  * PC13 - EXT_LED                   (input pullup).
@@ -426,7 +426,7 @@
                                      PIN_MODE_INPUT(GPIOC_PC7_NC)             | \
                                      PIN_MODE_INPUT(GPIOC_PC8_NC)             | \
                                      PIN_MODE_INPUT(GPIOC_PC9_NC)             | \
-                                     PIN_MODE_INPUT(GPIOC_LED_3_GREEN)        | \
+                                     PIN_MODE_OUTPUT(GPIOC_LED_3_GREEN)       | \
                                      PIN_MODE_INPUT(GPIOC_EXT_IGNITION)       | \
                                      PIN_MODE_INPUT(GPIOC_EXT_SW2)            | \
                                      PIN_MODE_INPUT(GPIOC_EXT_LED)            | \
