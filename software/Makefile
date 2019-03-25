@@ -84,6 +84,7 @@ endif
 
 # Define project name here
 PROJECT = gtrack
+CONFDIR = ./config
 
 # Imported source files and paths
 CHIBIOS = ./ChibiOS
@@ -107,6 +108,7 @@ include $(CHIBIOS)/test/rt/rt_test.mk
 include $(CHIBIOS)/test/oslib/oslib_test.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 include $(CHIBIOS)/os/various/shell/shell.mk
+include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/STM32L452xC.ld
@@ -116,7 +118,8 @@ LDSCRIPT= $(STARTUPLD)/STM32L452xC.ld
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
        source/main.c \
-       source/usbcfg.c
+       source/SdcHandlerThread.c \
+       $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -146,7 +149,7 @@ TCPPSRC =
 ASMSRC = $(ALLASMSRC)
 ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(ALLINC) $(TESTINC)
+INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR)
 
 #
 # Project, sources and paths
