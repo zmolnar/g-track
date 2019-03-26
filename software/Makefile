@@ -118,7 +118,9 @@ LDSCRIPT= $(STARTUPLD)/STM32L452xC.ld
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
        source/main.c \
+       source/BoardMonitorThread.c \
        source/SdcHandlerThread.c \
+       source/ShellManagerThread.c \
        $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

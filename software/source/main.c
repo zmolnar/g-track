@@ -16,42 +16,14 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "shell.h"
-#include "usbcfg.h"
 
+#include "BoardMonitorThread.h"
+#include "ShellManagerThread.h"
 #include "SdcHandlerThread.h"
 
+static THD_WORKING_AREA(waBoardMonitorThread, 1024);
+static THD_WORKING_AREA(waShellManagerThread, 1024);
 static THD_WORKING_AREA(waSdcHandlerThread, 1024);
-
-/*===========================================================================*/
-/* Command line related.                                                     */
-/*===========================================================================*/
-
-#define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
-
-static const ShellCommand commands[] = {
-  {"tree", SdcCmdTree},
-  {NULL, NULL}
-};
-
-static const ShellConfig shell_cfg1 = {
-  (BaseSequentialStream *)&SDU1,
-  commands
-};
-
-static thread_t *shelltp = NULL;
-
-/*
- * Shell exit event.
- */
-static void ShellHandler(eventid_t id) {
-
-  (void)id;
-  if (chThdTerminatedX(shelltp)) {
-    chThdWait(shelltp);   
-    shelltp = NULL;
-  }
-}
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -61,10 +33,9 @@ static THD_FUNCTION(HeartBeatThread, arg) {
 
   (void)arg;
   chRegSetThreadName("heartbeat");
+
   while (true) {
-    palClearLine(LINE_LED_3_GREEN);
-    chThdSleepMilliseconds(500);
-    palSetLine(LINE_LED_3_GREEN);
+    palToggleLine(LINE_LED_3_GREEN);
     chThdSleepMilliseconds(500);
   }
 }
@@ -73,11 +44,6 @@ static THD_FUNCTION(HeartBeatThread, arg) {
  * Application entry point.
  */
 int main(void) {
-  static const evhandler_t evhndl[] = {
-    ShellHandler
-  };
-  event_listener_t shell_listener;
-  
   /*
    * System initializations.
    * - HAL initialization, this also initializes the configured device drivers
@@ -88,48 +54,32 @@ int main(void) {
   halInit();
   chSysInit();
 
-  /*
-   * Initializes a serial-over-USB CDC driver.
-   */
-  sduObjectInit(&SDU1);
-  sduStart(&SDU1, &serusbcfg);
-  
-
-  /*
-   * Shell manager initialization.
-   */
-  shellInit();  
-  chEvtRegister(&shell_terminated, &shell_listener, 0);
-
-  /*
-   * Creates the LED blinker hearbeat thread.
-   */
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
                     NORMALPRIO,
                     HeartBeatThread,
                     NULL);
+
+  chThdCreateStatic(waShellManagerThread,
+                    sizeof(waShellManagerThread),
+                    NORMALPRIO,
+                    ShellManagerThread,
+                    NULL);
+  
   chThdCreateStatic(waSdcHandlerThread,
                     sizeof(waSdcHandlerThread),
                     NORMALPRIO,
                     SdcHandlerThread,
                     NULL);
-  /*
-   * Activates the USB driver and then the USB bus pull-up on D+.
-   * Note, a delay is inserted in order to not have to disconnect the cable
-   * after a reset.
-   */
-  usbDisconnectBus(serusbcfg.usbp);
-  chThdSleepMilliseconds(1000);
-  usbStart(serusbcfg.usbp, &usbcfg);
-  usbConnectBus(serusbcfg.usbp);
-  
+
+  chThdCreateStatic(waBoardMonitorThread,
+                    sizeof(waBoardMonitorThread),
+                    NORMALPRIO,
+                    BoardMonitorThread,
+                    NULL);
+    
   while (true) {
-    if (!shelltp) {
-      shelltp = chThdCreateFromHeap(NULL, SHELL_WA_SIZE,
-                                    "shell", NORMALPRIO + 1,
-                                    shellThread, (void *)&shell_cfg1);
-    }
-    chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, TIME_MS2I(500)));
+    chThdSleepMilliseconds(1000);
+    // TODO: update watchdog here.
   }
 }

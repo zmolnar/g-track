@@ -15,8 +15,6 @@
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
 /*******************************************************************************/
-#define POLLING_INTERVAL                10
-#define POLLING_DELAY                   10
 
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
@@ -29,14 +27,8 @@
 /*******************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
 /*******************************************************************************/
-/* Card monitor timer.*/
-static virtual_timer_t sdc_monitor_timer;
-
-/* SW debounce counter.*/
-static unsigned debounce_counter;
-
-/* Card event sources.*/
-static event_source_t inserted_event, removed_event;
+event_source_t sdc_inserted_event;
+event_source_t sdc_removed_event;
 
 /* Filesystem object.*/
 static FATFS SDC_FS;
@@ -71,56 +63,7 @@ MMCDriver MMCD1;
 /*******************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                               */
 /*******************************************************************************/
-/**
- * @brief   Insertion monitor timer callback function.
- *
- * @param[in] p         pointer to the @p BaseBlockDevice object
- *
- * @notapi
- */
-static void sdc_monitor_timer_callback(void *p) {
-  BaseBlockDevice *bbdp = p;
-  
-  chSysLockFromISR();
-  if (debounce_counter > 0) {
-    if (blkIsInserted(bbdp)) {
-      if (--debounce_counter == 0) {
-        chEvtBroadcastI(&inserted_event);
-      }
-    }
-    else
-      debounce_counter = POLLING_INTERVAL;
-  }
-  else {
-    if (!blkIsInserted(bbdp)) {
-      debounce_counter = POLLING_INTERVAL;
-      chEvtBroadcastI(&removed_event);
-    }
-  }
-  chVTSetI(&sdc_monitor_timer, TIME_MS2I(POLLING_DELAY),
-           sdc_monitor_timer_callback, bbdp);
-  chSysUnlockFromISR();
-}
-
-/**
- * @brief   Polling monitor start.
- *
- * @param[in] p         pointer to an object implementing @p BaseBlockDevice
- *
- * @notapi
- */
-static void sdc_monitor_init(void *p) {
-
-  chEvtObjectInit(&inserted_event);
-  chEvtObjectInit(&removed_event);
-  chSysLock();
-  debounce_counter = POLLING_INTERVAL;
-  chVTSetI(&sdc_monitor_timer, TIME_MS2I(POLLING_DELAY),
-           sdc_monitor_timer_callback, p);
-  chSysUnlock();
-}
-
-static void insert_handler(eventid_t id) {
+static void sdc_insert_handler(eventid_t id) {
   FRESULT err;
 
   (void)id;
@@ -138,7 +81,7 @@ static void insert_handler(eventid_t id) {
   palClearLine(LINE_LED_2_RED);
 }
 
-static void remove_handler(eventid_t id) {
+static void sdc_remove_handler(eventid_t id) {
 
   (void)id;
 
@@ -208,24 +151,25 @@ void SdcCmdTree(BaseSequentialStream *chp, int argc, char *argv[]) {
   scan_files(chp, (char *)fbuff);
 }
 
-THD_FUNCTION(SdcHandlerThread, arg)
-{
+THD_FUNCTION(SdcHandlerThread, arg) {
   (void)arg;
   chRegSetThreadName("sdchandler");
   
   static const evhandler_t eventHandlers[] = {
-    insert_handler,
-    remove_handler
+    sdc_insert_handler,
+    sdc_remove_handler
   };
-  event_listener_t insert_listener, remove_listener;
+  event_listener_t sdc_insert_listener;
+  event_listener_t sdc_remove_listener;
 
   mmcObjectInit(&MMCD1);
   mmcStart(&MMCD1, &mmccfg);
-    
-  sdc_monitor_init(&MMCD1);
 
-  chEvtRegister(&inserted_event, &insert_listener, 0);
-  chEvtRegister(&removed_event, &remove_listener, 1);
+  chEvtObjectInit(&sdc_inserted_event);
+  chEvtObjectInit(&sdc_removed_event);
+  
+  chEvtRegister(&sdc_inserted_event, &sdc_insert_listener, 0);
+  chEvtRegister(&sdc_removed_event, &sdc_remove_listener, 1);
 
   while(true) {
     chEvtDispatch(eventHandlers, chEvtWaitOneTimeout(ALL_EVENTS, TIME_MS2I(500)));

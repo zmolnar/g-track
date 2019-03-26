@@ -1,18 +1,16 @@
 /**
- * @file SdcHandlerThread.h
- * @brief Thread that handles SD-card events.
+ * @file ShellManagerThread.h
+ * @brief USB and Bluetooth debug shell handler thread.
  * @author Molnar Zoltan
- */
+*/
 
-#ifndef SDCHANDLERTHREAD_H
-#define SDCHANDLERTHREAD_H
+#ifndef SHELLMANAGERTHREAD_H
+#define SHELLMANAGERTHREAD_H
 
 /*******************************************************************************/
 /* INCLUDES                                                                    */
 /*******************************************************************************/
 #include "ch.h"
-#include "hal.h"
-#include "ff.h"
 
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
@@ -29,15 +27,13 @@
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                             */
 /*******************************************************************************/
-extern event_source_t sdc_inserted_event;
-extern event_source_t sdc_removed_event;
+extern event_source_t usb_plugged_in_event;
+extern event_source_t usb_removed_event;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                             */
 /*******************************************************************************/
-void SdcCmdTree(BaseSequentialStream *chp, int argc, char *argv[]);
-
-THD_FUNCTION(SdcHandlerThread, arg);
+THD_FUNCTION(ShellManagerThread, arg);
 
 #endif
 

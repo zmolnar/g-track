@@ -1,18 +1,16 @@
 /**
- * @file SdcHandlerThread.h
- * @brief Thread that handles SD-card events.
+ * @file BoardMonitorThread.h
+ * @brief Thread to handle board events.
  * @author Molnar Zoltan
- */
+*/
 
-#ifndef SDCHANDLERTHREAD_H
-#define SDCHANDLERTHREAD_H
+#ifndef BOARDMONITORTHREAD_H
+#define BOARDMONITORTHREAD_H
 
 /*******************************************************************************/
 /* INCLUDES                                                                    */
 /*******************************************************************************/
 #include "ch.h"
-#include "hal.h"
-#include "ff.h"
 
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
@@ -29,16 +27,13 @@
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                             */
 /*******************************************************************************/
-extern event_source_t sdc_inserted_event;
-extern event_source_t sdc_removed_event;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                             */
 /*******************************************************************************/
-void SdcCmdTree(BaseSequentialStream *chp, int argc, char *argv[]);
-
-THD_FUNCTION(SdcHandlerThread, arg);
+THD_FUNCTION(BoardMonitorThread, arg);
 
 #endif
 
 /******************************* END OF FILE ***********************************/
+
