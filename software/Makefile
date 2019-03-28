@@ -121,6 +121,9 @@ CSRC = $(ALLCSRC) \
        source/BoardMonitorThread.c \
        source/SdcHandlerThread.c \
        source/ShellManagerThread.c \
+       source/ModemHandlerThread.c \
+       source/sim8xx/sim8xx.c \
+       source/sim8xx/sim8xxReaderThread.c \
        $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

@@ -304,8 +304,8 @@
                                      PIN_MODE_INPUT(GPIOB_SWD_SWO)            | \
                                      PIN_MODE_INPUT(GPIOB_PB4_NC)             | \
                                      PIN_MODE_INPUT(GPIOB_WAVESHARE_POWER)    | \
-                                     PIN_MODE_INPUT(GPIOB_RPI_UART_TX)        | \
-                                     PIN_MODE_INPUT(GPIOB_RPI_UART_RX)        | \
+                                     PIN_MODE_ALTERNATE(GPIOB_RPI_UART_TX)    | \
+                                     PIN_MODE_ALTERNATE(GPIOB_RPI_UART_RX)    | \
                                      PIN_MODE_INPUT(GPIOB_PB8_NC)             | \
                                      PIN_MODE_INPUT(GPIOB_EXT_SW1)            | \
                                      PIN_MODE_INPUT(GPIOB_BUZZER_PWM)         | \
@@ -384,8 +384,8 @@
                                      PIN_AFIO_AF(GPIOB_SWD_SWO, 0U)            | \
                                      PIN_AFIO_AF(GPIOB_PB4_NC, 0U)             | \
                                      PIN_AFIO_AF(GPIOB_WAVESHARE_POWER, 0U)    | \
-                                     PIN_AFIO_AF(GPIOB_RPI_UART_TX, 0U)        | \
-                                     PIN_AFIO_AF(GPIOB_RPI_UART_RX, 0U))
+                                     PIN_AFIO_AF(GPIOB_RPI_UART_TX, 7U)        | \
+                                     PIN_AFIO_AF(GPIOB_RPI_UART_RX, 7U))
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF(GPIOB_PB8_NC, 0U)             | \
                                      PIN_AFIO_AF(GPIOB_EXT_SW1, 0U)            | \
                                      PIN_AFIO_AF(GPIOB_BUZZER_PWM, 0U)         | \

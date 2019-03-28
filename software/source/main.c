@@ -20,10 +20,12 @@
 #include "BoardMonitorThread.h"
 #include "ShellManagerThread.h"
 #include "SdcHandlerThread.h"
+#include "ModemHandlerThread.h"
 
 static THD_WORKING_AREA(waBoardMonitorThread, 1024);
 static THD_WORKING_AREA(waShellManagerThread, 1024);
 static THD_WORKING_AREA(waSdcHandlerThread, 1024);
+static THD_WORKING_AREA(waModemHandlerThread, 8192);
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -77,7 +79,12 @@ int main(void) {
                     NORMALPRIO,
                     BoardMonitorThread,
                     NULL);
-    
+  
+  chThdCreateStatic(waModemHandlerThread,
+                    sizeof(waModemHandlerThread),
+                    NORMALPRIO,
+                    ModemHandlerThread,
+                    NULL);
   while (true) {
     chThdSleepMilliseconds(1000);
     // TODO: update watchdog here.
