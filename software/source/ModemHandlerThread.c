@@ -48,6 +48,10 @@ THD_FUNCTION(ModemHandlerThread, arg) {
 
   sim8xxInit(&SIM8D1);
   sim8xxStart(&SIM8D1, &sim_config);
+
+  palClearLine(LINE_WAVESHARE_POWER);
+  chThdSleepMilliseconds(4000);
+  palSetLine(LINE_WAVESHARE_POWER);
   
   while(true) {
     Sim8xxCommand cmd;

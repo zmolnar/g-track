@@ -286,7 +286,7 @@
  * PB2  - PB2_NC                    (input pullup).
  * PB3  - SWD_SWO                   (input pullup).
  * PB4  - PB4_NC                    (input pullup).
- * PB5  - WAVESHARE_POWER           (input pullup).
+ * PB5  - WAVESHARE_POWER           (output push-pull).
  * PB6  - RPI_UART_TX               (input pullup).
  * PB7  - RPI_UART_RX               (input pullup).
  * PB8  - PB8_NC                    (input pullup).
@@ -303,7 +303,7 @@
                                      PIN_MODE_INPUT(GPIOB_PB2_NC)             | \
                                      PIN_MODE_INPUT(GPIOB_SWD_SWO)            | \
                                      PIN_MODE_INPUT(GPIOB_PB4_NC)             | \
-                                     PIN_MODE_INPUT(GPIOB_WAVESHARE_POWER)    | \
+                                     PIN_MODE_OUTPUT(GPIOB_WAVESHARE_POWER)   | \
                                      PIN_MODE_ALTERNATE(GPIOB_RPI_UART_TX)    | \
                                      PIN_MODE_ALTERNATE(GPIOB_RPI_UART_RX)    | \
                                      PIN_MODE_INPUT(GPIOB_PB8_NC)             | \
