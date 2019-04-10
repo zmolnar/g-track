@@ -360,8 +360,8 @@
                                      PIN_PUPDR_PULLUP(GPIOB_PB11_NC)            | \
                                      PIN_PUPDR_PULLUP(GPIOB_SDC_SPI2_CS)        | \
                                      PIN_PUPDR_PULLDOWN(GPIOB_SDC_SPI2_SCK)     | \
-                                     PIN_PUPDR_FLOATING(GPIOB_SDC_SPI2_MISO)    | \
-                                     PIN_PUPDR_FLOATING(GPIOB_SDC_SPI2_MOSI))
+                                     PIN_PUPDR_PULLUP(GPIOB_SDC_SPI2_MISO)      | \
+                                     PIN_PUPDR_PULLUP(GPIOB_SDC_SPI2_MOSI))
 #define VAL_GPIOB_ODR               (PIN_ODR_HIGH(GPIOB_ACC_INT1)           | \
                                      PIN_ODR_HIGH(GPIOB_ACC_INT2)           | \
                                      PIN_ODR_HIGH(GPIOB_PB2_NC)             | \
