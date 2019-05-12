@@ -1,11 +1,10 @@
 /**
  * @file BoardMonitorThread.h
  * @brief Thread to handle board events.
- * @author Molnar Zoltan
 */
 
-#ifndef BOARDMONITORTHREAD_H
-#define BOARDMONITORTHREAD_H
+#ifndef BOARD_MONITOR_THREAD_H
+#define BOARD_MONITOR_THREAD_H
 
 /*******************************************************************************/
 /* INCLUDES                                                                    */
@@ -32,8 +31,9 @@
 /* DECLARATION OF GLOBAL FUNCTIONS                                             */
 /*******************************************************************************/
 THD_FUNCTION(BoardMonitorThread, arg);
+void BoardMonitorThreadInit(void);
 
-#endif
+#endif /* BOARD_MONITOR_THREAD_H */
 
 /******************************* END OF FILE ***********************************/
 

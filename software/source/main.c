@@ -18,14 +18,14 @@
 #include "hal.h"
 
 #include "BoardMonitorThread.h"
-#include "ShellManagerThread.h"
-#include "SdcHandlerThread.h"
-#include "ModemHandlerThread.h"
+#include "SystemThread.h"
+#include "PeripheralManagerThread.h"
+#include "GpsReaderThread.h"
 
-static THD_WORKING_AREA(waBoardMonitorThread, 1024);
-static THD_WORKING_AREA(waShellManagerThread, 1024);
-static THD_WORKING_AREA(waSdcHandlerThread, 1024);
-static THD_WORKING_AREA(waModemHandlerThread, 8192);
+static THD_WORKING_AREA(waSystemThread, 8192);
+static THD_WORKING_AREA(waBoardMonitorThread, 8192);
+static THD_WORKING_AREA(waPeripheralManagerThread, 8192);
+static THD_WORKING_AREA(waGpsReaderThread, 8192);
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -56,35 +56,41 @@ int main(void) {
   halInit();
   chSysInit();
 
+  SystemThreadInit();
+  BoardMonitorThreadInit();
+  PeripheralManagerThreadInit();
+  GpsReaderThreadInit();
+
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
                     NORMALPRIO,
                     HeartBeatThread,
                     NULL);
 
-  chThdCreateStatic(waShellManagerThread,
-                    sizeof(waShellManagerThread),
+  chThdCreateStatic(waSystemThread,
+                    sizeof(waSystemThread),
                     NORMALPRIO,
-                    ShellManagerThread,
-                    NULL);
-  
-  chThdCreateStatic(waSdcHandlerThread,
-                    sizeof(waSdcHandlerThread),
-                    NORMALPRIO,
-                    SdcHandlerThread,
+                    SystemThread,
                     NULL);
 
   chThdCreateStatic(waBoardMonitorThread,
                     sizeof(waBoardMonitorThread),
                     NORMALPRIO,
                     BoardMonitorThread,
-                    NULL);
-  
-  chThdCreateStatic(waModemHandlerThread,
-                    sizeof(waModemHandlerThread),
+                    NULL);  
+
+  chThdCreateStatic(waPeripheralManagerThread,
+                    sizeof(waPeripheralManagerThread),
                     NORMALPRIO,
-                    ModemHandlerThread,
-                    NULL);
+                    PeripheralManagerThread,
+                    NULL);   
+
+  chThdCreateStatic(waGpsReaderThread,
+                    sizeof(waGpsReaderThread),
+                    NORMALPRIO,
+                    GpsReaderThread,
+                    NULL);       
+
   while (true) {
     chThdSleepMilliseconds(1000);
     // TODO: update watchdog here.

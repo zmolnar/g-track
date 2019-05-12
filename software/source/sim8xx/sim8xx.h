@@ -33,12 +33,12 @@ typedef enum {
 typedef struct Sim8xxConfig {
   SerialDriver *sdp;
   SerialConfig *sdConfig;
+  ioline_t powerline;
 } Sim8xxConfig;
 
 typedef struct Sim8xxDriver {
   sim8xxstate_t state;
   const Sim8xxConfig *config;
-  BaseSequentialStream *stream;
   thread_reference_t writer;
   thread_reference_t reader;
   mutex_t lock;
@@ -46,18 +46,32 @@ typedef struct Sim8xxDriver {
   semaphore_t sync;
   char rxbuf[512];
   size_t rxlength;
-
-  char *needle;
 } Sim8xxDriver;
+
+typedef enum {
+  SIM8XX_OK,
+  SIM8XX_CONNECT,
+  SIM8XX_RING,
+  SIM8XX_NO_CARRIER,
+  SIM8XX_ERROR,
+  SIM8XX_NO_DIALTONE,
+  SIM8XX_BUSY,
+  SIM8XX_NO_ANSWER,
+  SIM8XX_PROCEEDING,
+  SIM8XX_TIMEOUT,
+  SIM8XX_INVALID_STATUS
+} Sim8xxCommandStatus_t;
 
 typedef struct Sim8xxCommand {
   char request[512];
   char response[512];
+  Sim8xxCommandStatus_t status;
 } Sim8xxCommand;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                             */
 /*******************************************************************************/
+extern Sim8xxDriver SIM8D1;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                             */
@@ -66,6 +80,9 @@ void sim8xxInit(Sim8xxDriver *simp);
 void sim8xxStart(Sim8xxDriver *simp, Sim8xxConfig *cfgp);
 void sim8xxCommandInit(Sim8xxCommand *cmdp);
 void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp);
+bool sim8xxIsConnected(Sim8xxDriver *simp);
+void sim8xxTogglePower(Sim8xxDriver *simp);
+Sim8xxCommandStatus_t sim8xxGetStatus(char *data);
 
 #endif
 

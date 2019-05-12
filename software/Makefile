@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16
 endif
 
 # C specific options here (added to USE_OPT).
@@ -89,6 +89,7 @@ CONFDIR = ./config
 # Imported source files and paths
 CHIBIOS = ./ChibiOS
 BOARD   = ./board
+SIM8XX  = ./source/sim8xx
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -119,11 +120,14 @@ CSRC = $(ALLCSRC) \
        $(TESTSRC) \
        source/main.c \
        source/BoardMonitorThread.c \
-       source/SdcHandlerThread.c \
-       source/ShellManagerThread.c \
-       source/ModemHandlerThread.c \
-       source/sim8xx/sim8xx.c \
-       source/sim8xx/sim8xxReaderThread.c \
+       source/PeripheralManagerThread.c \
+       source/SystemThread.c \
+       source/GpsReaderThread.c \
+       source/BoardEvents.c \
+       source/DebugShell.c \
+       source/Sdcard.c \
+       $(SIM8XX)/sim8xx.c \
+       $(SIM8XX)/sim8xxReaderThread.c \
        $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -154,7 +158,7 @@ TCPPSRC =
 ASMSRC = $(ALLASMSRC)
 ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR)
+INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR) $(SIM8XX)
 
 #
 # Project, sources and paths

@@ -10,11 +10,12 @@
 #include "sim8xx.h"
 #include "sim8xxReaderThread.h"
 #include <string.h>
+#include "source/Sdcard.h"
 
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
 /*******************************************************************************/
-#define GUARD_TIME_IN_MS               100
+#define GUARD_TIME_IN_MS               250
 
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
@@ -27,7 +28,7 @@
 /*******************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
 /*******************************************************************************/
-static virtual_timer_t write_timer;
+static virtual_timer_t guard_timer;
 
 /*******************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                              */
@@ -36,57 +37,37 @@ static virtual_timer_t write_timer;
 /*******************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                               */
 /*******************************************************************************/
-static bool process_status(Sim8xxDriver *simp, const char *s) {
-  if(strcmp(s, "OK") &&
-     strcmp(s, "CONNECT") &&
-     strcmp(s, "RING") &&
-     strcmp(s, "NO CARRIER") &&
-     strcmp(s, "ERROR") &&
-     strcmp(s, "NO DIALTONE") &&
-     strcmp(s, "BUSY") &&
-     strcmp(s, "NO ANSWER") &&
-     strcmp(s, "PROCEEDING"))
+static void save_buffer(const char *data, size_t length) {
+  FIL log;
+  if (FR_OK == f_open(&log, "/sim8xx_at.log", FA_OPEN_APPEND | FA_WRITE)) {
+    UINT bw = 0;
+    f_write(&log, data, length, &bw);
+    f_close(&log);
+  }
+}
+
+static bool process_response(Sim8xxDriver *simp) {
+  if (SIM8XX_INVALID_STATUS == sim8xxGetStatus(simp->rxbuf))
     return false;
 
-  if(simp->writer) {
-    chSysLock();
+  chSysLock();
+  if (simp->writer) {
     chThdResumeS(&simp->writer, MSG_OK);
-    chSysUnlock();
   }
+  
+  chSysUnlock();
   
   return true;
 }
 
-static bool process_urc(Sim8xxDriver *simp, const char *s) {
+static bool process_urc(Sim8xxDriver *simp) {
   // send appropriate urc event
-  (void)s;
   (void)simp;
   return false;
 }
 
 static bool process_message(Sim8xxDriver *simp) {
-  char *data = simp->rxbuf;
-  size_t length = simp->rxlength;
-
-  if(length < 2)
-    return false;
-
-  if(('\r' != data[length-2]) || ('\n' != data[length-1]))
-    return false;
-
-  data[length-2] = '\0';
-
-  static const char *crlf = "\r\n";
-  
-  char *s, *needle;
-  for(s = needle = data; s; s = strstr(needle, crlf))
-    needle = s + strlen(crlf);    
-
-  bool result = process_status(simp, needle) || process_urc(simp, needle);
-
-  data[length-2] = '\r';
-
-  return result;
+  return process_response(simp) || process_urc(simp);
 }
 
 static void timer_cb(void *p) {
@@ -102,13 +83,12 @@ static void timer_cb(void *p) {
 THD_FUNCTION(sim8xxReaderThread, arg) {
   Sim8xxDriver *simp = (Sim8xxDriver*)arg;
   event_listener_t serial_event_listener;
-  event_source_t *pserial_event_source = chnGetEventSource(simp->config->sdp);
   
-  chEvtRegisterMaskWithFlags(pserial_event_source,
+  chEvtRegisterMaskWithFlags(chnGetEventSource(simp->config->sdp),
                              &serial_event_listener,
                              EVENT_MASK(7),
                              CHN_INPUT_AVAILABLE);
-  
+
   while(true) {
     chMtxLock(&simp->rxlock);
     memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
@@ -130,13 +110,15 @@ THD_FUNCTION(sim8xxReaderThread, arg) {
       }
     }
     
+    save_buffer(simp->rxbuf, simp->rxlength);
+    
     chSysLock();
-    chVTSetI(&write_timer, TIME_MS2I(GUARD_TIME_IN_MS), timer_cb, simp);
+    chVTSetI(&guard_timer, TIME_MS2I(GUARD_TIME_IN_MS), timer_cb, simp);
     chMtxUnlockS(&simp->rxlock);
     chThdSuspendS(&simp->reader);
-    chSysUnlock();      
+    simp->reader = NULL;
+    chSysUnlock();   
   }
 }
 
 /******************************* END OF FILE ***********************************/
-

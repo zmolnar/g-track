@@ -1,15 +1,15 @@
 /**
  * @file BoardMonitorThread.c
  * @brief Thread to handle board events.
- * @author Molnar Zoltan
  */
 
 /*******************************************************************************/
 /* INCLUDES                                                                    */
 /*******************************************************************************/
 #include "BoardMonitorThread.h"
-#include "ShellManagerThread.h"
-#include "SdcHandlerThread.h"
+#include "BoardEvents.h"
+#include "SystemThread.h"
+#include "hal.h"
 
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
@@ -28,8 +28,8 @@
 /*******************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
 /*******************************************************************************/
-static virtual_timer_t monitor_timer;
-static event_source_t timer_event;
+static virtual_timer_t monitorTimer;
+static event_source_t monitorTimerEvent;
 
 /*******************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                              */
@@ -38,18 +38,18 @@ static event_source_t timer_event;
 /*******************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                               */
 /*******************************************************************************/
-static bool is_sdc_inserted(void) {
+static bool isSdcardInserted(void) {
   return PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT) ? true : false;
 }
 
-static void check_sdcard(void) {
+static void checkSdcard(void) {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
   
   if (counter > 0) {
-    if (is_sdc_inserted()) {
+    if (isSdcardInserted()) {
       if (--counter == 0) {
         chSysLockFromISR();
-        chEvtBroadcastI(&sdc_inserted_event);
+        chEvtBroadcastI(&besSdcardInserted);
         chSysUnlockFromISR();
       }
     }
@@ -57,27 +57,28 @@ static void check_sdcard(void) {
       counter = DEBOUNCE_COUNTER_START;
   }
   else {
-    if (!is_sdc_inserted()) {
+    if (!isSdcardInserted()) {
       counter = DEBOUNCE_COUNTER_START;
       chSysLockFromISR();
-      chEvtBroadcastI(&sdc_removed_event);
+      chEvtBroadcastI(&besSdcardRemoved);
       chSysUnlockFromISR();
     }
   }
 }
 
-static bool is_usb_plugged_in(void) {
+static bool isUsbConnected(void) {
   return PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE) ? true : false;
 }
 
-static void check_usb(void) {
+static void checkUsb(void) {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
   
   if (counter > 0) {
-    if (is_usb_plugged_in()) {
+    if (isUsbConnected()) {
       if (--counter == 0) {
         chSysLockFromISR();
-        chEvtBroadcastI(&usb_plugged_in_event);
+        chEvtBroadcastI(&besUsbConnected);
+        chMBPostI(&systemMailbox, SYS_EVT_IGNITION_ON);
         chSysUnlockFromISR();
       }
     }
@@ -85,36 +86,29 @@ static void check_usb(void) {
       counter = DEBOUNCE_COUNTER_START;
   }
   else {
-    if (!is_usb_plugged_in()) {
+    if (!isUsbConnected()) {
       counter = DEBOUNCE_COUNTER_START;
       chSysLockFromISR();
-      chEvtBroadcastI(&usb_removed_event);
+      chEvtBroadcastI(&besUsbDisconnected);
+      chMBPostI(&systemMailbox, SYS_EVT_IGNITION_OFF);
       chSysUnlockFromISR();
     }
   }
 }
 
-static void monitor_timer_callback(void *p) {
+static void monitorTimerCallback(void *p) {
   (void)p;
   chSysLockFromISR();
-  chEvtBroadcastI(&timer_event);
-  chVTSetI(&monitor_timer, TIME_MS2I(POLLING_DELAY),
-           monitor_timer_callback, NULL);
+  chEvtBroadcastI(&monitorTimerEvent);
+  chVTSetI(&monitorTimer, TIME_MS2I(POLLING_DELAY),
+           monitorTimerCallback, NULL);
   chSysUnlockFromISR();
 }
 
-static void timer_handler(eventid_t id) {
+static void timerEventHandler(eventid_t id) {
   (void)id;
-  check_sdcard();
-  check_usb();
-}
-
-static void monitor_init(void) {
-  chEvtObjectInit(&timer_event);
-  chSysLock();
-  chVTSetI(&monitor_timer, TIME_MS2I(POLLING_DELAY),
-           monitor_timer_callback, NULL);
-  chSysUnlock();
+  checkSdcard();
+  checkUsb();
 }
 
 /*******************************************************************************/
@@ -123,22 +117,27 @@ static void monitor_init(void) {
 THD_FUNCTION(BoardMonitorThread, arg)
 {
     (void)arg;
-    chRegSetThreadName("boardmonitor");
+    chRegSetThreadName("board-monitor");
 
-    static const evhandler_t handlers[] = {
-      timer_handler
+    static const evhandler_t eventHandlers[] = {
+      timerEventHandler
     };
-
-    monitor_init();
     
-    event_listener_t timer_listener;
-    chEvtRegister(&timer_event, &timer_listener, 0);
+    event_listener_t timerEventListener;
+    chEvtRegister(&monitorTimerEvent, &timerEventListener, 0);
     
     while(true) {
-      chEvtDispatch(handlers, chEvtWaitOne(ALL_EVENTS));
+      chEvtDispatch(eventHandlers, chEvtWaitOne(ALL_EVENTS));
     }
 }
 
+void BoardMonitorThreadInit(void) {
+  boardEventsInit();
+  chEvtObjectInit(&monitorTimerEvent);
+  chSysLock();
+  chVTSetI(&monitorTimer, TIME_MS2I(POLLING_DELAY),
+           monitorTimerCallback, NULL);
+  chSysUnlock();
+}
 
 /******************************* END OF FILE ***********************************/
-
