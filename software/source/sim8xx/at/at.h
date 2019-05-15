@@ -1,5 +1,5 @@
 /**
- * @file At.h
+ * @file at.h
  * @brief Top-level include file for AT command library.
  */
 
@@ -9,6 +9,8 @@
 /*******************************************************************************/
 /* INCLUDES                                                                    */
 /*******************************************************************************/
+#include "commands/AtCgnsinf.h"
+#include "commands/AtCgnspwr.h"
 
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
