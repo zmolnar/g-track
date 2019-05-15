@@ -117,7 +117,7 @@ static void timerEventHandler(eventid_t id) {
 THD_FUNCTION(BoardMonitorThread, arg)
 {
     (void)arg;
-    chRegSetThreadName("board-monitor");
+    chRegSetThreadName("board");
 
     static const evhandler_t eventHandlers[] = {
       timerEventHandler

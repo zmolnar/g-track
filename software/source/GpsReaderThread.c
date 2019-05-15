@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "GpsReaderThread.h"
+#include "source/Sdcard.h"
 #include <stdlib.h>
 #include <string.h>
 #include "BoardEvents.h"
@@ -86,6 +87,7 @@ static void gpsPowerOff(void) {
   } while (GPS_ERROR_NO_ERROR != error);
 }
 
+#if 0    
 int dayOfWeek(int y, int m, int d) {
   return ((y -= m < 3) + y / 4 - y / 100 + y / 400 + "-bed=pen+mad."[m] + d) %
          7;
@@ -103,7 +105,6 @@ bool isDaylightSavingTime(int day, int month, int dow) {
   return false;  // this line never gonna happend
 }
 
-#if 0    
 bool convertDateToRTCDateTime(RTCDateTime *rtc, char *date) {
     char buf[19] = {0};
     size_t i;
@@ -146,12 +147,36 @@ bool convertDateToRTCDateTime(RTCDateTime *rtc, char *date) {
 }
 #endif
 
+static void saveBuffer(const char *data, size_t length) {
+  FIL log;
+  if (FR_OK == f_open(&log, "/sim8xx_gnss.log", FA_OPEN_APPEND | FA_WRITE)) {
+    UINT bw = 0;
+    f_write(&log, data, length, &bw);
+    f_close(&log);
+  }
+}
+
+static void printGpsData(CGNSINF_Response_t *pdata) {
+  char buf[150] = {0};
+  chsnprintf(buf, sizeof(buf), "%s %f %f %f %f %d %d %d %d\n", 
+              pdata->date, 
+              pdata->latitude, 
+              pdata->longitude,
+              pdata->speed,
+              pdata->altitude,
+              pdata->fixStatus,
+              pdata->gpsSatInView,
+              pdata->gnssSatInView,
+              pdata->gnssSatInUse);
+  saveBuffer(buf, strlen(buf));  
+}
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
 THD_FUNCTION(GpsReaderThread, arg) {
   (void)arg;
-  chRegSetThreadName("gps-reader");
+  chRegSetThreadName("gps");
 
   while (true) {
     chSemWait(&gpsSem);
@@ -164,6 +189,7 @@ THD_FUNCTION(GpsReaderThread, arg) {
       CGNSINF_Response_t data;
       bool status = atCgnsinfParse(&data, cmd.response);
       error = status ? GPS_ERROR_NO_ERROR : GPS_ERROR_IN_RESPONSE;
+      printGpsData(&data);
     } else {
       error = GPS_ERROR_DATA_UPDATE;
     }

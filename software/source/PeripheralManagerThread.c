@@ -67,7 +67,7 @@ static void debugShellTerminatedHandler(eventid_t id) {
 /*******************************************************************************/
 THD_FUNCTION(PeripheralManagerThread, arg) {
   (void)arg;
-  chRegSetThreadName("peripheral-manager");
+  chRegSetThreadName("peripheral");
 
   static const evhandler_t eventHandlers[] = {
     sdcardInsertedHandler,
