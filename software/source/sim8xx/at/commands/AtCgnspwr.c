@@ -7,6 +7,9 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "AtCgnspwr.h"
+#include "hal.h"
+#include "chprintf.h"
+#include <string.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -37,18 +40,19 @@ typedef enum {
 /*****************************************************************************/
 static bool atCgnspwrCreate(char buf[], size_t length, CGNSPWR_Action_t act) {
     memset(buf, 0, length);
-    chsnprint(buf, length, "AT+CGNSPWR=%d", (int)c);
+    chsnprintf(buf, length, "AT+CGNSPWR=%d", (int)act);
+    return true;
 }
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
 bool atCgnspwrCreateOn(char buf[], size_t length) {
-  atCgnspwrCreate(buf, length, GNSSPWR_ON);
+  return atCgnspwrCreate(buf, length, GNSSPWR_ON);
 }
 
 bool atCgnspwrCreateOff(char buf[], size_t length) {
-  atCgnspwrCreate(buf, length, GNSSPWR_OFF);
+  return atCgnspwrCreate(buf, length, GNSSPWR_OFF);
 }
 
 /****************************** END OF FILE **********************************/

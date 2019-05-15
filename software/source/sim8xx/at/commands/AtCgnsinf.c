@@ -7,7 +7,8 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "AtCgnsinf.h"
-#include "AtUtils.h"
+#include "AtUtil.h"
+#include <string.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -37,7 +38,7 @@
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
 bool atCgnsinfCreate(char buf[], size_t length) {
-  strncpy(buf, length, "AT+CGNSINF");
+  strncpy(buf, "AT+CGNSINF", length);
   return true;
 }
 
@@ -52,56 +53,40 @@ bool atCgnsinfParse(CGNSINF_Response_t *pdata, char str[]) {
   ++start;
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &data.runStatus, ',')) return false;
+    if (!atGetNextInt(&start, &pdata->runStatus, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &data.fixStatus, ',')) return false;
+    if (!atGetNextInt(&start, &pdata->fixStatus, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextString(&start, data.date, sizeof(data.date), ','))
+    if (!atGetNextString(&start, pdata->date, sizeof(pdata->date), ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.latitude, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->latitude, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.longitude, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->longitude, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.altitude, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->altitude, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.speed, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->speed, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.course, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->course, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &data.fixMode, ',')) return false;
-  }
-
-  if (start < strEnd) {
-    atSkipReserved(&start, 1, ',');
-  }
-
-  if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.hdop, ',')) return false;
-  }
-
-  if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.pdop, ',')) return false;
-  }
-
-  if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.vdop, ',')) return false;
+    if (!atGetNextInt(&start, &pdata->fixMode, ',')) return false;
   }
 
   if (start < strEnd) {
@@ -109,15 +94,15 @@ bool atCgnsinfParse(CGNSINF_Response_t *pdata, char str[]) {
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &data.gpsSatInView, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->hdop, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &data.gnssSatInUse, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->pdop, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &data.gnssSatInView, ',')) return false;
+    if (!atGetNextDouble(&start, &pdata->vdop, ',')) return false;
   }
 
   if (start < strEnd) {
@@ -125,15 +110,31 @@ bool atCgnsinfParse(CGNSINF_Response_t *pdata, char str[]) {
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &data.cnomax, ',')) return false;
+    if (!atGetNextInt(&start, &pdata->gpsSatInView, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.hpa, ',')) return false;
+    if (!atGetNextInt(&start, &pdata->gnssSatInUse, ',')) return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &data.vpa, '\r')) return false;
+    if (!atGetNextInt(&start, &pdata->gnssSatInView, ',')) return false;
+  }
+
+  if (start < strEnd) {
+    atSkipReserved(&start, 1, ',');
+  }
+
+  if (start < strEnd) {
+    if (!atGetNextInt(&start, &pdata->cnomax, ',')) return false;
+  }
+
+  if (start < strEnd) {
+    if (!atGetNextDouble(&start, &pdata->hpa, ',')) return false;
+  }
+
+  if (start < strEnd) {
+    if (!atGetNextDouble(&start, &pdata->vpa, '\r')) return false;
   }
 
   return true;

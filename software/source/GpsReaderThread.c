@@ -10,10 +10,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "BoardEvents.h"
-#include "chprintf.h"
+#include "ch.h"
 #include "hal.h"
+#include "chprintf.h"
 #include "sim8xx/sim8xx.h"
-
 #include "at.h"
 
 /*****************************************************************************/
