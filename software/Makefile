@@ -90,6 +90,7 @@ CONFDIR = ./config
 CHIBIOS = ./ChibiOS
 BOARD   = ./board
 SIM8XX  = ./source/sim8xx
+ATLIB   = $(SIM8XX)/at
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -125,8 +126,12 @@ CSRC = $(ALLCSRC) \
        source/GpsReaderThread.c \
        source/BoardEvents.c \
        source/DebugShell.c \
+       source/Dashboard.c \
        source/Sdcard.c \
        $(SIM8XX)/sim8xx.c \
+       $(ATLIB)/commands/AtUtil.c \
+       $(ATLIB)/commands/AtCgnspwr.c \
+       $(ATLIB)/commands/AtCgnsinf.c \
        $(SIM8XX)/sim8xxReaderThread.c \
        $(CONFDIR)/usbcfg.c
 
@@ -158,7 +163,7 @@ TCPPSRC =
 ASMSRC = $(ALLASMSRC)
 ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR) $(SIM8XX)
+INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR) $(SIM8XX) $(ATLIB)
 
 #
 # Project, sources and paths
@@ -208,7 +213,7 @@ CPPWARN = -Wall -Wextra -Wundef
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -D CHPRINTF_USE_FLOAT
 
 # Define ASM defines here
 UADEFS =
@@ -225,9 +230,6 @@ ULIBS =
 #
 # End of user defines
 ##############################################################################
-tags:
-	@etags $(CSRC) $(TAGFILE) $(shell find $(INCDIR) -type f -iname "*.h")
-	@echo TAGS generated succesfully.
 
 RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC
 include $(RULESPATH)/rules.mk

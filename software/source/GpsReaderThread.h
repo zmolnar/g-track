@@ -32,8 +32,8 @@
 /*******************************************************************************/
 THD_FUNCTION(GpsReaderThread, arg);
 void GpsReaderThreadInit(void);
-void GpsReaderStartUpdate(void);
-void GpsReaderStopUpdate(void);
+void GpsReaderStart(void);
+void GpsReaderStop(void);
 
 #endif /* GPS_READER_THREAD_H */
 

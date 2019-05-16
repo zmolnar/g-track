@@ -58,7 +58,7 @@ void sim8xxStart(Sim8xxDriver *simp, Sim8xxConfig *cfgp) {
   simp->config = cfgp;
   sdStart(cfgp->sdp, cfgp->sdConfig);
   simp->reader = NULL;
-  chThdCreateFromHeap(NULL, READER_WA_SIZE, "sim8xx-reader",
+  chThdCreateFromHeap(NULL, READER_WA_SIZE, "sim8xx",
                       NORMALPRIO + 1, sim8xxReaderThread, (void*)simp);
   
   simp->state = SIM8XX_READY;
