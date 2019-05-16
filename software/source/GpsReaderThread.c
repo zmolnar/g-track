@@ -7,20 +7,22 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "GpsReaderThread.h"
-#include "source/Sdcard.h"
-#include <stdlib.h>
-#include <string.h>
+#include "Sdcard.h"
 #include "BoardEvents.h"
+#include "sim8xx.h"
+#include "at.h"
+
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
-#include "sim8xx/sim8xx.h"
-#include "at.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define GPS_UPDATE_PERIOD_IN_MS 5000
+#define GPS_UPDATE_PERIOD_IN_MS     5000
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -201,7 +203,7 @@ void GpsReaderThreadInit(void) {
   chSemObjectInit(&gpsSem, 0);
 }
 
-void GpsReaderStartUpdate(void) {
+void GpsReaderStart(void) {
   gpsPowerOn();
   chSysLock();
   chVTSetI(&gpsTimer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), gpsTimerCallback,
@@ -210,7 +212,7 @@ void GpsReaderStartUpdate(void) {
   chSysUnlock();
 }
 
-void GpsReaderStopUpdate(void) {
+void GpsReaderStop(void) {
   chSysLock();
   chVTResetI(&gpsTimer);
   chSysUnlock();

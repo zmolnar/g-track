@@ -59,12 +59,12 @@ static SystemState_t systemInitHandler(SystemEvent_t evt) {
   switch(evt) {
     case SYS_EVT_IGNITION_ON: {
       connectModem();
-      GpsReaderStartUpdate();
+      GpsReaderStart();
       newState = SYSTEM_RIDING;
       break;
     }
     case SYS_EVT_IGNITION_OFF: {
-      GpsReaderStopUpdate();
+      GpsReaderStop();
       disconnectModem();
       newState = SYSTEM_PARKING;
       break;
@@ -120,7 +120,7 @@ THD_FUNCTION(SystemThread, arg) {
           state = systemTrackingHandler(evt);
           break;
         }
-        default :{
+        default: {
           ;
         }
       }
