@@ -8,6 +8,7 @@
 /*******************************************************************************/
 #include "SystemThread.h"
 #include "GpsReaderThread.h"
+#include "Dashboard.h"
 #include "sim8xx.h"
 #include <string.h>
 
@@ -129,6 +130,7 @@ THD_FUNCTION(SystemThread, arg) {
 } 
 
 void SystemThreadInit(void) {
+    dbInit();
     memset(&events, 0, sizeof(events));
     chMBObjectInit(&systemMailbox, events, sizeof(events)/sizeof(events[0]));
 }

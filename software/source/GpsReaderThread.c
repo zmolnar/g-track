@@ -9,6 +9,7 @@
 #include "GpsReaderThread.h"
 #include "Sdcard.h"
 #include "BoardEvents.h"
+#include "Dashboard.h"
 #include "sim8xx.h"
 #include "at.h"
 
@@ -23,7 +24,6 @@
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
 #define GPS_UPDATE_PERIOD_IN_MS     5000
-
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
@@ -158,7 +158,7 @@ static void saveBuffer(const char *data, size_t length) {
   }
 }
 
-static void printGpsData(CGNSINF_Response_t *pdata) {
+static void logGpsData(CGNSINF_Response_t *pdata) {
   char buf[150] = {0};
   chsnprintf(buf, sizeof(buf), "%s %f %f %f %f %d %d %d %d\n", 
               pdata->date, 
@@ -171,6 +171,20 @@ static void printGpsData(CGNSINF_Response_t *pdata) {
               pdata->gnssSatInView,
               pdata->gnssSatInUse);
   saveBuffer(buf, strlen(buf));  
+}
+
+static void savePosition(CGNSINF_Response_t *data) {
+  dbLock();
+  Position_t *pos = dbGetPosition();
+  strncpy(data->date, pos->date, sizeof(pos->date));
+  pos->latitude = data->latitude;
+  pos->longitude = data->longitude;
+  pos->altitude = data->altitude;
+  pos->speed = data->speed;
+  pos->gnssSatInUse = data->gnssSatInUse;
+  pos->gnssSatInView = data->gnssSatInView;
+  pos->gpsSatInView = data->gpsSatInView;
+  dbUnlock();
 }
 
 /*****************************************************************************/
@@ -191,7 +205,8 @@ THD_FUNCTION(GpsReaderThread, arg) {
       CGNSINF_Response_t data;
       bool status = atCgnsinfParse(&data, cmd.response);
       error = status ? GPS_ERROR_NO_ERROR : GPS_ERROR_IN_RESPONSE;
-      printGpsData(&data);
+      savePosition(&data);
+      logGpsData(&data);
     } else {
       error = GPS_ERROR_DATA_UPDATE;
     }
