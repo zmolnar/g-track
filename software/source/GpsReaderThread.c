@@ -176,7 +176,7 @@ static void logGpsData(CGNSINF_Response_t *pdata) {
 static void savePosition(CGNSINF_Response_t *data) {
   dbLock();
   Position_t *pos = dbGetPosition();
-  strncpy(data->date, pos->date, sizeof(pos->date));
+  strncpy(pos->date, data->date, sizeof(pos->date));
   pos->latitude = data->latitude;
   pos->longitude = data->longitude;
   pos->altitude = data->altitude;

@@ -126,6 +126,7 @@ CSRC = $(ALLCSRC) \
        source/GpsReaderThread.c \
        source/BoardEvents.c \
        source/DebugShell.c \
+       source/Dashboard.c \
        source/Sdcard.c \
        $(SIM8XX)/sim8xx.c \
        $(ATLIB)/commands/AtUtil.c \
