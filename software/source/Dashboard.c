@@ -18,10 +18,6 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
-typedef struct {
-    mutex_t lock;
-    Position_t position;
-} Dashboard_t;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -43,21 +39,21 @@ static Dashboard_t dashboard;
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void dbInit(void) {
-    memset(&dashboard, 0, sizeof(dashboard));
-    chMtxObjectInit(&dashboard.lock);
+void dbInit(Dashboard_t *pdsh) {
+    memset(pdsh, 0, sizeof(*pdsh));
+    chMtxObjectInit(&pdsh->lock);
 }
 
-void dbLock(void) {
-    chMtxLock(&dashboard.lock);
+void dbLock(Dashboard_t *pdsh) {
+    chMtxLock(&pdsh->lock);
 }
 
-void dbUnlock(void) {
-    chMtxUnlock(&dashboard.lock);
+void dbUnlock(Dashboard_t *pdsh) {
+    chMtxUnlock(&pdsh->lock);
 }
 
-Position_t *dbGetPosition(void) {
-    return &dashboard.position;
+Position_t *dbGetPosition(Dashboard_t *pdsh) {
+    return &pdsh->position;
 }
 
 /****************************** END OF FILE **********************************/

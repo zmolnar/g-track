@@ -174,8 +174,8 @@ static void logGpsData(CGNSINF_Response_t *pdata) {
 }
 
 static void savePosition(CGNSINF_Response_t *data) {
-  dbLock();
-  Position_t *pos = dbGetPosition();
+  dbLock(&dashboard);
+  Position_t *pos = dbGetPosition(&dashboard);
   strncpy(pos->date, data->date, sizeof(pos->date));
   pos->latitude = data->latitude;
   pos->longitude = data->longitude;
@@ -184,7 +184,7 @@ static void savePosition(CGNSINF_Response_t *data) {
   pos->gnssSatInUse = data->gnssSatInUse;
   pos->gnssSatInView = data->gnssSatInView;
   pos->gpsSatInView = data->gpsSatInView;
-  dbUnlock();
+  dbUnlock(&dashboard);
 }
 
 /*****************************************************************************/

@@ -32,20 +32,23 @@ typedef struct {
   int gnssSatInView;
 } Position_t;
 
+typedef struct {
+  mutex_t lock;
+  Position_t position;
+} Dashboard_t;
+
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
 /*****************************************************************************/
+extern Dashboard_t dashboard;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void dbInit(void);
-
-void dbLock(void);
-
-void dbUnlock(void);
-
-Position_t *dbGetPosition(void);
+void dbInit(Dashboard_t *pdsh);
+void dbLock(Dashboard_t *pdsh);
+void dbUnlock(Dashboard_t *pdsh);
+Position_t *dbGetPosition(Dashboard_t *pdsh);
 
 #endif /* DASHBOARD_H */
 
