@@ -9,6 +9,7 @@
 #include "ChainOilerThread.h"
 #include "ch.h"
 #include "Dashboard.h"
+#include <string.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -57,9 +58,9 @@ static void timerCallback(void *p) {
 }
 
 static double getSpeed(void) {
-  dbLock();
-  Position_t *p = dbGetPosition();
-  dbUnlock();
+  dbLock(&dashboard);
+  Position_t *p = dbGetPosition(&dashboard);
+  dbUnlock(&dashboard);
   return p->speed;
 }
 
