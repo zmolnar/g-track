@@ -21,11 +21,13 @@
 #include "SystemThread.h"
 #include "PeripheralManagerThread.h"
 #include "GpsReaderThread.h"
+#include "ChainOilerThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
 static THD_WORKING_AREA(waBoardMonitorThread, 8192);
 static THD_WORKING_AREA(waPeripheralManagerThread, 8192);
 static THD_WORKING_AREA(waGpsReaderThread, 8192);
+static THD_WORKING_AREA(waChainOilerThread, 8192);
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -60,6 +62,7 @@ int main(void) {
   BoardMonitorThreadInit();
   PeripheralManagerThreadInit();
   GpsReaderThreadInit();
+  ChainOilerThreadInit();  
 
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
@@ -90,6 +93,12 @@ int main(void) {
                     NORMALPRIO,
                     GpsReaderThread,
                     NULL);       
+
+  chThdCreateStatic(waChainOilerThread,
+                    sizeof(waChainOilerThread),
+                    NORMALPRIO,
+                    ChainOilerThread,
+                    NULL);     
 
   while (true) {
     chThdSleepMilliseconds(1000);
