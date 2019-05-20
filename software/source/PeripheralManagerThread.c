@@ -40,7 +40,7 @@ static Sim8xxConfig sim_config = {&SD1, &sd_config, LINE_WAVESHARE_POWER};
 /*******************************************************************************/
 static void saveBuffer(const char *data, size_t length) {
   FIL log;
-  if (FR_OK == f_open(&log, "system.nfo", FA_CREATE_ALWAYS | FA_WRITE)) {
+  if (FR_OK == f_open(&log, "/system.nfo", FA_CREATE_ALWAYS | FA_WRITE)) {
     UINT bw = 0;
     f_write(&log, data, length, &bw);
     f_close(&log);
@@ -49,7 +49,7 @@ static void saveBuffer(const char *data, size_t length) {
 
 static void writeSysInfo(void) {
   char line[128] = {0};
-  char buf[8 * sizeof(line)] = {0};
+  char buf[8*sizeof(line)] = {0};
 
   chsnprintf(line, sizeof(line), "Kernel:       %s\n", CH_KERNEL_VERSION);
   strncpy(buf, line, sizeof(buf));
