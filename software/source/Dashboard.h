@@ -9,6 +9,8 @@
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
+#include "ch.h"
+#include "hal.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -40,12 +42,10 @@ typedef struct {
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
 void dbInit(void);
-
-void dbLock(void);
-
-void dbUnlock(void);
-
-Position_t *dbGetPosition(void);
+void dbGetPosition(Position_t *pos);
+void dbSetPosition(Position_t *new);
+void dbSetTime(RTCDateTime *ptime);
+void dbGetTime(RTCDateTime *ptime);
 
 #endif /* DASHBOARD_H */
 

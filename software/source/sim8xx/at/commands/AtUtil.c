@@ -99,11 +99,4 @@ bool atSkipReserved(char **start, size_t num, char delim) {
   return true;
 }
 
-void atExchangeChar(char *c, char *tmp) {
-  *tmp = *c;
-  *c = '\0';
-}
-
-void atRestoreChar(char *c, char *tmp) { *c = *tmp; }
-
 /***************************** END OF FILE * *********************************/

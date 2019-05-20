@@ -40,10 +40,6 @@ bool atGetNextString(char **start, char *buf, size_t length, char delim);
 
 bool atSkipReserved(char **start, size_t num, char delim);
 
-void atExchangeChar(char *c, char *tmp);
-
-void atRestoreChar(char *c, char *tmp);
-
 #endif /* ATUTIL_H */
 
 /****************************** END OF FILE **********************************/

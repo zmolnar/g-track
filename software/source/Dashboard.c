@@ -19,8 +19,8 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef struct {
-    mutex_t lock;
-    Position_t position;
+  mutex_t lock;
+  Position_t position;
 } Dashboard_t;
 
 /*****************************************************************************/
@@ -39,6 +39,13 @@ static Dashboard_t dashboard;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
+static void dbLock(void) {
+    chMtxLock(&dashboard.lock);
+}
+
+static void dbUnlock(void) {
+    chMtxUnlock(&dashboard.lock);
+}
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
@@ -46,18 +53,31 @@ static Dashboard_t dashboard;
 void dbInit(void) {
     memset(&dashboard, 0, sizeof(dashboard));
     chMtxObjectInit(&dashboard.lock);
+    rtcObjectInit(&RTCD1);
 }
 
-void dbLock(void) {
-    chMtxLock(&dashboard.lock);
+void dbGetPosition(Position_t *pos) {
+    dbLock();
+    *pos = dashboard.position;
+    dbUnlock();
 }
 
-void dbUnlock(void) {
-    chMtxUnlock(&dashboard.lock);
+void dbSetPosition(Position_t *new) {
+    dbLock();
+    dashboard.position = *new;
+    dbUnlock();
 }
 
-Position_t *dbGetPosition(void) {
-    return &dashboard.position;
+void dbSetTime(RTCDateTime *ptime) {
+    dbLock();
+    rtcSetTime(&RTCD1, ptime);
+    dbUnlock();
+}
+
+void dbGetTime(RTCDateTime *ptime) {
+    dbLock();
+    rtcGetTime(&RTCD1, ptime);
+    dbUnlock();
 }
 
 /****************************** END OF FILE **********************************/
