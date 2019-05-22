@@ -164,8 +164,8 @@
 /*
  * GPIOA setup:
  *
- * PA0  - DCM_AIN1                  (input pullup).
- * PA1  - DCM_AIN2                  (input pullup).
+ * PA0  - DCM_AIN1                  (output push-pull).
+ * PA1  - DCM_AIN2                  (output push-pull).
  * PA2  - DCM_BIN2                  (input pullup).
  * PA3  - DCM_BIN1                  (input pullup).
  * PA4  - ACC_CS                    (input pullup).
@@ -181,8 +181,8 @@
  * PA14 - SWCLK                     (alternate 0).
  * PA15 - LED_2_RED                 (output push-pull).
  */
-#define VAL_GPIOA_MODER             (PIN_MODE_INPUT(GPIOA_DCM_AIN1)         | \
-                                     PIN_MODE_INPUT(GPIOA_DCM_AIN2)         | \
+#define VAL_GPIOA_MODER             (PIN_MODE_OUTPUT(GPIOA_DCM_AIN1)        | \
+                                     PIN_MODE_OUTPUT(GPIOA_DCM_AIN2)        | \
                                      PIN_MODE_INPUT(GPIOA_DCM_BIN2)         | \
                                      PIN_MODE_INPUT(GPIOA_DCM_BIN1)         | \
                                      PIN_MODE_INPUT(GPIOA_ACC_CS)           | \
@@ -229,8 +229,8 @@
                                      PIN_OSPEED_HIGH(GPIOA_SWDIO)          | \
                                      PIN_OSPEED_HIGH(GPIOA_SWCLK)          | \
                                      PIN_OSPEED_HIGH(GPIOA_LED_2_RED))
-#define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLUP(GPIOA_DCM_AIN1)       | \
-                                     PIN_PUPDR_PULLUP(GPIOA_DCM_AIN2)       | \
+#define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLDOWN(GPIOA_DCM_AIN1)     | \
+                                     PIN_PUPDR_PULLDOWN(GPIOA_DCM_AIN2)     | \
                                      PIN_PUPDR_PULLUP(GPIOA_DCM_BIN2)       | \
                                      PIN_PUPDR_PULLUP(GPIOA_DCM_BIN1)       | \
                                      PIN_PUPDR_PULLUP(GPIOA_ACC_CS)         | \
@@ -245,8 +245,8 @@
                                      PIN_PUPDR_PULLUP(GPIOA_SWDIO)          | \
                                      PIN_PUPDR_PULLDOWN(GPIOA_SWCLK)        | \
                                      PIN_PUPDR_PULLUP(GPIOA_LED_2_RED))
-#define VAL_GPIOA_ODR               (PIN_ODR_HIGH(GPIOA_DCM_AIN1)       | \
-                                     PIN_ODR_HIGH(GPIOA_DCM_AIN2)       | \
+#define VAL_GPIOA_ODR               (PIN_ODR_LOW(GPIOA_DCM_AIN1)        | \
+                                     PIN_ODR_LOW(GPIOA_DCM_AIN2)        | \
                                      PIN_ODR_HIGH(GPIOA_DCM_BIN2)       | \
                                      PIN_ODR_HIGH(GPIOA_DCM_BIN1)       | \
                                      PIN_ODR_HIGH(GPIOA_ACC_CS)         | \
@@ -401,7 +401,7 @@
  * PC0  - PC0_NC                    (input pullup).
  * PC1  - ADC_VBAT                  (input pullup).
  * PC2  - DCM_FAULT                 (input pullup).
- * PC3  - DCM_SLEEP                 (input pullup).
+ * PC3  - DCM_SLEEP                 (output pullup).
  * PC4  - PC4_NC                    (input pullup).
  * PC5  - PC5_NC                    (input pullup).
  * PC6  - SDC_CARD_DETECT           (input pulldown).
@@ -418,7 +418,7 @@
 #define VAL_GPIOC_MODER             (PIN_MODE_INPUT(GPIOC_PC0_NC)             | \
                                      PIN_MODE_INPUT(GPIOC_ADC_VBAT)           | \
                                      PIN_MODE_INPUT(GPIOC_DCM_FAULT)          | \
-                                     PIN_MODE_INPUT(GPIOC_DCM_SLEEP)          | \
+                                     PIN_MODE_OUTPUT(GPIOC_DCM_SLEEP)         | \
                                      PIN_MODE_INPUT(GPIOC_PC4_NC)             | \
                                      PIN_MODE_INPUT(GPIOC_PC5_NC)             | \
                                      PIN_MODE_INPUT(GPIOC_SDC_CARD_DETECT)    | \
@@ -466,7 +466,7 @@
 #define VAL_GPIOC_PUPDR             (PIN_PUPDR_PULLUP(GPIOC_PC0_NC)             | \
                                      PIN_PUPDR_PULLUP(GPIOC_ADC_VBAT)           | \
                                      PIN_PUPDR_PULLUP(GPIOC_DCM_FAULT)          | \
-                                     PIN_PUPDR_PULLUP(GPIOC_DCM_SLEEP)          | \
+                                     PIN_PUPDR_PULLDOWN(GPIOC_DCM_SLEEP)        | \
                                      PIN_PUPDR_PULLUP(GPIOC_PC4_NC)             | \
                                      PIN_PUPDR_PULLUP(GPIOC_PC5_NC)             | \
                                      PIN_PUPDR_PULLDOWN(GPIOC_SDC_CARD_DETECT)  | \
@@ -482,7 +482,7 @@
 #define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_PC0_NC)             | \
                                      PIN_ODR_HIGH(GPIOC_ADC_VBAT)           | \
                                      PIN_ODR_HIGH(GPIOC_DCM_FAULT)          | \
-                                     PIN_ODR_HIGH(GPIOC_DCM_SLEEP)          | \
+                                     PIN_ODR_LOW(GPIOC_DCM_SLEEP)           | \
                                      PIN_ODR_HIGH(GPIOC_PC4_NC)             | \
                                      PIN_ODR_HIGH(GPIOC_PC5_NC)             | \
                                      PIN_ODR_HIGH(GPIOC_SDC_CARD_DETECT)    | \

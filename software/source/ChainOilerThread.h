@@ -1,16 +1,15 @@
 /**
- * @file Dashboard.h
+ * @file ChainOilerThread.h
  * @brief
  */
 
-#ifndef DASHBOARD_H
-#define DASHBOARD_H
+#ifndef CHAIN_OILER_THREAD_H
+#define CHAIN_OILER_THREAD_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "ch.h"
-#include "hal.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -23,16 +22,6 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
-typedef struct {
-  char date[18 + 1];
-  double latitude;
-  double longitude;
-  double altitude;
-  double speed;
-  int gpsSatInView;
-  int gnssSatInUse;
-  int gnssSatInView;
-} Position_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
@@ -41,12 +30,11 @@ typedef struct {
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void dbInit(void);
-void dbGetPosition(Position_t *pos);
-void dbSetPosition(Position_t *new);
-void dbSetTime(RTCDateTime *ptime);
-void dbGetTime(RTCDateTime *ptime);
+THD_FUNCTION(ChainOilerThread, arg);
+void ChainOilerThreadInit(void);
+void ChainOilerStart(void);
+void ChainOilerStop(void);
 
-#endif /* DASHBOARD_H */
+#endif /* CHAIN_OILER_THREAD_H */
 
 /****************************** END OF FILE **********************************/

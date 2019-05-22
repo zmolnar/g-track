@@ -9,6 +9,7 @@
 #include "SystemThread.h"
 #include "GpsReaderThread.h"
 #include "Dashboard.h"
+#include "ChainOilerThread.h"
 #include "sim8xx.h"
 #include <string.h>
 
@@ -61,10 +62,12 @@ static SystemState_t systemInitHandler(SystemEvent_t evt) {
     case SYS_EVT_IGNITION_ON: {
       connectModem();
       GpsReaderStart();
+      ChainOilerStart();
       newState = SYSTEM_RIDING;
       break;
     }
     case SYS_EVT_IGNITION_OFF: {
+      ChainOilerStop();
       GpsReaderStop();
       disconnectModem();
       newState = SYSTEM_PARKING;
@@ -130,7 +133,7 @@ THD_FUNCTION(SystemThread, arg) {
 } 
 
 void SystemThreadInit(void) {
-    dbInit();
+    dbInit(&dashboard);
     memset(&events, 0, sizeof(events));
     chMBObjectInit(&systemMailbox, events, sizeof(events)/sizeof(events[0]));
 }
