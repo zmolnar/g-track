@@ -7,10 +7,12 @@
 /* INCLUDES                                                                    */
 /*******************************************************************************/
 #include "PeripheralManagerThread.h"
+
 #include "BoardEvents.h"
-#include "Sdcard.h"
 #include "DebugShell.h"
+#include "Sdcard.h"
 #include "sim8xx.h"
+
 #include <string.h>
 
 /*******************************************************************************/
@@ -28,8 +30,11 @@
 /*******************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
 /*******************************************************************************/
-static SerialConfig sd_config = {115200,0,0,0};
+static SerialConfig sd_config  = {115200, 0, 0, 0};
 static Sim8xxConfig sim_config = {&SD1, &sd_config, LINE_WAVESHARE_POWER};
+
+static msg_t events[10];
+mailbox_t periphMailbox;
 
 /*******************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                              */
@@ -48,8 +53,8 @@ static void saveBuffer(const char *data, size_t length) {
 }
 
 static void writeSysInfo(void) {
-  char line[128] = {0};
-  char buf[8*sizeof(line)] = {0};
+  char line[128]             = {0};
+  char buf[8 * sizeof(line)] = {0};
 
   chsnprintf(line, sizeof(line), "Kernel:       %s\n", CH_KERNEL_VERSION);
   strncpy(buf, line, sizeof(buf));
@@ -85,32 +90,6 @@ static void writeSysInfo(void) {
   saveBuffer(buf, strlen(buf));
 }
 
-static void sdcardInsertedHandler(eventid_t id) {
-  (void)id;
-  sdcardMount();
-  writeSysInfo();
-}
-
-static void sdcardRemovedHandler(eventid_t id) {
-  (void)id;
-  sdcardUnmount();
-}
-
-static void usbConnectedHandler(eventid_t id) {
-  (void)id;
-  debugShellStart();
-}
-
-static void usbDisconnectedHandler(eventid_t id) {
-  (void)id;
-  debugShellStop();
-}
-
-static void debugShellTerminatedHandler(eventid_t id) {
-  (void)id;
-  debugShellTerminated();
-}
-
 /*******************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                              */
 /*******************************************************************************/
@@ -118,37 +97,44 @@ THD_FUNCTION(PeripheralManagerThread, arg) {
   (void)arg;
   chRegSetThreadName("peripheral");
 
-  static const evhandler_t eventHandlers[] = {
-    sdcardInsertedHandler,
-    sdcardRemovedHandler,
-    usbConnectedHandler,
-    usbDisconnectedHandler,
-    debugShellTerminatedHandler
-  };
-  
-  event_listener_t sdcardInsertedListener;
-  event_listener_t sdcardRemovedListener;
-  event_listener_t usbConnectedListener;
-  event_listener_t usbDisconnectedListener;
-  event_listener_t debugShellTerminatedListener;
-
-  chEvtRegister(&besSdcardInserted, &sdcardInsertedListener, 0);
-  chEvtRegister(&besSdcardRemoved, &sdcardRemovedListener, 1);
-  chEvtRegister(&besUsbConnected, &usbConnectedListener, 2);
-  chEvtRegister(&besUsbDisconnected, &usbDisconnectedListener, 3);
-  chEvtRegister(&shell_terminated, &debugShellTerminatedListener, 4);
-
   sdcardInit();
   debugShellInit();
 
-  while(true) {
-    chEvtDispatch(eventHandlers, chEvtWaitOne(ALL_EVENTS));
+  while (true) {
+    PeripheralEvent_t evt;
+    if (MSG_OK == chMBFetchTimeout(&periphMailbox, (msg_t *)&evt, TIME_INFINITE)) {
+      switch (evt) {
+      case SDC_INSERTED: {
+        sdcardMount();
+        writeSysInfo();
+        break;
+      }
+      case SDC_REMOVED: {
+        sdcardUnmount();
+        break;
+      }
+      case USB_CONNECTED: {
+        debugShellStart();
+        break;
+      }
+      case USB_DISCONNECTED: {
+        debugShellStop();
+        break;
+      }
+      default: { 
+        ; 
+      }
+      }
+    }
   }
-} 
+}
 
 void PeripheralManagerThreadInit(void) {
   sim8xxInit(&SIM8D1);
   sim8xxStart(&SIM8D1, &sim_config);
+
+  memset(events, 0, sizeof(events));
+  chMBObjectInit(&periphMailbox, events, sizeof(events) / sizeof(events[0]));
 }
 
 /******************************* END OF FILE ***********************************/

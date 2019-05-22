@@ -4,19 +4,20 @@
  */
 
 /*******************************************************************************/
-/* INCLUDES                                                                    */
+/* INCLUDES */
 /*******************************************************************************/
 #include "DebugShell.h"
-#include "ch.h"
-#include "hal.h"
-#include "chprintf.h"
+
 #include "Sdcard.h"
+#include "ch.h"
+#include "chprintf.h"
+#include "hal.h"
 #include "usbcfg.h"
 
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
 /*******************************************************************************/
- #define SHELL_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
+#define SHELL_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
@@ -33,7 +34,7 @@ static thread_reference_t shelltp;
 
 static const ShellCommand commands[] = {
   {"tree", sdcardCmdTree},
-  {NULL, NULL}
+  {NULL, NULL} 
 };
 
 static const ShellConfig usb_shell_cfg = {
@@ -66,28 +67,24 @@ void debugShellStart(void) {
   chThdSleepMilliseconds(500);
 
   if (!shelltp) {
-    shelltp = chThdCreateFromHeap(NULL, SHELL_WA_SIZE,
-                                  "usbshell", NORMALPRIO + 1,
-                                  shellThread, (void *)&usb_shell_cfg);
+    shelltp = chThdCreateFromHeap(NULL,
+                                  SHELL_WA_SIZE,
+                                  "usbshell",
+                                  NORMALPRIO + 1,
+                                  shellThread,
+                                  (void *)&usb_shell_cfg);
   }
 }
 
 void debugShellStop() {
   if (shelltp && chThdTerminatedX(shelltp)) {
-    chThdWait(shelltp);   
+    chThdWait(shelltp);
     shelltp = NULL;
   }
-  
+
   usbDisconnectBus(serusbcfg.usbp);
   usbStop(serusbcfg.usbp);
   sduStop(&SDU1);
 }
 
-void debugShellTerminated(void) {
-  if (chThdTerminatedX(shelltp)) {
-    chThdWait(shelltp);   
-    shelltp = NULL;
-  } 
-}
-
-/******************************* END OF FILE ***********************************/
+/******************************* END OF FILE **************************************/

@@ -35,7 +35,6 @@
 void debugShellInit(void);
 void debugShellStart(void);
 void debugShellStop(void);
-void debugShellTerminated(void);
 
 #endif /* DEBUG_SHELL_H */
 

@@ -124,7 +124,6 @@ CSRC = $(ALLCSRC) \
        source/PeripheralManagerThread.c \
        source/SystemThread.c \
        source/GpsReaderThread.c \
-       source/BoardEvents.c \
        source/DebugShell.c \
        source/Dashboard.c \
        source/Sdcard.c \

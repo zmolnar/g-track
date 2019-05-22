@@ -7,15 +7,16 @@
 /* INCLUDES                                                                    */
 /*******************************************************************************/
 #include "BoardMonitorThread.h"
-#include "BoardEvents.h"
+
+#include "PeripheralManagerThread.h"
 #include "SystemThread.h"
 #include "hal.h"
 
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
 /*******************************************************************************/
-#define DEBOUNCE_COUNTER_START       10
-#define POLLING_DELAY                10
+#define DEBOUNCE_COUNTER_START 10
+#define POLLING_DELAY          10
 
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
@@ -44,23 +45,21 @@ static bool isSdcardInserted(void) {
 
 static void checkSdcard(void) {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
-  
+
   if (counter > 0) {
     if (isSdcardInserted()) {
       if (--counter == 0) {
         chSysLockFromISR();
-        chEvtBroadcastI(&besSdcardInserted);
+        chMBPostI(&periphMailbox, SDC_INSERTED);
         chSysUnlockFromISR();
       }
-    }
-    else
+    } else
       counter = DEBOUNCE_COUNTER_START;
-  }
-  else {
+  } else {
     if (!isSdcardInserted()) {
       counter = DEBOUNCE_COUNTER_START;
       chSysLockFromISR();
-      chEvtBroadcastI(&besSdcardRemoved);
+      chMBPostI(&periphMailbox, SDC_REMOVED);
       chSysUnlockFromISR();
     }
   }
@@ -72,24 +71,22 @@ static bool isUsbConnected(void) {
 
 static void checkUsb(void) {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
-  
+
   if (counter > 0) {
     if (isUsbConnected()) {
       if (--counter == 0) {
         chSysLockFromISR();
-        chEvtBroadcastI(&besUsbConnected);
+        chMBPostI(&periphMailbox, USB_CONNECTED);
         chMBPostI(&systemMailbox, SYS_EVT_IGNITION_ON);
         chSysUnlockFromISR();
       }
-    }
-    else
+    } else
       counter = DEBOUNCE_COUNTER_START;
-  }
-  else {
+  } else {
     if (!isUsbConnected()) {
       counter = DEBOUNCE_COUNTER_START;
       chSysLockFromISR();
-      chEvtBroadcastI(&besUsbDisconnected);
+      chMBPostI(&periphMailbox, USB_DISCONNECTED);
       chMBPostI(&systemMailbox, SYS_EVT_IGNITION_OFF);
       chSysUnlockFromISR();
     }
@@ -100,8 +97,7 @@ static void monitorTimerCallback(void *p) {
   (void)p;
   chSysLockFromISR();
   chEvtBroadcastI(&monitorTimerEvent);
-  chVTSetI(&monitorTimer, TIME_MS2I(POLLING_DELAY),
-           monitorTimerCallback, NULL);
+  chVTSetI(&monitorTimer, TIME_MS2I(POLLING_DELAY), monitorTimerCallback, NULL);
   chSysUnlockFromISR();
 }
 
@@ -114,29 +110,26 @@ static void timerEventHandler(eventid_t id) {
 /*******************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                              */
 /*******************************************************************************/
-THD_FUNCTION(BoardMonitorThread, arg)
-{
-    (void)arg;
-    chRegSetThreadName("board");
+THD_FUNCTION(BoardMonitorThread, arg) {
+  (void)arg;
+  chRegSetThreadName("board");
 
-    static const evhandler_t eventHandlers[] = {
-      timerEventHandler
-    };
-    
-    event_listener_t timerEventListener;
-    chEvtRegister(&monitorTimerEvent, &timerEventListener, 0);
-    
-    while(true) {
-      chEvtDispatch(eventHandlers, chEvtWaitOne(ALL_EVENTS));
-    }
+  static const evhandler_t eventHandlers[] = {
+    timerEventHandler
+  };
+
+  event_listener_t timerEventListener;
+  chEvtRegister(&monitorTimerEvent, &timerEventListener, 0);
+
+  while (true) {
+    chEvtDispatch(eventHandlers, chEvtWaitOne(ALL_EVENTS));
+  }
 }
 
 void BoardMonitorThreadInit(void) {
-  boardEventsInit();
   chEvtObjectInit(&monitorTimerEvent);
   chSysLock();
-  chVTSetI(&monitorTimer, TIME_MS2I(POLLING_DELAY),
-           monitorTimerCallback, NULL);
+  chVTSetI(&monitorTimer, TIME_MS2I(POLLING_DELAY), monitorTimerCallback, NULL);
   chSysUnlock();
 }
 
