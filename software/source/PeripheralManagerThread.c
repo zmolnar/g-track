@@ -8,7 +8,6 @@
 /*******************************************************************************/
 #include "PeripheralManagerThread.h"
 
-#include "BoardEvents.h"
 #include "DebugShell.h"
 #include "Sdcard.h"
 #include "sim8xx.h"

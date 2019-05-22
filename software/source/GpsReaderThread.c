@@ -8,7 +8,6 @@
 /*****************************************************************************/
 #include "GpsReaderThread.h"
 #include "Sdcard.h"
-#include "BoardEvents.h"
 #include "Dashboard.h"
 #include "sim8xx.h"
 #include "at.h"
