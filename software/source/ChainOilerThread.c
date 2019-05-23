@@ -77,42 +77,51 @@ static uint32_t calculatePeriodInMs(double speed) {
   return (uint32_t)(sec * 1000.0);
 }
 
-static void releaseOilDrop(void) {
-  // Leave sleep mode
+static void leaveSleepMode(void) {
   palSetLine(LINE_DCM_SLEEP);
   chThdSleepMilliseconds(2);
+}
 
-  // Set mode configuration
-  palSetLine(LINE_DCM_AIN1);
-  palClearLine(LINE_DCM_AIN2);
-
-  // Let the pump work
-  chThdSleepMilliseconds(1000);
-
-  // Stop the motor
-  palClearLine(LINE_DCM_AIN1);
-
-  // Enter sleep mode
+static void enterSleepMode(void) {
   chThdSleepMilliseconds(2);
   palClearLine(LINE_DCM_SLEEP);
 }
 
-static void handleFireCommand(void) {
-    double speed = getSpeed();
-    uint32_t sleepDurationInMs = calculatePeriodInMs(speed);
-    bool dropIsNeeded = true;
-    
-    if (0 == sleepDurationInMs) {
-      dropIsNeeded = false;
-      sleepDurationInMs = DEFAULT_SLEEP_DURATION_IN_MS;
-    }
+static void outputHighZ(void) {
+  palClearLine(LINE_DCM_AIN1);
+  palClearLine(LINE_DCM_AIN2);
+}
 
-    chSysLock();
-    chVTSetI(&timer, chTimeMS2I(sleepDurationInMs), timerCallback, NULL);
-    chSysUnlock();
-    
-    if (dropIsNeeded)
-      releaseOilDrop();
+static void motorForwardDirection(void) {
+  palSetLine(LINE_DCM_AIN1);
+  palClearLine(LINE_DCM_AIN2);
+}
+
+static void releaseOilDrop(void) {
+  outputHighZ();
+  leaveSleepMode();
+  motorForwardDirection();
+  chThdSleepMilliseconds(1000);
+  outputHighZ();
+  enterSleepMode();
+}
+
+static void handleFireCommand(void) {
+  double speed = getSpeed();
+  uint32_t sleepDurationInMs = calculatePeriodInMs(speed);
+  bool dropIsNeeded = true;
+
+  if (0 == sleepDurationInMs) {
+    dropIsNeeded = false;
+    sleepDurationInMs = DEFAULT_SLEEP_DURATION_IN_MS;
+  }
+
+  chSysLock();
+  chVTSetI(&timer, chTimeMS2I(sleepDurationInMs), timerCallback, NULL);
+  chSysUnlock();
+
+  if (dropIsNeeded) 
+    releaseOilDrop();
 }
 
 /*****************************************************************************/
