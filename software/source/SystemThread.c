@@ -27,6 +27,11 @@ typedef enum {
   SYSTEM_TRACKING
 } SystemState_t;
 
+typedef enum { 
+  SYS_EVT_IGNITION_ON, 
+  SYS_EVT_IGNITION_OFF 
+} SystemEvent_t;
+
 /*******************************************************************************/
 /* MACRO DEFINITIONS                                                           */
 /*******************************************************************************/
@@ -35,7 +40,7 @@ typedef enum {
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
 /*******************************************************************************/
 static msg_t events[10];
-mailbox_t systemMailbox;
+static mailbox_t systemMailbox;
 
 /*******************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                              */
@@ -136,6 +141,18 @@ void SystemThreadInit(void) {
     dbInit();
     memset(&events, 0, sizeof(events));
     chMBObjectInit(&systemMailbox, events, sizeof(events)/sizeof(events[0]));
+}
+
+void SystemThreadIgnitionOn(void) {
+  chSysLock();
+  chMBPostI(&systemMailbox, SYS_EVT_IGNITION_ON);
+  chSysUnlock();
+}
+
+void SystemThreadIgnitionOff(void) {
+  chSysLock();
+  chMBPostI(&systemMailbox, SYS_EVT_IGNITION_OFF);
+  chSysUnlock();
 }
 
 /******************************* END OF FILE ***********************************/

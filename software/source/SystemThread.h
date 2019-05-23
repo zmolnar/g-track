@@ -22,21 +22,18 @@
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
 /*******************************************************************************/
-typedef enum {
-  SYS_EVT_IGNITION_ON,
-  SYS_EVT_IGNITION_OFF
-} SystemEvent_t;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                             */
 /*******************************************************************************/
-extern mailbox_t systemMailbox;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                             */
 /*******************************************************************************/
 THD_FUNCTION(SystemThread, arg);
 void SystemThreadInit(void);
+void SystemThreadIgnitionOn(void);
+void SystemThreadIgnitionOff(void);
 
 #endif /* SYSTEM_THREAD_H */
 
