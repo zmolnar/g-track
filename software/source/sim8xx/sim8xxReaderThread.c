@@ -72,9 +72,9 @@ static bool process_message(Sim8xxDriver *simp) {
 
 static void timer_cb(void *p) {
   Sim8xxDriver *simp = (Sim8xxDriver*)p;
-  chSysLock();
+  chSysLockFromISR();
   chSemSignalI(&simp->sync);
-  chSysUnlock();
+  chSysUnlockFromISR();
 }
 
 /*******************************************************************************/
