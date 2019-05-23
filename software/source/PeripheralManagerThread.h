@@ -22,23 +22,20 @@
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
 /*******************************************************************************/
-typedef enum {
-    SDC_INSERTED,
-    SDC_REMOVED,
-    USB_CONNECTED,
-    USB_DISCONNECTED
-} PeripheralEvent_t;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                             */
 /*******************************************************************************/
-extern mailbox_t periphMailbox;
 
 /*******************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                             */
 /*******************************************************************************/
 THD_FUNCTION(PeripheralManagerThread, arg);
 void PeripheralManagerThreadInit(void);
+void PeripheralManagerSdcInserted(void);
+void PeripheralManagerSdcRemoved(void);
+void PeripheralManagerUsbConnected(void);
+void PeripheralManagerUsbDisconnected(void);
 
 #endif /* PERIPHERAL_MANAGER_THREAD_H */
 

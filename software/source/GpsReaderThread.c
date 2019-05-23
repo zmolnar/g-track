@@ -54,7 +54,7 @@ static virtual_timer_t gpsTimer;
 static Sim8xxCommand cmd;
 static GpsError_t error;
 static msg_t events[10];
-mailbox_t gpsMailbox;
+static mailbox_t gpsMailbox;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
