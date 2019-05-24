@@ -24,13 +24,17 @@
 /*****************************************************************************/
 typedef enum {
   CHAIN_OILER_DISABLED,
+  CHAIN_OILER_DISABLED_FORCED,
   CHAIN_OILER_ENABLED,
+  CHAIN_OILER_ENABLED_FORCED,
   CHAIN_OILER_ERROR
 } ChainOilerState_t;
 
 typedef enum {
   CHAIN_OILER_START,
+  CHAIN_OILER_FORCE_START,
   CHAIN_OILER_STOP,
+  CHAIN_OILER_FORCE_STOP,
   CHAIN_OILER_FIRE
 } ChainOilerCommand_t;
 
@@ -165,6 +169,30 @@ static void handleFireCommand(void) {
     releaseOilDrop();
 }
 
+static ChainOilerState_t chainOilerEnabledHandler(ChainOilerCommand_t cmd) {
+  switch(cmd) {
+
+  }
+}
+
+static ChainOilerState_t chainOilerEnabledForcedHandler(ChainOilerCommand_t cmd) {
+  switch (cmd) {
+    case 
+  }
+}
+
+static ChainOilerState_t chainOilerDisabledHandler(ChainOilerCommand_t cmd) {
+  switch(cmd) {
+
+  }
+}
+
+static ChainOilerState_t chainOilerDisabledForcedHandler(ChainOilerCommand_t cmd) {
+  switch (cmd) {
+
+  }
+}
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -177,6 +205,31 @@ THD_FUNCTION(ChainOilerThread, arg) {
   while(true) {
     ChainOilerCommand_t cmd;
     if (MSG_OK == chMBFetchTimeout(&mailbox, (msg_t*)&cmd, TIME_INFINITE)) {
+      switch(state) {
+        case CHAIN_OILER_ENABLED: {
+          state = chainOilerEnabledHandler(cmd);
+          break;
+        }
+        case CHAIN_OILER_ENABLED_FORCED: {
+          state = chainOilerEnabledForcedHandler(cmd);
+          break;
+        }
+        case CHAIN_OILER_DISABLED: {
+          state = chainOilerDisabledHandler(cmd);
+          break;
+        }
+        case CHAIN_OILER_DISABLED_FORCED: {
+          state = chainOilerDisabledForcedHandler(cmd);
+          break;
+        }
+        case CHAIN_OILER_ERROR:
+        default: {
+          state = CHAIN_OILER_ERROR;
+          break;
+        }
+      }
+
+#if 0      
       switch (cmd) {
         case CHAIN_OILER_START: {
           if (CHAIN_OILER_ENABLED != state) {
@@ -206,6 +259,7 @@ THD_FUNCTION(ChainOilerThread, arg) {
           state = CHAIN_OILER_ERROR;
         }
       }
+#endif    
     }
   }
 } 
