@@ -8,7 +8,6 @@
 /*****************************************************************************/
 #include "GpsReaderThread.h"
 #include "Sdcard.h"
-#include "BoardEvents.h"
 #include "Dashboard.h"
 #include "sim8xx.h"
 #include "at.h"
@@ -31,11 +30,18 @@
 /*****************************************************************************/
 typedef enum {
   GPS_ERROR_NO_ERROR,
+  GPS_ERROR_UNKNOWN_COMMAND,
   GPS_ERROR_POWER_ON,
   GPS_ERROR_POWER_OFF,
   GPS_ERROR_DATA_UPDATE,
   GPS_ERROR_IN_RESPONSE
-} gpsError_t;
+} GpsError_t;
+
+typedef enum { 
+  GPS_CMD_START, 
+  GPS_CMD_STOP, 
+  GPS_CMD_UPDATE 
+} GpsCommand_t;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -46,8 +52,9 @@ typedef enum {
 /*****************************************************************************/
 static virtual_timer_t gpsTimer;
 static Sim8xxCommand cmd;
-static gpsError_t error;
-static semaphore_t gpsSem;
+static GpsError_t error;
+static msg_t events[10];
+static mailbox_t gpsMailbox;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -56,41 +63,6 @@ static semaphore_t gpsSem;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void gpsTimerCallback(void *p) {
-  (void)p;
-  chSysLockFromISR();
-  chVTSetI(&gpsTimer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), gpsTimerCallback,
-           NULL);
-  chSemSignalI(&gpsSem);
-  chSysUnlockFromISR();
-}
-
-static void gpsPowerOn(void) {
-  do {
-    atCgnspwrCreateOn(cmd.request, sizeof(cmd.request));
-    sim8xxExecute(&SIM8D1, &cmd);
-    if (SIM8XX_OK == cmd.status) {
-      error = GPS_ERROR_NO_ERROR;
-    } else {
-      error = GPS_ERROR_POWER_ON;
-      chThdSleepMilliseconds(1000);
-    }    
-  } while (GPS_ERROR_NO_ERROR != error);
-}
-
-static void gpsPowerOff(void) {
-  do {
-    atCgnspwrCreateOff(cmd.request, sizeof(cmd.request));
-    sim8xxExecute(&SIM8D1, &cmd);
-    if (SIM8XX_OK == cmd.status) {
-      error = GPS_ERROR_NO_ERROR;
-    } else {
-      error = GPS_ERROR_POWER_OFF;
-      chThdSleepMilliseconds(1000);
-    }
-  } while (GPS_ERROR_NO_ERROR != error);
-}
-
 static void hijackChar(char *c, char *tmp) {
   *tmp = *c;
   *c = '\0';
@@ -168,7 +140,7 @@ static bool convertDateToRTCDateTime(RTCDateTime *rtc, char *date) {
     return true;
 }
 
-static void saveBuffer(const char *data, size_t length) {
+static void saveInLogfile(const char *data, size_t length) {
   FIL log;
   if (FR_OK == f_open(&log, "/sim8xx_gnss.log", FA_OPEN_APPEND | FA_WRITE)) {
     UINT bw = 0;
@@ -177,19 +149,20 @@ static void saveBuffer(const char *data, size_t length) {
   }
 }
 
-static void logGpsData(CGNSINF_Response_t *pdata) {
+static void logPosition(CGNSINF_Response_t *pdata) {
   char buf[150] = {0};
-  chsnprintf(buf, sizeof(buf), "%s %f %f %f %f %d %d %d %d\n", 
-              pdata->date, 
-              pdata->latitude, 
-              pdata->longitude,
-              pdata->speed,
-              pdata->altitude,
-              pdata->fixStatus,
-              pdata->gpsSatInView,
-              pdata->gnssSatInView,
-              pdata->gnssSatInUse);
-  saveBuffer(buf, strlen(buf));  
+  chsnprintf(buf, sizeof(buf), 
+             "%s %f %f %f %f %d %d %d %d\n", 
+             pdata->date, 
+             pdata->latitude, 
+             pdata->longitude,
+             pdata->speed,
+             pdata->altitude,
+             pdata->fixStatus,
+             pdata->gpsSatInView,
+             pdata->gnssSatInView,
+             pdata->gnssSatInUse);
+  saveInLogfile(buf, strlen(buf));  
 }
 
 static void savePosition(CGNSINF_Response_t *data) {
@@ -237,6 +210,74 @@ static void updateClock(char *date) {
     dbSetTime(&gpsTime);
 }
 
+static void updatePosition(void) {
+  sim8xxCommandInit(&cmd);
+  atCgnsinfCreate(cmd.request, sizeof(cmd.request));
+  sim8xxExecute(&SIM8D1, &cmd);
+
+  if (SIM8XX_OK == cmd.status) {
+    CGNSINF_Response_t data;
+    if (atCgnsinfParse(&data, cmd.response)) {
+      error = GPS_ERROR_NO_ERROR;
+      savePosition(&data);
+      updateClock(data.date);
+      logPosition(&data);
+    } else {
+      error = GPS_ERROR_IN_RESPONSE;
+    }
+  } else {
+    error = GPS_ERROR_DATA_UPDATE;
+  }
+}
+
+static void timerCallback(void *p) {
+  (void)p;
+  chSysLockFromISR();
+  chVTSetI(&gpsTimer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), timerCallback, NULL);
+  chMBPostI(&gpsMailbox, GPS_CMD_UPDATE);
+  chSysUnlockFromISR();
+}
+
+static void gpsPowerOn(void) {
+  do {
+    sim8xxCommandInit(&cmd);
+    atCgnspwrCreateOn(cmd.request, sizeof(cmd.request));
+    sim8xxExecute(&SIM8D1, &cmd);
+    if (SIM8XX_OK == cmd.status) {
+      error = GPS_ERROR_NO_ERROR;
+    } else {
+      error = GPS_ERROR_POWER_ON;
+      chThdSleepMilliseconds(1000);
+    }
+  } while (GPS_ERROR_NO_ERROR != error);
+}
+
+static void gpsPowerOff(void) {
+  do {
+    sim8xxCommandInit(&cmd);
+    atCgnspwrCreateOff(cmd.request, sizeof(cmd.request));
+    sim8xxExecute(&SIM8D1, &cmd);
+    if (SIM8XX_OK == cmd.status) {
+      error = GPS_ERROR_NO_ERROR;
+    } else {
+      error = GPS_ERROR_POWER_OFF;
+      chThdSleepMilliseconds(1000);
+    }
+  } while (GPS_ERROR_NO_ERROR != error);
+}
+
+static void startTimer(void) {
+  chSysLock();
+  chVTSetI(&gpsTimer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), timerCallback, NULL);
+  chSysUnlock();
+}
+
+static void stopTimer(void) {
+  chSysLock();
+  chVTResetI(&gpsTimer);
+  chSysUnlock();
+}
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -245,49 +286,48 @@ THD_FUNCTION(GpsReaderThread, arg) {
   chRegSetThreadName("gps");
 
   while (true) {
-    chSemWait(&gpsSem);
-
-    sim8xxCommandInit(&cmd);
-    atCgnsinfCreate(cmd.request, sizeof(cmd.request));
-    sim8xxExecute(&SIM8D1, &cmd);
-
-    if (SIM8XX_OK == cmd.status) {
-      CGNSINF_Response_t data;
-      bool status = atCgnsinfParse(&data, cmd.response);
-      if (status) {
-        error = GPS_ERROR_NO_ERROR,
-        savePosition(&data);
-        updateClock(data.date);
-        logGpsData(&data);
-      } else {
-        error = GPS_ERROR_IN_RESPONSE;
+    GpsCommand_t ecmd;
+    if (MSG_OK == chMBFetchTimeout(&gpsMailbox, (msg_t *)&ecmd, TIME_INFINITE)) {
+      switch (ecmd) {
+      case GPS_CMD_START: {
+        gpsPowerOn();
+        startTimer();
+        break;
       }
-      
-    } else {
-      error = GPS_ERROR_DATA_UPDATE;
+      case GPS_CMD_STOP: {
+        stopTimer();
+        gpsPowerOff();
+        break;
+      }
+      case GPS_CMD_UPDATE: {
+        updatePosition();
+        break;
+      }
+      default: { 
+        error = GPS_ERROR_UNKNOWN_COMMAND;
+        break;
+      }
+      }
     }
   }
 }
 
 void GpsReaderThreadInit(void) {
   chVTObjectInit(&gpsTimer);
-  chSemObjectInit(&gpsSem, 0);
+  memset(events, 0, sizeof(events));
+  chMBObjectInit(&gpsMailbox, events, sizeof(events) / sizeof(events[0]));
 }
 
-void GpsReaderStart(void) {
-  gpsPowerOn();
+void GpsReaderStart(void) { 
   chSysLock();
-  chVTSetI(&gpsTimer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), gpsTimerCallback,
-           NULL);
-  chSemSignalI(&gpsSem);
+  chMBPostI(&gpsMailbox, GPS_CMD_START);
   chSysUnlock();
 }
 
 void GpsReaderStop(void) {
   chSysLock();
-  chVTResetI(&gpsTimer);
+  chMBPostI(&gpsMailbox, GPS_CMD_STOP);
   chSysUnlock();
-  gpsPowerOff();
 }
 
 /****************************** END OF FILE **********************************/

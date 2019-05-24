@@ -8,7 +8,6 @@
 /*******************************************************************************/
 #include "PeripheralManagerThread.h"
 
-#include "BoardEvents.h"
 #include "DebugShell.h"
 #include "Sdcard.h"
 #include "sim8xx.h"
@@ -22,6 +21,12 @@
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
 /*******************************************************************************/
+typedef enum {
+  SDC_INSERTED,
+  SDC_REMOVED,
+  USB_CONNECTED,
+  USB_DISCONNECTED
+} PeripheralEvent_t;
 
 /*******************************************************************************/
 /* MACRO DEFINITIONS                                                           */
@@ -34,7 +39,7 @@ static SerialConfig sd_config  = {115200, 0, 0, 0};
 static Sim8xxConfig sim_config = {&SD1, &sd_config, LINE_WAVESHARE_POWER};
 
 static msg_t events[10];
-mailbox_t periphMailbox;
+static mailbox_t periphMailbox;
 
 /*******************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                              */
@@ -135,6 +140,30 @@ void PeripheralManagerThreadInit(void) {
 
   memset(events, 0, sizeof(events));
   chMBObjectInit(&periphMailbox, events, sizeof(events) / sizeof(events[0]));
+}
+
+void PeripheralManagerSdcInserted(void) {
+  chSysLock();
+  chMBPostI(&periphMailbox, SDC_INSERTED);
+  chSysUnlock();
+}
+
+void PeripheralManagerSdcRemoved(void) {
+  chSysLock();
+  chMBPostI(&periphMailbox, SDC_REMOVED);
+  chSysUnlock();
+}
+
+void PeripheralManagerUsbConnected(void) {
+  chSysLock();
+  chMBPostI(&periphMailbox, USB_CONNECTED);
+  chSysUnlock();
+}
+
+void PeripheralManagerUsbDisconnected(void) {
+  chSysLock();
+  chMBPostI(&periphMailbox, USB_DISCONNECTED);
+  chSysUnlock();
 }
 
 /******************************* END OF FILE ***********************************/

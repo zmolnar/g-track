@@ -61,11 +61,9 @@ static void timerCallback(void *p) {
 }
 
 static double getSpeed(void) {
-  dbLock(&dashboard);
-  Position_t *p = dbGetPosition(&dashboard);
-  double speed = p->speed;
-  dbUnlock(&dashboard);
-  return speed;
+  Position_t pos = {0};
+  dbGetPosition(&pos);
+  return pos.speed;
 }
 
 static uint32_t calculatePeriodInMs(double speed) {
