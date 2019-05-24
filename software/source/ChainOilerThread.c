@@ -9,6 +9,7 @@
 #include "ChainOilerThread.h"
 #include "ch.h"
 #include "hal.h"
+#include "chprintf.h"
 #include "Dashboard.h"
 #include <string.h>
 
@@ -108,6 +109,44 @@ static void releaseOilDrop(void) {
   enterSleepMode();
 }
 
+static uint32_t convertMillisecondToHour(uint32_t millisecond) {
+  return millisecond / 3600000;
+}
+
+static uint32_t convertMillisecondToMinute(uint32_t millisecond) {
+  return millisecond % 3600000 / 60000;
+}
+
+static uint32_t convertMillisecondToSecond(uint32_t millisecond) {
+  return millisecond % 3600000 % 60000 / 1000;
+}
+
+static void addToLogfile(const char *data, size_t length) {
+  FIL log;
+  if (FR_OK == f_open(&log, "/chainoiler.log", FA_OPEN_APPEND | FA_WRITE)) {
+    UINT bw = 0;
+    f_write(&log, data, length, &bw);
+    f_close(&log);
+  }
+}
+
+static void logEvent(double speed, uint32_t sleep) { 
+  char entry[100] = {0};
+  RTCDateTime dateTime = {0};
+  dbGetTime(&dateTime);
+
+  chsnprintf(entry, sizeof(entry), "%d-%d-%d %d:%d:%d %f km/h %d sec\n", 
+             dateTime.year,
+             dateTime.month, 
+             dateTime.day,
+             convertMillisecondToHour(dateTime.millisecond),
+             convertMillisecondToMinute(dateTime.millisecond),
+             convertMillisecondToSecond(dateTime.millisecond),
+             speed, sleep);
+
+  addToLogfile(entry, strlen(entry));
+}
+
 static void handleFireCommand(void) {
   double speed = getSpeed();
   uint32_t sleepDurationInMs = calculatePeriodInMs(speed);
@@ -121,6 +160,8 @@ static void handleFireCommand(void) {
   chSysLock();
   chVTSetI(&timer, chTimeMS2I(sleepDurationInMs), timerCallback, NULL);
   chSysUnlock();
+
+  logEvent(speed, sleepDurationInMs);
 
   if (dropIsNeeded) 
     releaseOilDrop();
