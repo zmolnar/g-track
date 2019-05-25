@@ -34,6 +34,8 @@ THD_FUNCTION(ChainOilerThread, arg);
 void ChainOilerThreadInit(void);
 void ChainOilerStart(void);
 void ChainOilerStop(void);
+void ChainOilerForceStart(void);
+void ChainOilerForceStop(void);
 
 #endif /* CHAIN_OILER_THREAD_H */
 

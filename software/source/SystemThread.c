@@ -41,6 +41,7 @@ typedef enum {
 /*******************************************************************************/
 static msg_t events[10];
 static mailbox_t systemMailbox;
+SystemState_t systemState;
 
 /*******************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                              */
@@ -107,26 +108,26 @@ THD_FUNCTION(SystemThread, arg) {
   (void)arg;
   chRegSetThreadName("system");
 
-  static SystemState_t state = SYSTEM_INIT;
+  systemState = SYSTEM_INIT;
 
   while(true) {
     SystemEvent_t evt;
     if (MSG_OK == chMBFetchTimeout(&systemMailbox, (msg_t*)&evt, TIME_INFINITE)) {
-      switch(state) {
+      switch(systemState) {
         case SYSTEM_INIT: {
-          state = systemInitHandler(evt);
+          systemState = systemInitHandler(evt);
           break;
         }
         case SYSTEM_PARKING: {
-          state = systemParkingHandler(evt);
+          systemState = systemParkingHandler(evt);
           break;
         }
         case SYSTEM_RIDING: {
-          state = systemRidingHandler(evt);
+          systemState = systemRidingHandler(evt);
           break;
         }
         case SYSTEM_TRACKING: {
-          state = systemTrackingHandler(evt);
+          systemState = systemTrackingHandler(evt);
           break;
         }
         default: {

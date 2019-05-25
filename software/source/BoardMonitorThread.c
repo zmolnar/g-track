@@ -7,7 +7,7 @@
 /* INCLUDES                                                                    */
 /*******************************************************************************/
 #include "BoardMonitorThread.h"
-
+#include "ChainOilerThread.h"
 #include "PeripheralManagerThread.h"
 #include "SystemThread.h"
 #include "hal.h"
@@ -40,7 +40,7 @@ static semaphore_t sync;
 /* DEFINITION OF LOCAL FUNCTIONS                                               */
 /*******************************************************************************/
 static bool isSdcardInserted(void) {
-  return PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT) ? true : false;
+  return PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT);
 }
 
 static void checkSdcard(void) {
@@ -62,7 +62,7 @@ static void checkSdcard(void) {
 }
 
 static bool isUsbConnected(void) {
-  return PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE) ? true : false;
+  return PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE);
 }
 
 static void checkUsb(void) {
@@ -83,6 +83,28 @@ static void checkUsb(void) {
       SystemThreadIgnitionOff();
     }
   }
+}
+
+static bool isBT0Pressed(void) {
+  return PAL_LOW == palReadLine(LINE_BT0);
+}
+
+static void checkBT0(void) {
+  static uint8_t counter = DEBOUNCE_COUNTER_START;
+
+  if (counter > 0) {
+    if (isBT0Pressed()) {
+      if (--counter == 0) {
+        ChainOilerForceStart();
+      }
+    } else
+      counter = DEBOUNCE_COUNTER_START;
+  } else {
+    if (!isBT0Pressed()) {
+      counter = DEBOUNCE_COUNTER_START;
+      ChainOilerForceStop();
+    }
+  }  
 }
 
 static void timerCallback(void *p) {
@@ -112,6 +134,7 @@ THD_FUNCTION(BoardMonitorThread, arg) {
 
     checkSdcard();
     checkUsb();
+    checkBT0();
   }
 }
 
