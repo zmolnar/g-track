@@ -23,7 +23,7 @@
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
 #define GPS_UPDATE_PERIOD_IN_MS     5000
-#define MAX_TIME_DIFF_IN_MS         30000
+#define MAX_TIME_DIFF_IN_SEC        5
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -72,72 +72,38 @@ static void restoreChar(char *c, char *tmp) {
   *c = *tmp; 
 }
 
-static int dayOfWeek(int year, int month, int day) {
-  if(month == 1) {
-    month = 13;
-    year--;
-  }
-  
-  if (month == 2) {
-    month = 14;
-    year--;
-  }
-  
-  int q = day;
-  int m = month;
-  int k = year % 100;
-  int j = year / 100;
-  int h = q + 13*(m+1)/5 + k + k/4 + j/4 + 5*j;
-  h %= 7;
- 
-  return h;
-}
+static bool convertRawDateToDateTime(DateTime_t *dt, char *raw) {
+  if (18 != strlen(raw)) 
+    return false;
 
-static bool isDaylightSavingTime(int day, int month, int dow) {
-  if (month < 3 || month > 10) return false;
-  if (month > 3 && month < 10) return true;
+  char tmp;
+  hijackChar(raw + 4, &tmp);
+  dt->year = atoi(raw);
+  restoreChar(raw + 4, &tmp);
 
-  int previousSunday = day - dow;
+  hijackChar(raw + 6, &tmp);
+  dt->month = atoi(raw + 4);
+  restoreChar(raw + 6, &tmp);
 
-  if (month == 3) return previousSunday >= 25;
-  if (month == 10) return previousSunday < 25;
+  hijackChar(raw + 8, &tmp);
+  dt->day = atoi(raw + 6);
+  restoreChar(raw + 8, &tmp);
 
-  return false;  // this line never gonna happend
-}
+  hijackChar(raw + 10, &tmp);
+  dt->hour = atoi(raw + 8);
+  restoreChar(raw + 10, &tmp);
 
-static bool convertDateToRTCDateTime(RTCDateTime *rtc, char *date) {
-    char tmp;
-    hijackChar(date+4, &tmp);
-    rtc->year = atoi(date) - 1980;
-    restoreChar(date+4, &tmp);
-    
-    hijackChar(date+6, &tmp);
-    rtc->month = atoi(date+4);
-    restoreChar(date+6, &tmp);
-    
-    hijackChar(date+8, &tmp);
-    rtc->day = atoi(date+6);
-    restoreChar(date+8, &tmp);
-    
-    hijackChar(date+10, &tmp);
-    int hour = atoi(date+8);
-    restoreChar(date+10, &tmp);
-    
-    hijackChar(date+12, &tmp);
-    int min = atoi(date+10);
-    restoreChar(date+12, &tmp);
-    
-    hijackChar(date+14, &tmp);
-    int sec = atoi(date+12);
-    restoreChar(date+14, &tmp);
-    
-    int msec = atoi(date+15);
-    
-    rtc->millisecond = 60*60*1000*hour + 60*1000*min + 1000*sec + msec;
-    rtc->dayofweek = dayOfWeek(rtc->year+1980, rtc->month, rtc->day);
-    rtc->dstflag = isDaylightSavingTime(rtc->day, rtc->month, rtc->dayofweek) ? 1 : 0;
+  hijackChar(raw + 12, &tmp);
+  dt->min = atoi(raw + 10);
+  restoreChar(raw + 12, &tmp);
 
-    return true;
+  hijackChar(raw + 14, &tmp);
+  dt->sec = atoi(raw + 12);
+  restoreChar(raw + 14, &tmp);
+
+  dt->msec = atoi(raw + 15);
+
+  return true;
 }
 
 static void saveInLogfile(const char *data, size_t length) {
@@ -151,7 +117,8 @@ static void saveInLogfile(const char *data, size_t length) {
 
 static void logPosition(CGNSINF_Response_t *pdata) {
   char buf[150] = {0};
-  chsnprintf(buf, sizeof(buf), 
+  size_t end = dbCreateTimestamp(buf, sizeof(buf));
+  chsnprintf(buf + end, sizeof(buf) - end, 
              "%s %f %f %f %f %d %d %d %d\n", 
              pdata->date, 
              pdata->latitude, 
@@ -178,8 +145,8 @@ static void savePosition(CGNSINF_Response_t *data) {
   dbSetPosition(&gpsPos);
 }
 
-static bool isUpdateNeeded(RTCDateTime *gpsTime) {
-  RTCDateTime rtcTime = {0};
+static bool isUpdateNeeded(DateTime_t *gpsTime) {
+  DateTime_t rtcTime = {0};
   dbGetTime(&rtcTime);
 
   bool result = false;
@@ -189,25 +156,29 @@ static bool isUpdateNeeded(RTCDateTime *gpsTime) {
     result = true;
   else if (rtcTime.day != gpsTime->day)
     result = true;
+  else if (rtcTime.hour != gpsTime->hour)
+    result = true;
+  else if (rtcTime.min != gpsTime->min)
+    result = true;
   else {
     uint32_t diff = 0;
-    if (rtcTime.millisecond < gpsTime->millisecond)
-      diff = gpsTime->millisecond - rtcTime.millisecond;
-    else 
-      diff = rtcTime.millisecond - gpsTime->millisecond;
+    if (rtcTime.sec < gpsTime->sec)
+      diff = gpsTime->sec - rtcTime.sec;
+    else
+      diff = rtcTime.sec - gpsTime->sec;
 
-    result = (MAX_TIME_DIFF_IN_MS < diff);
+    result = (MAX_TIME_DIFF_IN_SEC < diff);
   }
 
   return result;
 }
 
-static void updateClock(char *date) {
-  RTCDateTime gpsTime = {0};
-  convertDateToRTCDateTime(&gpsTime, date);
+static void updateClock(char *rawDateTime) {
+  DateTime_t gpsDateTime = {0};
+  convertRawDateToDateTime(&gpsDateTime, rawDateTime);
 
-  if (isUpdateNeeded(&gpsTime))
-    dbSetTime(&gpsTime);
+  if (isUpdateNeeded(&gpsDateTime)) 
+    dbSetTime(&gpsDateTime);
 }
 
 static void updatePosition(void) {

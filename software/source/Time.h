@@ -1,17 +1,16 @@
 /**
- * @file Dashboard.h
- * @brief
+ * @file Time.h
+ * @brief Unified date and time conversion methods.
  */
 
-#ifndef DASHBOARD_H
-#define DASHBOARD_H
+#ifndef TIME_H
+#define TIME_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "ch.h"
 #include "hal.h"
-#include "Time.h"
+#include <stdint.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -25,15 +24,14 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef struct {
-  char date[18 + 1];
-  double latitude;
-  double longitude;
-  double altitude;
-  double speed;
-  int gpsSatInView;
-  int gnssSatInUse;
-  int gnssSatInView;
-} Position_t;
+  uint32_t year;
+  uint32_t month;
+  uint32_t day;
+  uint32_t hour;
+  uint32_t min;
+  uint32_t sec;
+  uint32_t msec;
+} DateTime_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
@@ -42,15 +40,9 @@ typedef struct {
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void dbInit(void);
-void dbGetPosition(Position_t *pos);
-void dbSetPosition(Position_t *new);
-void dbGetTime(DateTime_t *time);
-void dbSetTime(DateTime_t *time);
+void convertDateTimeToRTCDateTime(DateTime_t *dt, RTCDateTime *rtc);
+void convertRTCDateTimeToDateTime(RTCDateTime *rtc, DateTime_t *dt);
 
-size_t dbCreateTimestamp(char buf[], size_t length);
+#endif /* TIME_H */
 
-#endif /* DASHBOARD_H */
-
-    /****************************** END OF FILE
-       **********************************/
+/****************************** END OF FILE **********************************/
