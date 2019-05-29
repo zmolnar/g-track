@@ -72,7 +72,7 @@ void dbSetPosition(Position_t *new) {
 void dbGetTime(DateTime_t *time) {
     RTCDateTime rtcDateTime = {0};
     dbLock();
-    rtcGetTime(&RTCD1, rtcDateTime);
+    rtcGetTime(&RTCD1, &rtcDateTime);
     dbUnlock();
     convertRTCDateTimeToDateTime(&rtcDateTime, time);
 }
@@ -81,7 +81,7 @@ void dbSetTime(DateTime_t *time) {
     RTCDateTime rtcDateTime = {0};
     convertDateTimeToRTCDateTime(time, &rtcDateTime);
     dbLock();
-    rtcSetTime(&RTCD1, rtcDateTime);
+    rtcSetTime(&RTCD1, &rtcDateTime);
     dbUnlock();
 }
 

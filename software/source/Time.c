@@ -83,7 +83,7 @@ static uint32_t convertMillisecondToMilliSecond(uint32_t millisecond) {
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void convertDateTimeToRTCDateTime(RTCDateTime *rtc, DateTime_t *dt) {
+void convertDateTimeToRTCDateTime(DateTime_t *dt, RTCDateTime *rtc) {
   rtc->year = dt->year - 1980;
   rtc->month = dt->month;
   rtc->day = dt->day;
