@@ -87,13 +87,43 @@ static SystemState_t systemInitHandler(SystemEvent_t evt) {
 }
 
 static SystemState_t systemParkingHandler(SystemEvent_t evt) {
-  (void)evt;
-  return SYSTEM_PARKING;
+  SystemState_t newState = SYSTEM_PARKING;
+  switch(evt) {
+    case SYS_EVT_IGNITION_ON: {
+      connectModem();
+      GpsReaderStart();
+      ChainOilerStart();
+      newState = SYSTEM_RIDING;
+      break;
+    }
+    case SYS_EVT_IGNITION_OFF: {
+      break;
+    }
+    default: {
+      ;
+    }
+  }
+  return newState;
 }
 
 static SystemState_t systemRidingHandler(SystemEvent_t evt) {
-  (void)evt;
-  return SYSTEM_RIDING;
+  SystemState_t newState = SYSTEM_RIDING;
+  switch(evt) {
+    case SYS_EVT_IGNITION_ON: {
+      break;
+    }
+    case SYS_EVT_IGNITION_OFF: {
+      ChainOilerStop();
+      GpsReaderStop();
+      disconnectModem();
+      newState = SYSTEM_PARKING;
+      break;
+    }
+    default: {
+      ;
+    }
+  }
+  return newState;
 }
 
 static SystemState_t systemTrackingHandler(SystemEvent_t evt) {

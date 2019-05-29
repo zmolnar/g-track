@@ -107,6 +107,28 @@ static void checkBT0(void) {
   }  
 }
 
+static bool isIgnitionPressed(void) {
+  return PAL_HIGH == palReadLine(LINE_EXT_IGNITION);
+}
+
+static void checkIgnition(void) {
+  static uint8_t counter = DEBOUNCE_COUNTER_START;
+
+  if (counter > 0) {
+    if (isIgnitionPressed()) {
+      if (--counter == 0) {
+        SystemThreadIgnitionOn();
+      }
+    } else
+      counter = DEBOUNCE_COUNTER_START;
+  } else {
+    if (!isIgnitionPressed()) {
+      counter = DEBOUNCE_COUNTER_START;
+      SystemThreadIgnitionOff();
+    }
+  }  
+}
+
 static void timerCallback(void *p) {
   (void)p;
   chSysLockFromISR();
@@ -132,6 +154,7 @@ THD_FUNCTION(BoardMonitorThread, arg) {
   while (true) {
     chSemWait(&sync);
 
+    checkIgnition();
     checkSdcard();
     checkUsb();
     checkBT0();

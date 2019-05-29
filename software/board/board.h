@@ -173,7 +173,7 @@
  * PA6  - ACC_MISO                  (input pullup).
  * PA7  - ACC_MOSI                  (input pullup).
  * PA8  - BT0                       (input pullup).
- * PA9  - USB_VBUS_SENSE            (input pullup).
+ * PA9  - USB_VBUS_SENSE            (input pulldown).
  * PA10 - PA10_NC                   (input pullup).
  * PA11 - USB_DM                    (input pullup).
  * PA12 - USB_DP                    (input pullup).
@@ -229,21 +229,21 @@
                                      PIN_OSPEED_HIGH(GPIOA_SWDIO)          | \
                                      PIN_OSPEED_HIGH(GPIOA_SWCLK)          | \
                                      PIN_OSPEED_HIGH(GPIOA_LED_2_RED))
-#define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLDOWN(GPIOA_DCM_AIN1)     | \
-                                     PIN_PUPDR_PULLDOWN(GPIOA_DCM_AIN2)     | \
-                                     PIN_PUPDR_PULLUP(GPIOA_DCM_BIN2)       | \
-                                     PIN_PUPDR_PULLUP(GPIOA_DCM_BIN1)       | \
-                                     PIN_PUPDR_PULLUP(GPIOA_ACC_CS)         | \
-                                     PIN_PUPDR_PULLUP(GPIOA_ACC_SCK)        | \
-                                     PIN_PUPDR_PULLUP(GPIOA_ACC_MISO)       | \
-                                     PIN_PUPDR_PULLUP(GPIOA_ACC_MOSI)       | \
-                                     PIN_PUPDR_PULLUP(GPIOA_BT0)            | \
-                                     PIN_PUPDR_PULLUP(GPIOA_USB_VBUS_SENSE) | \
-                                     PIN_PUPDR_PULLUP(GPIOA_PA10_NC)        | \
-                                     PIN_PUPDR_PULLUP(GPIOA_USB_DM)         | \
-                                     PIN_PUPDR_PULLUP(GPIOA_USB_DP)         | \
-                                     PIN_PUPDR_PULLUP(GPIOA_SWDIO)          | \
-                                     PIN_PUPDR_PULLDOWN(GPIOA_SWCLK)        | \
+#define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLDOWN(GPIOA_DCM_AIN1)      | \
+                                     PIN_PUPDR_PULLDOWN(GPIOA_DCM_AIN2)      | \
+                                     PIN_PUPDR_PULLUP(GPIOA_DCM_BIN2)        | \
+                                     PIN_PUPDR_PULLUP(GPIOA_DCM_BIN1)        | \
+                                     PIN_PUPDR_PULLUP(GPIOA_ACC_CS)          | \
+                                     PIN_PUPDR_PULLUP(GPIOA_ACC_SCK)         | \
+                                     PIN_PUPDR_PULLUP(GPIOA_ACC_MISO)        | \
+                                     PIN_PUPDR_PULLUP(GPIOA_ACC_MOSI)        | \
+                                     PIN_PUPDR_PULLUP(GPIOA_BT0)             | \
+                                     PIN_PUPDR_PULLDOWN(GPIOA_USB_VBUS_SENSE)| \
+                                     PIN_PUPDR_PULLUP(GPIOA_PA10_NC)         | \
+                                     PIN_PUPDR_PULLUP(GPIOA_USB_DM)          | \
+                                     PIN_PUPDR_PULLUP(GPIOA_USB_DP)          | \
+                                     PIN_PUPDR_PULLUP(GPIOA_SWDIO)           | \
+                                     PIN_PUPDR_PULLDOWN(GPIOA_SWCLK)         | \
                                      PIN_PUPDR_PULLUP(GPIOA_LED_2_RED))
 #define VAL_GPIOA_ODR               (PIN_ODR_LOW(GPIOA_DCM_AIN1)        | \
                                      PIN_ODR_LOW(GPIOA_DCM_AIN2)        | \
@@ -290,7 +290,7 @@
  * PB6  - RPI_UART_TX               (input pullup).
  * PB7  - RPI_UART_RX               (input pullup).
  * PB8  - PB8_NC                    (input pullup).
- * PB9  - EXT_SW1                   (input pullup).
+ * PB9  - EXT_SW1                   (input pulldown).
  * PB10 - BUZZER_PWM                (input pullup).
  * PB11 - PB11_NC                   (input pullup).
  * PB12 - SDC_SPI2_CS               (alternate 5).
@@ -355,7 +355,7 @@
                                      PIN_PUPDR_PULLUP(GPIOB_RPI_UART_TX)        | \
                                      PIN_PUPDR_PULLUP(GPIOB_RPI_UART_RX)        | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB8_NC)             | \
-                                     PIN_PUPDR_PULLUP(GPIOB_EXT_SW1)            | \
+                                     PIN_PUPDR_PULLDOWN(GPIOB_EXT_SW1)          | \
                                      PIN_PUPDR_PULLUP(GPIOB_BUZZER_PWM)         | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB11_NC)            | \
                                      PIN_PUPDR_PULLUP(GPIOB_SDC_SPI2_CS)        | \
@@ -410,7 +410,7 @@
  * PC9  - PC9_NC                    (input pullup).
  * PC10 - LED_3_GREEN               (output push-pull).
  * PC11 - EXT_IGNITION              (input pullup).
- * PC12 - EXT_SW2                   (input pullup).
+ * PC12 - EXT_SW2                   (input pulldown).
  * PC13 - EXT_LED                   (input pullup).
  * PC14 - OSC32_IN                  (input pullup).
  * PC15 - OSC32_OUT                 (input pullup).
@@ -474,8 +474,8 @@
                                      PIN_PUPDR_PULLUP(GPIOC_PC8_NC)             | \
                                      PIN_PUPDR_PULLUP(GPIOC_PC9_NC)             | \
                                      PIN_PUPDR_PULLUP(GPIOC_LED_3_GREEN)        | \
-                                     PIN_PUPDR_PULLUP(GPIOC_EXT_IGNITION)       | \
-                                     PIN_PUPDR_PULLUP(GPIOC_EXT_SW2)            | \
+                                     PIN_PUPDR_PULLDOWN(GPIOC_EXT_IGNITION)     | \
+                                     PIN_PUPDR_PULLDOWN(GPIOC_EXT_SW2)          | \
                                      PIN_PUPDR_PULLUP(GPIOC_EXT_LED)            | \
                                      PIN_PUPDR_PULLUP(GPIOC_OSC32_IN)           | \
                                      PIN_PUPDR_PULLUP(GPIOC_OSC32_OUT))
