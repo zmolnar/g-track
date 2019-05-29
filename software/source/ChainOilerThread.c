@@ -122,18 +122,6 @@ static void stopOiler(void) {
   enterSleepMode();
 }
 
-static uint32_t convertMillisecondToHour(uint32_t millisecond) {
-  return millisecond / 3600000;
-}
-
-static uint32_t convertMillisecondToMinute(uint32_t millisecond) {
-  return millisecond % 3600000 / 60000;
-}
-
-static uint32_t convertMillisecondToSecond(uint32_t millisecond) {
-  return millisecond % 3600000 % 60000 / 1000;
-}
-
 static void addToLogfile(const char *data, size_t length) {
   FIL log;
   if (FR_OK == f_open(&log, "/chainoiler.log", FA_OPEN_APPEND | FA_WRITE)) {
@@ -145,18 +133,10 @@ static void addToLogfile(const char *data, size_t length) {
 
 static void logEvent(double speed, uint32_t sleep) { 
   char entry[100] = {0};
-  RTCDateTime dateTime = {0};
-  dbGetTime(&dateTime);
+  size_t end = dbCreateTimestamp(entry, sizeof(entry));
 
-  chsnprintf(entry, sizeof(entry), "%d-%02d-%02d %02d:%02d:%02d %.2f km/h %d sec\n", 
-             dateTime.year + 1980,
-             dateTime.month, 
-             dateTime.day,
-             convertMillisecondToHour(dateTime.millisecond),
-             convertMillisecondToMinute(dateTime.millisecond),
-             convertMillisecondToSecond(dateTime.millisecond),
+  chsnprintf(entry + end, sizeof(entry) - end, "%.2f km/h %d sec\n", 
              speed, sleep/1000);
-
   addToLogfile(entry, strlen(entry));
 }
 

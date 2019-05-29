@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include "Dashboard.h"
 #include "ch.h"
+#include "chprintf.h"
 
 #include <string.h>
 
@@ -68,16 +69,29 @@ void dbSetPosition(Position_t *new) {
     dbUnlock();
 }
 
-void dbSetTime(RTCDateTime *ptime) {
+void dbGetTime(DateTime_t *time) {
+    RTCDateTime rtcDateTime = {0};
     dbLock();
-    rtcSetTime(&RTCD1, ptime);
+    rtcGetTime(&RTCD1, rtcDateTime);
+    dbUnlock();
+    convertRTCDateTimeToDateTime(&rtcDateTime, time);
+}
+
+void dbSetTime(DateTime_t *time) {
+    RTCDateTime rtcDateTime = {0};
+    convertDateTimeToRTCDateTime(time, &rtcDateTime);
+    dbLock();
+    rtcSetTime(&RTCD1, rtcDateTime);
     dbUnlock();
 }
 
-void dbGetTime(RTCDateTime *ptime) {
-    dbLock();
-    rtcGetTime(&RTCD1, ptime);
-    dbUnlock();
+size_t dbCreateTimestamp(char buf[], size_t length) {
+    DateTime_t dt = {0};
+    dbGetTime(&dt);
+
+    int n = chsnprintf(buf, length, "%d-%02d-%02d %02d:%02d:%02d >>> ",
+                       dt.year, dt.month, dt.day, dt.hour, dt.min, dt.sec);
+    return (size_t)n;
 }
 
 /****************************** END OF FILE **********************************/
