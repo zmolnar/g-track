@@ -17,17 +17,16 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define STARTUP_DELAY_IN_SEC         120
-#define DEFAULT_SLEEP_DURATION_IN_MS (5*1000)
+#define DEFAULT_SLEEP_DURATION_IN_MS       (5*1000)
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef enum {
+  CHAIN_OILER_INIT,
   CHAIN_OILER_DISABLED,
   CHAIN_OILER_ENABLED,
-  CHAIN_OILER_FORCED,
-  CHAIN_OILER_ERROR
+  CHAIN_OILER_FORCED
 } ChainOilerState_t;
 
 typedef enum {
@@ -37,6 +36,10 @@ typedef enum {
   CHAIN_OILER_FORCE_STOP,
   CHAIN_OILER_FIRE
 } ChainOilerCommand_t;
+
+typedef enum {
+  CHAIN_OILER_E_NO_ERROR
+} ChainOilerError_t;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -48,7 +51,8 @@ typedef enum {
 static virtual_timer_t timer;
 static msg_t commands[10];
 static mailbox_t mailbox;
-ChainOilerState_t chainOilerState;
+ChainOilerState_t chainOilerState = CHAIN_OILER_INIT;
+ChainOilerError_t chainOilerError = CHAIN_OILER_E_NO_ERROR;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -166,15 +170,39 @@ static void stopTimer(void) {
   chSysUnlock();
 }
 
+static ChainOilerState_t chainOilerInitHandler(ChainOilerCommand_t cmd) {
+  ChainOilerState_t newState = CHAIN_OILER_INIT;
+
+  switch(cmd) {
+  case CHAIN_OILER_START: {
+    chSysLock();
+    chMBPostI(&mailbox, CHAIN_OILER_FIRE);
+    chSysUnlock();
+    newState = CHAIN_OILER_ENABLED;
+    break;
+  }
+  case CHAIN_OILER_STOP: {
+    newState = CHAIN_OILER_DISABLED;
+    break;
+  }
+  case CHAIN_OILER_FORCE_START:
+  case CHAIN_OILER_FORCE_STOP:
+  case CHAIN_OILER_FIRE:
+    break;
+  }
+
+  return newState;
+}
+
 static ChainOilerState_t chainOilerDisabledHandler(ChainOilerCommand_t cmd) {
   ChainOilerState_t newState = CHAIN_OILER_DISABLED;
 
   switch(cmd) {
   case CHAIN_OILER_START: {
-    newState = CHAIN_OILER_ENABLED;
     chSysLock();
     chMBPostI(&mailbox, CHAIN_OILER_FIRE);
     chSysUnlock();
+    newState = CHAIN_OILER_ENABLED;
     break;
   }
   case CHAIN_OILER_FORCE_START:
@@ -235,11 +263,11 @@ static ChainOilerState_t chainOilerForcedHandler(ChainOilerCommand_t cmd) {
     break;
   }
   case CHAIN_OILER_FORCE_STOP: {
-    newState = CHAIN_OILER_ENABLED;
     stopOiler();
     chSysLock();
     chMBPostI(&mailbox, CHAIN_OILER_FIRE);
     chSysUnlock();
+    newState = CHAIN_OILER_ENABLED;
     break;
   }
   case CHAIN_OILER_FIRE: {
@@ -257,14 +285,18 @@ static ChainOilerState_t chainOilerForcedHandler(ChainOilerCommand_t cmd) {
 /*****************************************************************************/
 THD_FUNCTION(ChainOilerThread, arg) {
   (void)arg;
-  chRegSetThreadName("chain-oiler");
+  chRegSetThreadName(CHAIN_OILER_THREAD_NAME);
 
-  chainOilerState = CHAIN_OILER_DISABLED;
+  chainOilerState = CHAIN_OILER_INIT;
 
   while(true) {
     ChainOilerCommand_t cmd;
     if (MSG_OK == chMBFetchTimeout(&mailbox, (msg_t*)&cmd, TIME_INFINITE)) {
       switch(chainOilerState) {
+        case CHAIN_OILER_INIT: {
+          chainOilerState = chainOilerInitHandler(cmd);
+          break;
+        }
         case CHAIN_OILER_DISABLED: {
           chainOilerState = chainOilerDisabledHandler(cmd);
           break;
@@ -277,9 +309,7 @@ THD_FUNCTION(ChainOilerThread, arg) {
           chainOilerState = chainOilerForcedHandler(cmd);
           break;
         }
-        case CHAIN_OILER_ERROR:
         default: {
-          chainOilerState = CHAIN_OILER_ERROR;
           break;
         }
       }
@@ -315,6 +345,25 @@ void ChainOilerForceStop(void) {
   chSysLock();
   chMBPostI(&mailbox, CHAIN_OILER_FORCE_STOP);
   chSysUnlock();
+}
+
+const char * ChainOilerGetStateString(void) {
+  const char * stateStr[] = {
+    [CHAIN_OILER_INIT]     = "INIT";
+    [CHAIN_OILER_DISABLED] = "DISABLED",
+    [CHAIN_OILER_ENABLED]  = "ENABLED",
+    [CHAIN_OILER_FORCED]   = "FORCED"
+  }
+
+  return stateStr[(size_t)chainOilerState];
+}
+
+const char * ChainOilerGetErrorString(void) {
+  const char * errorStr[] = {
+    [CHAIN_OILER_E_NO_ERROR] = "NO ERROR"
+  }
+
+  return errorStrp[(size_t)chainOilerError];
 }
 
 /****************************** END OF FILE **********************************/

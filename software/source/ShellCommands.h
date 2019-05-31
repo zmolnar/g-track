@@ -1,20 +1,19 @@
 /**
- * @file ChainOilerThread.h
+ * @file ShellCommands.h
  * @brief
  */
 
-#ifndef CHAIN_OILER_THREAD_H
-#define CHAIN_OILER_THREAD_H
+#ifndef SHELL_COMMANDS_H
+#define SHELL_COMMANDS_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "ch.h"
+#include "hal.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define CHAIN_OILER_THREAD_NAME        "chainoiler"
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -31,16 +30,8 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(ChainOilerThread, arg);
-void ChainOilerThreadInit(void);
-void ChainOilerStart(void);
-void ChainOilerStop(void);
-void ChainOilerForceStart(void);
-void ChainOilerForceStop(void);
+void shGetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[]);
 
-const char * ChainOilerGetStateString(void);
-const char * ChainOilerGetErrorString(void);
-
-#endif /* CHAIN_OILER_THREAD_H */
+#endif /* SHELL_COMMANDS_H */
 
 /****************************** END OF FILE **********************************/

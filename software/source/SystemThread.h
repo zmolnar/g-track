@@ -14,6 +14,7 @@
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
 /*******************************************************************************/
+#define SYSTEM_THREAD_NAME          "system"
 
 /*******************************************************************************/
 /* MACRO DEFINITIONS                                                           */
@@ -35,8 +36,8 @@ void SystemThreadInit(void);
 void SystemThreadIgnitionOn(void);
 void SystemThreadIgnitionOff(void);
 
-const char* SystemThreadGetErrorStr(void);
-const char* SystemThreadGetErrorStr(void);
+const char* SystemThreadGetStateString(void);
+const char* SystemThreadGetErrorString(void);
 
 #endif /* SYSTEM_THREAD_H */
 

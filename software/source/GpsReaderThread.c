@@ -24,13 +24,13 @@
 /*****************************************************************************/
 #define GPS_UPDATE_PERIOD_IN_MS     5000
 #define MAX_TIME_DIFF_IN_SEC        5
+#define MAX_TRIES                   3
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef enum {
   GPS_E_NO_ERROR,
-  GPS_E_UNKNOWN_COMMAND,
   GPS_E_POWER_ON,
   GPS_E_POWER_OFF,
   GPS_E_UPDATE,
@@ -62,8 +62,8 @@ static Sim8xxCommand cmd;
 static msg_t events[10];
 static mailbox_t gpsMailbox;
 
-static GpsReaderState_t gpsState = GPS_INIT;
-static GpsError_t gpsError = GPS_E_NO_ERROR;
+GpsReaderState_t gpsState = GPS_INIT;
+GpsError_t gpsError = GPS_E_NO_ERROR;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS */
@@ -190,7 +190,7 @@ static void updateClock(char *rawDateTime) {
     dbSetTime(&gpsDateTime);
 }
 
-static void updatePosition(void) {
+static bool updatePosition(GpsError_t *error) {
   sim8xxCommandInit(&cmd);
   atCgnsinfCreate(cmd.request, sizeof(cmd.request));
   sim8xxExecute(&SIM8D1, &cmd);
@@ -198,16 +198,18 @@ static void updatePosition(void) {
   if (SIM8XX_OK == cmd.status) {
     CGNSINF_Response_t data;
     if (atCgnsinfParse(&data, cmd.response)) {
-      gpsError = GPS_E_NO_ERROR;
+      *error = GPS_E_NO_ERROR;
       savePosition(&data);
       updateClock(data.date);
       logPosition(&data);
     } else {
-      gpsError = GPS_E_IN_RESPONSE;
+      *error = GPS_E_IN_RESPONSE;
     }
   } else {
-    gpsError = GPS_E_UPDATE;
+    *error = GPS_E_UPDATE;
   }
+
+  return GPS_E_NO_ERROR == *error;
 }
 
 static void timerCallback(void *p) {
@@ -218,32 +220,40 @@ static void timerCallback(void *p) {
   chSysUnlockFromISR();
 }
 
-static void gpsPowerOn(void) {
+static bool gpsPowerOn(void) {
+  bool success = false;
+  uint32_t i = 0;
   do {
     sim8xxCommandInit(&cmd);
     atCgnspwrCreateOn(cmd.request, sizeof(cmd.request));
     sim8xxExecute(&SIM8D1, &cmd);
     if (SIM8XX_OK == cmd.status) {
-      gpsError = GPS_E_NO_ERROR;
+      success = true;
     } else {
-      gpsError = GPS_E_POWER_ON;
+      success = false;
       chThdSleepMilliseconds(1000);
     }
-  } while (GPS_E_NO_ERROR != gpsError);
+  } while ((!success) && (i++ < MAX_TRIES));
+
+  return success;
 }
 
-static void gpsPowerOff(void) {
+static bool gpsPowerOff(void) {
+  bool success = false;
+  uint32_t i = 0;
   do {
     sim8xxCommandInit(&cmd);
     atCgnspwrCreateOff(cmd.request, sizeof(cmd.request));
     sim8xxExecute(&SIM8D1, &cmd);
     if (SIM8XX_OK == cmd.status) {
-      gpsError = GPS_E_NO_ERROR;
+      success = true;
     } else {
-      gpsError = GPS_E_POWER_OFF;
+      success = false;
       chThdSleepMilliseconds(1000);
     }
-  } while (GPS_E_NO_ERROR != gpsError);
+  } while ((!success) && (i++ < MAX_TRIES));
+
+  return success;
 }
 
 static void startTimer(void) {
@@ -262,21 +272,21 @@ static GpsReaderState_t GpsReaderInitHandler(GpsCommand_t cmd) {
   GpsReaderState_t newState = GPS_INIT;
   switch (cmd) {
     case GPS_CMD_START: {
-      gpsPowerOn();
-      startTimer();
-      newState = GPS_ENABLED;
+      if (gpsPowerOn()) {
+        startTimer();
+        newState = GPS_ENABLED;
+      } else {
+        newState = GPS_ERROR;
+        gpsError = GPS_E_POWER_ON;
+      }
       break;
     }
     case GPS_CMD_STOP: {
       newState = GPS_DISABLED;
       break;
     }
-    case GPS_CMD_UPDATE: {
-      break;
-    }
+    case GPS_CMD_UPDATE:
     default: {
-      newState = GPS_ERROR;
-      gpsError = GPS_E_UNKNOWN_COMMAND;
       break;
     }
   }
@@ -292,17 +302,22 @@ static GpsReaderState_t GpsReaderEnabledHandler(GpsCommand_t cmd) {
     }
     case GPS_CMD_STOP: {
       stopTimer();
-      gpsPowerOff();
-      newState = GPS_DISABLED;
+      if (gpsPowerOff()) {
+        newState = GPS_DISABLED;
+      } else {
+        newState = GPS_ERROR;
+        gpsError = GPS_E_POWER_OFF;
+      }
       break;
     }
     case GPS_CMD_UPDATE: {
-      updatePosition();
+      if (!updatePosition(&gpsError)) {
+        stopTimer();
+        newState = GPS_ERROR;
+      }
       break;
     }
     default: {
-      newState = GPS_ERROR;
-      gpsError = GPS_E_UNKNOWN_COMMAND;
       break;
     }
   }
@@ -314,20 +329,35 @@ static GpsReaderState_t GpsReaderDisabledHandler(GpsCommand_t cmd) {
   GpsReaderState_t newState = GPS_DISABLED;
   switch (cmd) {
     case GPS_CMD_START: {
-      gpsPowerOn();
-      startTimer();
-      newState = GPS_ENABLED;
-      break;
+      if (gpsPowerOn()) {
+        startTimer();
+        newState = GPS_ENABLED;
+      } else {
+        newState = GPS_ERROR;
+        gpsError = GPS_E_POWER_ON;
+      }
     }
-    case GPS_CMD_STOP: {
-      break;
-    }
-    case GPS_CMD_UPDATE: {
-      break;
-    }
+    case GPS_CMD_STOP:
+    case GPS_CMD_UPDATE:
     default: {
-      newState = GPS_ERROR;
-      gpsError = GPS_E_UNKNOWN_COMMAND;
+      break;
+    }
+  }
+
+  return newState;
+}
+
+static GpsReaderState_t GpsReaderErrorHandler(GpsCommand_t cmd) {
+  GpsReaderState_t newState = GPS_ERROR;
+  switch (cmd) {
+    case GPS_CMD_STOP: {
+      newState = GPS_INIT;
+      gpsError = GPS_E_NO_ERROR;
+      break;
+    }
+    case GPS_CMD_START:
+    case GPS_CMD_UPDATE:
+    default: {
       break;
     }
   }
@@ -360,9 +390,12 @@ THD_FUNCTION(GpsReaderThread, arg) {
           gpsState = GpsReaderDisabledHandler(ecmd);
           break;
         }
-        case GPS_ERROR:
+        case GPS_ERROR: {
+          gpsState = GpsReaderErrorHandler(ecmd);
+          break;
+        }
         default: {
-
+          break;
         }
       }
     }
@@ -388,7 +421,7 @@ void GpsReaderStop(void) {
 }
 
 const char * GpsReaderGetStateString(void) {
-  static const char * stateStr[] = {
+  static const char * conststateStr[] = {
     [GPS_INIT]     = "INIT", 
     [GPS_ENABLED]  = "ENABLED", 
     [GPS_DISABLED] = "DISABLED", 
@@ -400,12 +433,11 @@ const char * GpsReaderGetStateString(void) {
 
 const char *GpsReaderGetErrorString(void) {
   static const char *errorStr[] ={ 
-    [GPS_E_NO_ERROR]         = "NO ERROR",
-    [GPS_E_UNKNOWN_COMMAND]] = "UNKNOWN COMMAND",
-    [GPS_E_POWER_ON]         = "START FAIL",
-    [GPS_E_POWER_OFF]        = "STOP FAIL",
-    [GPS_E_UPDATE]           = "UPDATE FAIL",
-    [GPS_E_IN_RESPONSE]      = "INVALID RESPONSE" 
+    [GPS_E_NO_ERROR]    = "NO ERROR",
+    [GPS_E_POWER_ON]    = "START FAIL",
+    [GPS_E_POWER_OFF]   = "STOP FAIL",
+    [GPS_E_UPDATE]      = "UPDATE FAIL",
+    [GPS_E_IN_RESPONSE] = "INVALID RESPONSE" 
   }
 
   return errorStr[(size_t)gpsError];

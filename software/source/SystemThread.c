@@ -16,6 +16,7 @@
 /*******************************************************************************/
 /* DEFINED CONSTANTS                                                           */
 /*******************************************************************************/
+#define MAX_TRIES              3
 
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
@@ -34,7 +35,9 @@ typedef enum {
 } SystemEvent_t;
 
 typedef enum {
-  SYS_E_NO_ERROR
+  SYS_E_NO_ERROR,
+  SYS_E_MODEM_POWER_ON,
+  SYS_E_MODEM_POWER_OFF,
 } SystemError_t;
 
 /*******************************************************************************/
@@ -46,7 +49,7 @@ typedef enum {
 /*******************************************************************************/
 static msg_t events[10];
 static mailbox_t systemMailbox;
-SystemState_t systemState;
+SystemState_t systemState = SYSTEM_INIT;
 SystemError_t systemError = SYS_E_NO_ERROR;
 
 /*******************************************************************************/
@@ -56,39 +59,54 @@ SystemError_t systemError = SYS_E_NO_ERROR;
 /*******************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS */
 /*******************************************************************************/
-static void connectModem(void) {
-  while(!sim8xxIsConnected(&SIM8D1)) {
+static bool connectModem(void) {
+  uint32_t i = 0;
+  while ((i++ < MAX_TRIES) && (!sim8xxIsConnected(&SIM8D1))) {
     sim8xxTogglePower(&SIM8D1);
   }
+
+  return (i <= MAX_TRIES);
 }
 
 static void disconnectModem(void) {
-  while(sim8xxIsConnected(&SIM8D1)) {
+  uint32_t i = 0;
+  while ((i++ < MAX_TRIES) && (sim8xxIsConnected(&SIM8D1))) {
     sim8xxTogglePower(&SIM8D1);
   }
+
+  return (i <= MAX_TRIES);
 }
 
 static SystemState_t systemInitHandler(SystemEvent_t evt) {
   SystemState_t newState = SYSTEM_INIT;
   switch(evt) {
     case SYS_EVT_IGNITION_ON: {
-      connectModem();
-      GpsReaderStart();
-      ChainOilerStart();
-      newState = SYSTEM_RIDING;
+      if (connectModem()) {
+        GpsReaderStart();
+        ChainOilerStart();
+        newState = SYSTEM_RIDING;
+      } else {
+        systemError = SYS_E_MODEM_POWER_ON;
+        newState = SYSTEM_ERROR;
+      }
       break;
     }
     case SYS_EVT_IGNITION_OFF: {
-      ChainOilerStop();
-      GpsReaderStop();
-      disconnectModem();
-      newState = SYSTEM_PARKING;
+      if (disconnectModem()) {
+        ChainOilerStop();
+        GpsReaderStop();
+        newState = SYSTEM_PARKING;
+      } else {
+        systemError = SYS_E_MODEM_POWER_OFF;
+        newState = SYSTEM_ERROR;
+      }
       break;
     }
     default: {
-      ;
+      break;
     }
   }
+
   return newState;
 }
 
@@ -96,17 +114,18 @@ static SystemState_t systemParkingHandler(SystemEvent_t evt) {
   SystemState_t newState = SYSTEM_PARKING;
   switch(evt) {
     case SYS_EVT_IGNITION_ON: {
-      connectModem();
-      GpsReaderStart();
-      ChainOilerStart();
-      newState = SYSTEM_RIDING;
-      break;
+      if (connectModem()) {
+        GpsReaderStart();
+        ChainOilerStart();
+        newState = SYSTEM_RIDING;
+      } else {
+        systemError = SYS_E_MODEM_POWER_ON;
+        newState = SYSTEM_ERROR;
+      }
     }
-    case SYS_EVT_IGNITION_OFF: {
-      break;
-    }
+    case SYS_EVT_IGNITION_OFF:
     default: {
-      ;
+      break;
     }
   }
   return newState;
@@ -115,20 +134,23 @@ static SystemState_t systemParkingHandler(SystemEvent_t evt) {
 static SystemState_t systemRidingHandler(SystemEvent_t evt) {
   SystemState_t newState = SYSTEM_RIDING;
   switch(evt) {
-    case SYS_EVT_IGNITION_ON: {
-      break;
-    }
     case SYS_EVT_IGNITION_OFF: {
       ChainOilerStop();
       GpsReaderStop();
-      disconnectModem();
-      newState = SYSTEM_PARKING;
+      if (disconnectModem()) {
+        newState = SYSTEM_PARKING;
+      } else {
+        systemError = SYS_E_MODEM_POWER_OFF;
+        newState = SYSTEM_ERROR;
+      }
       break;
     }
+    case SYS_EVT_IGNITION_ON:
     default: {
-      ;
+      break;
     }
   }
+
   return newState;
 }
 
@@ -137,12 +159,29 @@ static SystemState_t systemTrackingHandler(SystemEvent_t evt) {
   return SYSTEM_TRACKING;
 }
 
+static SystemState_t systemErrorHandler(SystemEvent_t evt) {
+  SystemState_t newState = SYSTEM_ERROR;
+  switch(evt) {
+    case SYS_EVT_IGNITION_OFF: {
+      systemError = SYS_E_NO_ERROR;
+      newState = SYSTEM_INIT;
+      break;
+    }
+    case SYS_EVT_IGNITION_ON:
+    default: {
+      break;
+    }
+  }
+
+  return newState;
+}
+
 /*******************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                              */
 /*******************************************************************************/
 THD_FUNCTION(SystemThread, arg) {
   (void)arg;
-  chRegSetThreadName("system");
+  chRegSetThreadName(SYSTEM_THREAD_NAME);
 
   systemState = SYSTEM_INIT;
 
@@ -164,6 +203,10 @@ THD_FUNCTION(SystemThread, arg) {
         }
         case SYSTEM_TRACKING: {
           systemState = systemTrackingHandler(evt);
+          break;
+        }
+        case SYSTEM_ERROR: {
+          systemState = systemErrorHandler(evt);
           break;
         }
         default: {
@@ -192,7 +235,7 @@ void SystemThreadIgnitionOff(void) {
   chSysUnlock();
 }
 
-const char* SystemThreadGetStateStr(void) {
+const char* SystemThreadGetStateString(void) {
   static const char* const stateStr[] = {
     [SYSTEM_INIT]     = "INIT",
     [SYSTEM_PARKING]  = "PARKING",
@@ -204,9 +247,14 @@ const char* SystemThreadGetStateStr(void) {
   return stateStr[(size_t)systemState];
 }
 
-const char* SystemThreadGetErrorStr(void) {
+  SYS_E_MODEM_POWER_ON,
+  SYS_E_MODEM_POWER_OFF,
+
+const char* SystemThreadGetErrorString(void) {
   static const char* const errorStr[] = {
-    [SYS_E_NO_ERROR] = "NO_ERROR",
+    [SYS_E_NO_ERROR]        = "NO_ERROR",
+    [SYS_E_MODEM_POWER_ON]  = "MODEM POWER ON",
+    [SYS_E_MODEM_POWER_OFF] = "MODEM POWER OFF"
   };
 
   return errorStr[(size_t)systemError];

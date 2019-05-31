@@ -7,6 +7,7 @@
 /* INCLUDES */
 /*******************************************************************************/
 #include "DebugShell.h"
+#includd "ShellCommands.h"
 
 #include "Sdcard.h"
 #include "ch.h"
@@ -34,6 +35,7 @@ static thread_reference_t shelltp;
 
 static const ShellCommand commands[] = {
   {"tree", sdcardCmdTree},
+  {"status", shGetSystemStatus},
   {NULL, NULL} 
 };
 
