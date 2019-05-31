@@ -24,13 +24,18 @@ typedef enum {
   SYSTEM_INIT,
   SYSTEM_PARKING,
   SYSTEM_RIDING,
-  SYSTEM_TRACKING
+  SYSTEM_TRACKING,
+  SYSTEM_ERROR
 } SystemState_t;
 
 typedef enum { 
   SYS_EVT_IGNITION_ON, 
   SYS_EVT_IGNITION_OFF 
 } SystemEvent_t;
+
+typedef enum {
+  SYS_E_NO_ERROR
+} SystemError_t;
 
 /*******************************************************************************/
 /* MACRO DEFINITIONS                                                           */
@@ -42,13 +47,14 @@ typedef enum {
 static msg_t events[10];
 static mailbox_t systemMailbox;
 SystemState_t systemState;
+SystemError_t systemError = SYS_E_NO_ERROR;
 
 /*******************************************************************************/
-/* DECLARATION OF LOCAL FUNCTIONS                                              */
+/* DECLARATION OF LOCAL FUNCTIONS */
 /*******************************************************************************/
 
 /*******************************************************************************/
-/* DEFINITION OF LOCAL FUNCTIONS                                               */
+/* DEFINITION OF LOCAL FUNCTIONS */
 /*******************************************************************************/
 static void connectModem(void) {
   while(!sim8xxIsConnected(&SIM8D1)) {
@@ -184,6 +190,26 @@ void SystemThreadIgnitionOff(void) {
   chSysLock();
   chMBPostI(&systemMailbox, SYS_EVT_IGNITION_OFF);
   chSysUnlock();
+}
+
+const char* SystemThreadGetStateStr(void) {
+  static const char* const stateStr[] = {
+    [SYSTEM_INIT]     = "INIT",
+    [SYSTEM_PARKING]  = "PARKING",
+    [SYSTEM_RIDING]   = "RIDING",
+    [SYSTEM_TRACKING] = "TRACKING",
+    [SYSTEM_ERROR]    = "ERROR"
+  };
+
+  return stateStr[(size_t)systemState];
+}
+
+const char* SystemThreadGetErrorStr(void) {
+  static const char* const errorStr[] = {
+    [SYS_E_NO_ERROR] = "NO_ERROR",
+  };
+
+  return errorStr[(size_t)systemError];
 }
 
 /******************************* END OF FILE ***********************************/

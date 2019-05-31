@@ -35,6 +35,9 @@ void SystemThreadInit(void);
 void SystemThreadIgnitionOn(void);
 void SystemThreadIgnitionOff(void);
 
+const char* SystemThreadGetErrorStr(void);
+const char* SystemThreadGetErrorStr(void);
+
 #endif /* SYSTEM_THREAD_H */
 
-/******************************* END OF FILE ***********************************/
+/****************************** END OF FILE **********************************/
