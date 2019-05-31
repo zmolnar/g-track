@@ -349,11 +349,11 @@ void ChainOilerForceStop(void) {
 
 const char * ChainOilerGetStateString(void) {
   const char * stateStr[] = {
-    [CHAIN_OILER_INIT]     = "INIT";
+    [CHAIN_OILER_INIT]     = "INIT",
     [CHAIN_OILER_DISABLED] = "DISABLED",
     [CHAIN_OILER_ENABLED]  = "ENABLED",
     [CHAIN_OILER_FORCED]   = "FORCED"
-  }
+  };
 
   return stateStr[(size_t)chainOilerState];
 }
@@ -361,9 +361,9 @@ const char * ChainOilerGetStateString(void) {
 const char * ChainOilerGetErrorString(void) {
   const char * errorStr[] = {
     [CHAIN_OILER_E_NO_ERROR] = "NO ERROR"
-  }
+  };
 
-  return errorStrp[(size_t)chainOilerError];
+  return errorStr[(size_t)chainOilerError];
 }
 
 /****************************** END OF FILE **********************************/

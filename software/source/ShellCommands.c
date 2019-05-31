@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include "ShellCommands.h"
 #include "shell.h"
+#include "chprintf.h"
 
 #include "Dashboard.h"
 #include "SystemThread.h"
@@ -42,6 +43,9 @@
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
 void shGetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+
     DateTime_t dt = {0};
     dbGetTime(&dt);
 
@@ -54,7 +58,7 @@ void shGetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[]) {
         "thread", "state", "error" );
 
     chprintf(chp, "%10s    %10s    %10s" SHELL_NEWLINE_STR, 
-        SYS_THREAD_NAME, 
+        SYSTEM_THREAD_NAME, 
         SystemThreadGetStateString(), 
         SystemThreadGetErrorString());
 

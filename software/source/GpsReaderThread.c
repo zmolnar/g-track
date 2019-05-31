@@ -421,12 +421,12 @@ void GpsReaderStop(void) {
 }
 
 const char * GpsReaderGetStateString(void) {
-  static const char * conststateStr[] = {
+  static const char * stateStr[] = {
     [GPS_INIT]     = "INIT", 
     [GPS_ENABLED]  = "ENABLED", 
     [GPS_DISABLED] = "DISABLED", 
     [GPS_ERROR]    = "ERROR"
-  }
+  };
 
   return stateStr[(size_t)gpsState];
 }
@@ -438,7 +438,7 @@ const char *GpsReaderGetErrorString(void) {
     [GPS_E_POWER_OFF]   = "STOP FAIL",
     [GPS_E_UPDATE]      = "UPDATE FAIL",
     [GPS_E_IN_RESPONSE] = "INVALID RESPONSE" 
-  }
+  };
 
   return errorStr[(size_t)gpsError];
 }

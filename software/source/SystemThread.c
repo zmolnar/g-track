@@ -68,7 +68,7 @@ static bool connectModem(void) {
   return (i <= MAX_TRIES);
 }
 
-static void disconnectModem(void) {
+static bool disconnectModem(void) {
   uint32_t i = 0;
   while ((i++ < MAX_TRIES) && (sim8xxIsConnected(&SIM8D1))) {
     sim8xxTogglePower(&SIM8D1);
@@ -246,9 +246,6 @@ const char* SystemThreadGetStateString(void) {
 
   return stateStr[(size_t)systemState];
 }
-
-  SYS_E_MODEM_POWER_ON,
-  SYS_E_MODEM_POWER_OFF,
 
 const char* SystemThreadGetErrorString(void) {
   static const char* const errorStr[] = {

@@ -7,7 +7,7 @@
 /* INCLUDES */
 /*******************************************************************************/
 #include "DebugShell.h"
-#includd "ShellCommands.h"
+#include "ShellCommands.h"
 
 #include "Sdcard.h"
 #include "ch.h"
