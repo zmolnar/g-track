@@ -35,6 +35,10 @@ void GpsReaderThreadInit(void);
 void GpsReaderStart(void);
 void GpsReaderStop(void);
 
+const char *GpsReaderGetStateString(void);
+const char *GpsReaderGetErrorString(void);
+
 #endif /* GPS_READER_THREAD_H */
 
-/******************************* END OF FILE ***********************************/
+    /******************************* END OF FILE
+       ***********************************/
