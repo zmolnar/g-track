@@ -433,7 +433,7 @@ const char * GpsReaderGetStateString(void) {
 
 const char *GpsReaderGetErrorString(void) {
   static const char *errorStr[] ={ 
-    [GPS_E_NO_ERROR]    = "NO ERROR",
+    [GPS_E_NO_ERROR]    = "NO_ERROR",
     [GPS_E_POWER_ON]    = "START FAIL",
     [GPS_E_POWER_OFF]   = "STOP FAIL",
     [GPS_E_UPDATE]      = "UPDATE FAIL",

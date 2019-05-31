@@ -360,7 +360,7 @@ const char * ChainOilerGetStateString(void) {
 
 const char * ChainOilerGetErrorString(void) {
   const char * errorStr[] = {
-    [CHAIN_OILER_E_NO_ERROR] = "NO ERROR"
+    [CHAIN_OILER_E_NO_ERROR] = "NO_ERROR"
   };
 
   return errorStr[(size_t)chainOilerError];

@@ -50,11 +50,11 @@ void shGetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[]) {
     dbGetTime(&dt);
 
     chprintf(chp, SHELL_NEWLINE_STR);
-    chprintf(chp,"%02d-%02d-%d %02d:%02d:%02d",
+    chprintf(chp,"RTC: %02d-%02d-%d %02d:%02d:%02d",
         dt.month, dt.day, dt.year, dt.hour, dt.min, dt.sec);
-    chprintf(chp, SHELL_NEWLINE_STR);        
+    chprintf(chp, SHELL_NEWLINE_STR SHELL_NEWLINE_STR);        
 
-    chprintf(chp, "%10s    %10s    %10s" SHELL_NEWLINE_STR, 
+    chprintf(chp, "%10s    %10s    %10s" SHELL_NEWLINE_STR SHELL_NEWLINE_STR, 
         "thread", "state", "error" );
 
     chprintf(chp, "%10s    %10s    %10s" SHELL_NEWLINE_STR, 
