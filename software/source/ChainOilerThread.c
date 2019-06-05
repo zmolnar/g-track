@@ -19,6 +19,9 @@
 /*****************************************************************************/
 #define DEFAULT_SLEEP_DURATION_IN_MS       (5*1000)
 
+#define LINEAR_OFFSET     ((double)(120.0+2.0*10.0/3.0))
+#define LINEAR_SLOPE      ((double)(-2.0/3.0))
+
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
@@ -79,7 +82,7 @@ static uint32_t calculatePeriodInMs(double speed) {
   if (speed < 10.0)
     sec = 0;
   else if ((10.0 <= speed) && (speed < 100.0))
-    sec = (60/9) - speed * 2/3;
+    sec = LINEAR_SLOPE * speed + LINEAR_OFFSET;
   else
     sec = 60;
 
