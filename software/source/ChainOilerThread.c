@@ -19,8 +19,14 @@
 /*****************************************************************************/
 #define DEFAULT_SLEEP_DURATION_IN_MS       (5*1000)
 
-#define LINEAR_OFFSET     ((double)(120.0+2.0*10.0/3.0))
-#define LINEAR_SLOPE      ((double)(-2.0/3.0))
+#define SPEED_MIN   (double)(10)   
+#define DELAY_MIN   (double)(120)
+
+#define SPEED_MAX   (double)(100)
+#define DELAY_MAX   (double)(60)
+
+#define LINEAR_SLOPE      ((DELAY_MAX - DELAY_MIN) / (SPEED_MAX - SPEED_MIN))
+#define LINEAR_OFFSET     (DELAY_MIN - (LINEAR_SLOPE * SPEED_MIN))
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -79,12 +85,12 @@ static double getSpeed(void) {
 
 static uint32_t calculatePeriodInMs(double speed) {
   double sec = 0;
-  if (speed < 10.0)
+  if (speed < SPEED_MIN)
     sec = 0;
-  else if ((10.0 <= speed) && (speed < 100.0))
+  else if ((SPEED_MIN <= speed) && (speed < SPEED_MAX))
     sec = LINEAR_SLOPE * speed + LINEAR_OFFSET;
   else
-    sec = 60;
+    sec = DELAY_MAX;
 
   return (uint32_t)(sec * 1000.0);
 }
