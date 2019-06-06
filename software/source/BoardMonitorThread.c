@@ -129,6 +129,50 @@ static void checkIgnition(void) {
   }  
 }
 
+static bool isExtSW1Pressed(void) {
+  return PAL_HIGH == palReadLine(LINE_EXT_SW1);
+}
+
+static void checkExtSW1(void) {
+  static uint8_t counter = DEBOUNCE_COUNTER_START;
+
+  if (counter > 0) {
+    if (isExtSW1Pressed()) {
+      if (--counter == 0) {
+        ;
+      }
+    } else
+      counter = DEBOUNCE_COUNTER_START;
+  } else {
+    if (!isExtSW1Pressed()) {
+      counter = DEBOUNCE_COUNTER_START;
+      ;
+    }
+  }  
+}
+
+static bool isExtSW2Pressed(void) {
+  return PAL_HIGH == palReadLine(LINE_EXT_SW2);
+}
+
+static void checkExtSW2(void) {
+  static uint8_t counter = DEBOUNCE_COUNTER_START;
+
+  if (counter > 0) {
+    if (isExtSW2Pressed()) {
+      if (--counter == 0) {
+        ;
+      }
+    } else
+      counter = DEBOUNCE_COUNTER_START;
+  } else {
+    if (!isExtSW2Pressed()) {
+      counter = DEBOUNCE_COUNTER_START;
+      ;
+    }
+  }  
+}
+
 static void timerCallback(void *p) {
   (void)p;
   chSysLockFromISR();
@@ -158,6 +202,8 @@ THD_FUNCTION(BoardMonitorThread, arg) {
     checkSdcard();
     checkUsb();
     checkBT0();
+    checkExtSW1();
+    checkExtSW2();
   }
 }
 

@@ -290,7 +290,7 @@
  * PB6  - RPI_UART_TX               (input pullup).
  * PB7  - RPI_UART_RX               (input pullup).
  * PB8  - PB8_NC                    (input pullup).
- * PB9  - EXT_SW1                   (input pulldown).
+ * PB9  - EXT_SW1                   (input push-pull pull-down).
  * PB10 - BUZZER_PWM                (input pullup).
  * PB11 - PB11_NC                   (input pullup).
  * PB12 - SDC_SPI2_CS               (alternate 5).
@@ -409,8 +409,8 @@
  * PC8  - PC8_NC                    (input pullup).
  * PC9  - PC9_NC                    (input pullup).
  * PC10 - LED_3_GREEN               (output push-pull).
- * PC11 - EXT_IGNITION              (input pullup).
- * PC12 - EXT_SW2                   (input pulldown).
+ * PC11 - EXT_IGNITION              (input push-pull pull-down).
+ * PC12 - EXT_SW2                   (input push-pull pull-down).
  * PC13 - EXT_LED                   (input pullup).
  * PC14 - OSC32_IN                  (input pullup).
  * PC15 - OSC32_OUT                 (input pullup).
