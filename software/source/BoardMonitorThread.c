@@ -153,7 +153,7 @@ static void checkExtSW1(void) {
   if (counter > 0) {
     if (isExtSW1Pressed()) {
       if (--counter == 0) {
-        ;
+        ChainOilerOneShot();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;

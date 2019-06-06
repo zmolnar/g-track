@@ -37,6 +37,7 @@ void ChainOilerStart(void);
 void ChainOilerStop(void);
 void ChainOilerForceStart(void);
 void ChainOilerForceStop(void);
+void ChainOilerOneShot(void);
 
 const char * ChainOilerGetStateString(void);
 const char * ChainOilerGetErrorString(void);

@@ -43,7 +43,8 @@ typedef enum {
   CHAIN_OILER_FORCE_START,
   CHAIN_OILER_STOP,
   CHAIN_OILER_FORCE_STOP,
-  CHAIN_OILER_FIRE
+  CHAIN_OILER_FIRE,
+  CHAIN_OILER_ONE_SHOT
 } ChainOilerCommand_t;
 
 typedef enum {
@@ -205,6 +206,7 @@ static ChainOilerState_t chainOilerInitHandler(ChainOilerCommand_t cmd) {
   case CHAIN_OILER_FORCE_START:
   case CHAIN_OILER_FORCE_STOP:
   case CHAIN_OILER_FIRE:
+  case CHAIN_OILER_ONE_SHOT:
     break;
   }
 
@@ -226,6 +228,7 @@ static ChainOilerState_t chainOilerDisabledHandler(ChainOilerCommand_t cmd) {
   case CHAIN_OILER_STOP:
   case CHAIN_OILER_FORCE_STOP:
   case CHAIN_OILER_FIRE:
+  case CHAIN_OILER_ONE_SHOT:
     break;
   }
 
@@ -255,6 +258,10 @@ static ChainOilerState_t chainOilerEnabledHandler(ChainOilerCommand_t cmd) {
   }
   case CHAIN_OILER_FIRE: {
     handleFireCommand();
+    break;
+  }
+  case CHAIN_OILER_ONE_SHOT: {
+    releaseOilDrop();
     break;
   }
   default:
@@ -287,9 +294,8 @@ static ChainOilerState_t chainOilerForcedHandler(ChainOilerCommand_t cmd) {
     newState = CHAIN_OILER_ENABLED;
     break;
   }
-  case CHAIN_OILER_FIRE: {
-    break;
-  }
+  case CHAIN_OILER_FIRE:
+  case CHAIN_OILER_ONE_SHOT:
   default:
     break;
   }
@@ -361,6 +367,12 @@ void ChainOilerForceStart(void) {
 void ChainOilerForceStop(void) {
   chSysLock();
   chMBPostI(&mailbox, CHAIN_OILER_FORCE_STOP);
+  chSysUnlock();
+}
+
+void ChainOilerOneShot(void) {
+  chSysLock();
+  chMBPostI(&mailbox, CHAIN_OILER_ONE_SHOT);
   chSysUnlock();
 }
 
