@@ -17,6 +17,7 @@
 /*******************************************************************************/
 #define DEBOUNCE_COUNTER_START 10
 #define POLLING_DELAY          10
+#define BT0_CYCLE_IN_MS        1000
 
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
@@ -30,6 +31,7 @@
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
 /*******************************************************************************/
 static virtual_timer_t timer;
+static virtual_timer_t buttonTimer;
 static semaphore_t sync;
 
 /*******************************************************************************/
@@ -85,24 +87,36 @@ static void checkUsb(void) {
   }
 }
 
+static void BT0TimerCallback(void *p) {
+  (void)p;
+  ChainOilerForceStart();
+}
+
 static bool isBT0Pressed(void) {
   return PAL_LOW == palReadLine(LINE_BT0);
 }
 
 static void checkBT0(void) {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
+  static systime_t start;
 
   if (counter > 0) {
     if (isBT0Pressed()) {
       if (--counter == 0) {
-        ChainOilerForceStart();
+        start = chVTGetSystemTime();
+        chVTSet(&buttonTimer, TIME_MS2I(BT0_CYCLE_IN_MS), BT0TimerCallback, NULL);
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
     if (!isBT0Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
-      ChainOilerForceStop();
+      if (chVTIsSystemTimeWithinX(start, start + MS2I(BT0_CYCLE_IN_MS))) {
+        chVTReset(&buttonTimer);
+        PeripheralManagerSdcRemoved();
+      } else {
+        ChainOilerForceStop();
+      }
     }
   }  
 }
@@ -190,6 +204,7 @@ THD_FUNCTION(BoardMonitorThread, arg) {
 
   chSemObjectInit(&sync, 0);
   chVTObjectInit(&timer);
+  chVTObjectInit(&buttonTimer);
 
   chSysLock();
   chVTSetI(&timer, TIME_MS2I(POLLING_DELAY), timerCallback, NULL);
