@@ -117,11 +117,14 @@ static bool convertRawDateToDateTime(DateTime_t *dt, char *raw) {
 
 static void saveInLogfile(const char *data, size_t length) {
   FIL log;
+
+  sdcardLock();
   if (FR_OK == f_open(&log, "/sim8xx_gnss.log", FA_OPEN_APPEND | FA_WRITE)) {
     UINT bw = 0;
     f_write(&log, data, length, &bw);
     f_close(&log);
   }
+  sdcardUnlock();
 }
 
 static void logPosition(CGNSINF_Response_t *pdata) {

@@ -33,6 +33,8 @@
 /* DECLARATION OF GLOBAL FUNCTIONS                                             */
 /*******************************************************************************/
 void sdcardInit(void);
+void sdcardLock(void);
+void sdcardUnlock(void);
 void sdcardMount(void);
 void sdcardUnmount(void);
 

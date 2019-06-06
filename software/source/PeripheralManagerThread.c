@@ -50,11 +50,14 @@ static mailbox_t periphMailbox;
 /*******************************************************************************/
 static void saveBuffer(const char *data, size_t length) {
   FIL log;
+  
+  sdcardLock();
   if (FR_OK == f_open(&log, "/system.nfo", FA_CREATE_ALWAYS | FA_WRITE)) {
     UINT bw = 0;
     f_write(&log, data, length, &bw);
     f_close(&log);
   }
+  sdcardUnlock();
 }
 
 static void writeSysInfo(void) {

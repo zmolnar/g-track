@@ -53,6 +53,8 @@ static uint8_t fbuff[1024];
 
 MMCDriver MMCD1;
 
+static mutex_t sdcardMutex;
+
 /*******************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                              */
 /*******************************************************************************/
@@ -95,9 +97,19 @@ static FRESULT scanFiles(BaseSequentialStream *chp, char *path) {
 /*******************************************************************************/
 void sdcardInit(void) {
   mmcObjectInit(&MMCD1);
+  chMtxObjectInit(&sdcardMutex);
+}
+
+void sdcardLock(void) {
+  chMtxLock(&sdcardMutex);
+}
+
+void sdcardUnlock(void) {
+  chMtxUnlock(&sdcardMutex);
 }
 
 void sdcardMount(void) {
+  sdcardLock();
   mmcStart(&MMCD1, &mmccfg);
   
   if (mmcConnect(&MMCD1)) 
@@ -111,17 +123,21 @@ void sdcardMount(void) {
 
   fsReady = TRUE;
   palClearLine(LINE_LED_2_RED);
+  sdcardUnlock();
 }
 
 void sdcardUnmount(void) {
+  sdcardLock();
   mmcDisconnect(&MMCD1);
   mmcStop(&MMCD1);
   
   fsReady = FALSE;
   palSetLine(LINE_LED_2_RED);
+  sdcardUnlock();
 }
 
 void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[]) {
+  sdcardLock();
   FRESULT err;
   uint32_t clusters;
   FATFS *fsp;
@@ -130,14 +146,18 @@ void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[]) {
   
   if (argc > 0) {
     chprintf(chp, "Usage: tree\r\n");
+    sdcardUnlock();
     return;
   }
   if (!fsReady) {
-    chprintf(chp, "File System not mounted\r\n");    return;
+    chprintf(chp, "File System not mounted\r\n");    
+    sdcardUnlock();
+    return;
   }
   err = f_getfree("/", &clusters, &fsp);
   if (err != FR_OK) {
     chprintf(chp, "FS: f_getfree() failed\r\n");
+    sdcardUnlock();
     return;
   }
   chprintf(chp,
@@ -146,6 +166,7 @@ void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[]) {
            clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE);
   fbuff[0] = 0;
   scanFiles(chp, (char *)fbuff);
+  sdcardUnlock();
 }
 
 /******************************* END OF FILE ***********************************/

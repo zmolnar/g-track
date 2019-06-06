@@ -137,11 +137,14 @@ static void stopOiler(void) {
 
 static void addToLogfile(const char *data, size_t length) {
   FIL log;
+
+  sdcardLock();
   if (FR_OK == f_open(&log, "/chainoiler.log", FA_OPEN_APPEND | FA_WRITE)) {
     UINT bw = 0;
     f_write(&log, data, length, &bw);
     f_close(&log);
   }
+  sdcardUnlock();
 }
 
 static void logEvent(double speed, uint32_t sleep) { 

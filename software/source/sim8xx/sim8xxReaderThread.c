@@ -39,11 +39,14 @@ static virtual_timer_t guard_timer;
 /*******************************************************************************/
 static void save_buffer(const char *data, size_t length) {
   FIL log;
+
+  sdcardLock();
   if (FR_OK == f_open(&log, "/sim8xx_at.log", FA_OPEN_APPEND | FA_WRITE)) {
     UINT bw = 0;
     f_write(&log, data, length, &bw);
     f_close(&log);
   }
+  sdcardUnlock();
 }
 
 static bool process_response(Sim8xxDriver *simp) {
