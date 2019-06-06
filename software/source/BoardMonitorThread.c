@@ -111,7 +111,7 @@ static void checkBT0(void) {
   } else {
     if (!isBT0Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
-      if (chVTIsSystemTimeWithinX(start, start + MS2I(BT0_CYCLE_IN_MS))) {
+      if (chVTIsSystemTimeWithinX(start, start + chTimeMS2I(BT0_CYCLE_IN_MS))) {
         chVTReset(&buttonTimer);
         PeripheralManagerSdcRemoved();
       } else {
