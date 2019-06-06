@@ -344,33 +344,53 @@ void ChainOilerThreadInit(void) {
   chMBObjectInit(&mailbox, commands, sizeof(commands)/sizeof(commands[0]));
 }
 
+void ChainOilerStartI(void) {
+  chMBPostI(&mailbox, CHAIN_OILER_START);
+}
+
 void ChainOilerStart(void) {
   chSysLock();
-  chMBPostI(&mailbox, CHAIN_OILER_START);
+  ChainOilerStartI();
   chSysUnlock();
+}
+
+void ChainOilerStopI(void) {
+  chMBPostI(&mailbox, CHAIN_OILER_STOP);
 }
 
 void ChainOilerStop(void) {
   chSysLock();
-  chMBPostI(&mailbox, CHAIN_OILER_STOP);
+  ChainOilerStopI();
   chSysUnlock();
+}
+
+void ChainOilerForceStartI(void) {
+  chMBPostI(&mailbox, CHAIN_OILER_FORCE_START);
 }
 
 void ChainOilerForceStart(void) {
   chSysLock();
-  chMBPostI(&mailbox, CHAIN_OILER_FORCE_START);
+  ChainOilerForceStartI();
   chSysUnlock();
+}
+
+void ChainOilerForceStopI(void) {
+  chMBPostI(&mailbox, CHAIN_OILER_FORCE_STOP);
 }
 
 void ChainOilerForceStop(void) {
   chSysLock();
-  chMBPostI(&mailbox, CHAIN_OILER_FORCE_STOP);
+  ChainOilerForceStopI();
   chSysUnlock();
+}
+
+void ChainOilerOneShotI(void) {
+  chMBPostI(&mailbox, CHAIN_OILER_ONE_SHOT);
 }
 
 void ChainOilerOneShot(void) {
   chSysLock();
-  chMBPostI(&mailbox, CHAIN_OILER_ONE_SHOT);
+  ChainOilerOneShotI();
   chSysUnlock();
 }
 

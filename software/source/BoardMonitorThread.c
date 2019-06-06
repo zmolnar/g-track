@@ -89,7 +89,9 @@ static void checkUsb(void) {
 
 static void BT0TimerCallback(void *p) {
   (void)p;
-  ChainOilerForceStart();
+  chSysLockFromISR();
+  ChainOilerForceStartI();
+  chSysUnlockFromISR();
 }
 
 static bool isBT0Pressed(void) {

@@ -33,10 +33,15 @@
 /*****************************************************************************/
 THD_FUNCTION(ChainOilerThread, arg);
 void ChainOilerThreadInit(void);
+void ChainOilerStartI(void);
 void ChainOilerStart(void);
+void ChainOilerStopI(void);
 void ChainOilerStop(void);
+void ChainOilerForceStartI(void);
 void ChainOilerForceStart(void);
+void ChainOilerForceStopI(void);
 void ChainOilerForceStop(void);
+void ChainOilerOneShotI(void);
 void ChainOilerOneShot(void);
 
 const char * ChainOilerGetStateString(void);
