@@ -206,9 +206,7 @@ THD_FUNCTION(BoardMonitorThread, arg) {
   chVTObjectInit(&timer);
   chVTObjectInit(&buttonTimer);
 
-  chSysLock();
-  chVTSetI(&timer, TIME_MS2I(POLLING_DELAY), timerCallback, NULL);
-  chSysUnlock();
+  chVTSet(&timer, TIME_MS2I(POLLING_DELAY), timerCallback, NULL);
 
   while (true) {
     chSemWait(&sync);

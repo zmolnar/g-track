@@ -260,9 +260,7 @@ static bool gpsPowerOff(void) {
 }
 
 static void startTimer(void) {
-  chSysLock();
-  chVTSetI(&gpsTimer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), timerCallback, NULL);
-  chSysUnlock();
+  chVTSet(&gpsTimer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), timerCallback, NULL);
 }
 
 static void stopTimer(void) {

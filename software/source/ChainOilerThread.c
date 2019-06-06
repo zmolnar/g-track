@@ -172,9 +172,7 @@ static void handleFireCommand(void) {
     sleepDurationInMs = DEFAULT_SLEEP_DURATION_IN_MS;
   }
 
-  chSysLock();
-  chVTSetI(&timer, chTimeMS2I(sleepDurationInMs), timerCallback, NULL);
-  chSysUnlock();
+  chVTSet(&timer, chTimeMS2I(sleepDurationInMs), timerCallback, NULL);
 
   logEvent(speed, sleepDurationInMs);
 
