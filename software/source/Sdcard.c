@@ -110,29 +110,36 @@ void sdcardUnlock(void) {
 
 void sdcardMount(void) {
   sdcardLock();
-  mmcStart(&MMCD1, &mmccfg);
+  if (!fsReady) {
+    mmcStart(&MMCD1, &mmccfg);
   
-  if (mmcConnect(&MMCD1)) 
-    return;
+    if (mmcConnect(&MMCD1)) 
+      return;
 
-  if (FR_OK != f_mount(&SDC_FS, "/", 1)) {
-    mmcDisconnect(&MMCD1);
-    mmcStop(&MMCD1);
-    return;
+    if (FR_OK != f_mount(&SDC_FS, "/", 1)) {
+      mmcDisconnect(&MMCD1);
+      mmcStop(&MMCD1);
+      return;
+    }
+
+    fsReady = TRUE;
+    palClearLine(LINE_LED_2_RED);
   }
 
-  fsReady = TRUE;
-  palClearLine(LINE_LED_2_RED);
   sdcardUnlock();
 }
 
 void sdcardUnmount(void) {
   sdcardLock();
-  mmcDisconnect(&MMCD1);
-  mmcStop(&MMCD1);
   
-  fsReady = FALSE;
-  palSetLine(LINE_LED_2_RED);
+  if (fsReady) {
+    mmcDisconnect(&MMCD1);
+    mmcStop(&MMCD1);
+  
+    fsReady = FALSE;
+    palSetLine(LINE_LED_2_RED);
+  }
+
   sdcardUnlock();
 }
 
