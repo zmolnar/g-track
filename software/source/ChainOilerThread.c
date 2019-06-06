@@ -115,6 +115,11 @@ static void motorForwardDirection(void) {
   palClearLine(LINE_DCM_AIN2);
 }
 
+static void motorReverseDirection(void) {
+  palClearLine(LINE_DCM_AIN1);
+  palSetLine(LINE_DCM_AIN2);
+}
+
 static void releaseOilDrop(void) {
   outputHighZ();
   leaveSleepMode();
