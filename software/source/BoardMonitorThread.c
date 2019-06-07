@@ -17,7 +17,7 @@
 /*******************************************************************************/
 #define DEBOUNCE_COUNTER_START 10
 #define POLLING_DELAY          10
-#define BT0_CYCLE_IN_MS        1000
+#define SW1_CYCLE_IN_MS        1000
 
 /*******************************************************************************/
 /* TYPE DEFINITIONS                                                            */
@@ -31,7 +31,7 @@
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
 /*******************************************************************************/
 static virtual_timer_t timer;
-static virtual_timer_t buttonTimer;
+static virtual_timer_t Sw1Timer;
 static semaphore_t sync;
 
 /*******************************************************************************/
@@ -87,13 +87,6 @@ static void checkUsb(void) {
   }
 }
 
-static void BT0TimerCallback(void *p) {
-  (void)p;
-  chSysLockFromISR();
-  ChainOilerForceStartI();
-  chSysUnlockFromISR();
-}
-
 static bool isBT0Pressed(void) {
   return PAL_LOW == palReadLine(LINE_BT0);
 }
@@ -105,20 +98,13 @@ static void checkBT0(void) {
   if (counter > 0) {
     if (isBT0Pressed()) {
       if (--counter == 0) {
-        start = chVTGetSystemTime();
-        chVTSet(&buttonTimer, TIME_MS2I(BT0_CYCLE_IN_MS), BT0TimerCallback, NULL);
+        PeripheralManagerSdcRemoved();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
     if (!isBT0Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
-      if (chVTIsSystemTimeWithinX(start, start + chTimeMS2I(BT0_CYCLE_IN_MS))) {
-        chVTReset(&buttonTimer);
-        PeripheralManagerSdcRemoved();
-      } else {
-        ChainOilerForceStop();
-      }
     }
   }  
 }
@@ -145,24 +131,38 @@ static void checkIgnition(void) {
   }  
 }
 
+static void ExtSW1TimerCallback(void *p) {
+  (void)p;
+  chSysLockFromISR();
+  ChainOilerForceStartI();
+  chSysUnlockFromISR();
+}
+
 static bool isExtSW1Pressed(void) {
   return PAL_HIGH == palReadLine(LINE_EXT_SW1);
 }
 
 static void checkExtSW1(void) {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
+  static systime_t start;
 
   if (counter > 0) {
     if (isExtSW1Pressed()) {
       if (--counter == 0) {
-        ChainOilerOneShot();
+        start = chVTGetSystemTime();
+        chVTSet(&Sw1Timer, TIME_MS2I(SW1_CYCLE_IN_MS), ExtSW1TimerCallback, NULL);
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
     if (!isExtSW1Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
-      ;
+      if (chVTIsSystemTimeWithinX(start, start + chTimeMS2I(SW1_CYCLE_IN_MS))) {
+        chVTReset(&Sw1Timer);
+        ChainOilerOneShot();
+      } else {
+        ChainOilerForceStop();
+      }
     }
   }  
 }
@@ -184,7 +184,6 @@ static void checkExtSW2(void) {
   } else {
     if (!isExtSW2Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
-      ;
     }
   }  
 }
@@ -206,7 +205,7 @@ THD_FUNCTION(BoardMonitorThread, arg) {
 
   chSemObjectInit(&sync, 0);
   chVTObjectInit(&timer);
-  chVTObjectInit(&buttonTimer);
+  chVTObjectInit(&Sw1Timer);
 
   chVTSet(&timer, TIME_MS2I(POLLING_DELAY), timerCallback, NULL);
 
