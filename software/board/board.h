@@ -411,7 +411,7 @@
  * PC10 - LED_3_GREEN               (output push-pull).
  * PC11 - EXT_IGNITION              (input push-pull pull-down).
  * PC12 - EXT_SW2                   (input push-pull pull-down).
- * PC13 - EXT_LED                   (input pullup).
+ * PC13 - EXT_LED                   (output push-pull).
  * PC14 - OSC32_IN                  (input pullup).
  * PC15 - OSC32_OUT                 (input pullup).
  */
@@ -428,7 +428,7 @@
                                      PIN_MODE_OUTPUT(GPIOC_LED_3_GREEN)       | \
                                      PIN_MODE_INPUT(GPIOC_EXT_IGNITION)       | \
                                      PIN_MODE_INPUT(GPIOC_EXT_SW2)            | \
-                                     PIN_MODE_INPUT(GPIOC_EXT_LED)            | \
+                                     PIN_MODE_OUTPUT(GPIOC_EXT_LED)           | \
                                      PIN_MODE_INPUT(GPIOC_OSC32_IN)           | \
                                      PIN_MODE_INPUT(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOC_PC0_NC)             | \
@@ -476,7 +476,7 @@
                                      PIN_PUPDR_PULLUP(GPIOC_LED_3_GREEN)        | \
                                      PIN_PUPDR_PULLDOWN(GPIOC_EXT_IGNITION)     | \
                                      PIN_PUPDR_PULLDOWN(GPIOC_EXT_SW2)          | \
-                                     PIN_PUPDR_PULLUP(GPIOC_EXT_LED)            | \
+                                     PIN_PUPDR_PULLDOWN(GPIOC_EXT_LED)          | \
                                      PIN_PUPDR_PULLUP(GPIOC_OSC32_IN)           | \
                                      PIN_PUPDR_PULLUP(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_ODR               (PIN_ODR_HIGH(GPIOC_PC0_NC)             | \
@@ -492,7 +492,7 @@
                                      PIN_ODR_HIGH(GPIOC_LED_3_GREEN)        | \
                                      PIN_ODR_HIGH(GPIOC_EXT_IGNITION)       | \
                                      PIN_ODR_HIGH(GPIOC_EXT_SW2)            | \
-                                     PIN_ODR_HIGH(GPIOC_EXT_LED)            | \
+                                     PIN_ODR_LOW(GPIOC_EXT_LED)             | \
                                      PIN_ODR_HIGH(GPIOC_OSC32_IN)           | \
                                      PIN_ODR_HIGH(GPIOC_OSC32_OUT))
 #define VAL_GPIOC_AFRL              (PIN_AFIO_AF(GPIOC_PC0_NC, 0U)             | \

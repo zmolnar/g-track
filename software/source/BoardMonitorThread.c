@@ -93,7 +93,6 @@ static bool isBT0Pressed(void) {
 
 static void checkBT0(void) {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
-  static systime_t start;
 
   if (counter > 0) {
     if (isBT0Pressed()) {

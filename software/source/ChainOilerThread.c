@@ -109,14 +109,17 @@ static void enterSleepMode(void) {
 static void outputHighZ(void) {
   palClearLine(LINE_DCM_AIN1);
   palClearLine(LINE_DCM_AIN2);
+  palClearLine(LINE_EXT_LED);
 }
 
 static void motorForwardDirection(void) {
+  palSetLine(LINE_EXT_LED);
   palSetLine(LINE_DCM_AIN1);
   palClearLine(LINE_DCM_AIN2);
 }
 
 static void motorReverseDirection(void) {
+  palSetLine(LINE_EXT_LED);
   palClearLine(LINE_DCM_AIN1);
   palSetLine(LINE_DCM_AIN2);
 }
