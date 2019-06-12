@@ -140,7 +140,11 @@ static void releaseOilDrop(void)
   outputHighZ();
   leaveSleepMode();
   motorForwardDirection();
-  chThdSleepMilliseconds(1000);
+  chThdSleepMilliseconds(335);
+  outputHighZ();
+  chThdSleepMilliseconds(500);
+  motorReverseDirection();
+  chThdSleepMilliseconds(110);
   outputHighZ();
   enterSleepMode();
 }
