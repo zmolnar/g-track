@@ -14,7 +14,7 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define CHAIN_OILER_THREAD_NAME        "chainoiler"
+#define CHAIN_OILER_THREAD_NAME "chainoiler"
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -44,8 +44,8 @@ void ChainOilerForceStop(void);
 void ChainOilerOneShotI(void);
 void ChainOilerOneShot(void);
 
-const char * ChainOilerGetStateString(void);
-const char * ChainOilerGetErrorString(void);
+const char *ChainOilerGetStateString(void);
+const char *ChainOilerGetErrorString(void);
 
 #endif /* CHAIN_OILER_THREAD_H */
 

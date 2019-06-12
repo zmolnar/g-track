@@ -23,24 +23,24 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef struct {
-    int runStatus;
-    int fixStatus;
-    char date[18 + 1];
-    double latitude;
-    double longitude;
-    double altitude;
-    double speed;
-    double course;
-    int fixMode;
-    double hdop;
-    double pdop;
-    double vdop;
-    int gpsSatInView;
-    int gnssSatInUse;
-    int gnssSatInView;
-    int cnomax;
-    double hpa;
-    double vpa;
+  int runStatus;
+  int fixStatus;
+  char date[18 + 1];
+  double latitude;
+  double longitude;
+  double altitude;
+  double speed;
+  double course;
+  int fixMode;
+  double hdop;
+  double pdop;
+  double vdop;
+  int gpsSatInView;
+  int gnssSatInUse;
+  int gnssSatInView;
+  int cnomax;
+  double hpa;
+  double vpa;
 } CGNSINF_Response_t;
 
 /*****************************************************************************/

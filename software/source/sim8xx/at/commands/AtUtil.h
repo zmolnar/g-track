@@ -31,13 +31,9 @@
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
 bool atGetNextInt(char **start, int *value, char delim);
-
 double atAsciiToDouble(char str[]);
-
 bool atGetNextDouble(char **start, double *value, char delim);
-
 bool atGetNextString(char **start, char *buf, size_t length, char delim);
-
 bool atSkipReserved(char **start, size_t num, char delim);
 
 #endif /* ATUTIL_H */

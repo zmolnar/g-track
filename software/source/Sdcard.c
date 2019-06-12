@@ -3,30 +3,32 @@
  * @brief
  */
 
-/*******************************************************************************/
-/* INCLUDES                                                                    */
-/*******************************************************************************/
+/*****************************************************************************/
+/* INCLUDES                                                                  */
+/*****************************************************************************/
 #include "Sdcard.h"
+
 #include "ch.h"
-#include "hal.h"
 #include "ff.h"
+#include "hal.h"
+
 #include <string.h>
 
-/*******************************************************************************/
-/* DEFINED CONSTANTS                                                           */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DEFINED CONSTANTS                                                         */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* TYPE DEFINITIONS                                                            */
-/*******************************************************************************/
+/*****************************************************************************/
+/* TYPE DEFINITIONS                                                          */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* MACRO DEFINITIONS                                                           */
-/*******************************************************************************/
+/*****************************************************************************/
+/* MACRO DEFINITIONS                                                         */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
+/*****************************************************************************/
 /* Filesystem object.*/
 static FATFS SDC_FS;
 
@@ -34,19 +36,29 @@ static FATFS SDC_FS;
 static bool fsReady = FALSE;
 
 /* Maximum speed SPI configuration (18MHz, CPHA=0, CPOL=0, MSb first).*/
-static SPIConfig hs_spicfg = {false,NULL,
-                              LINE_SDC_CS,
-                              0,
-                              0};
+static SPIConfig hs_spicfg = {
+    false,
+    NULL,
+    LINE_SDC_CS,
+    0,
+    0,
+};
 
 /* Low speed SPI configuration (281.250kHz, CPHA=0, CPOL=0, MSb first).*/
-static SPIConfig ls_spicfg = {false,NULL,
-                              LINE_SDC_CS,
-                              SPI_CR1_BR_2 | SPI_CR1_BR_1,
-                              0};
+static SPIConfig ls_spicfg = {
+    false,
+    NULL,
+    LINE_SDC_CS,
+    SPI_CR1_BR_2 | SPI_CR1_BR_1,
+    0,
+};
 
 /* MMC/SD over SPI driver configuration.*/
-static MMCConfig mmccfg = {&SPID2, &ls_spicfg, &hs_spicfg};
+static MMCConfig mmccfg = {
+    &SPID2,
+    &ls_spicfg,
+    &hs_spicfg,
+};
 
 /* Generic large buffer.*/
 static uint8_t fbuff[1024];
@@ -55,14 +67,15 @@ MMCDriver MMCD1;
 
 static mutex_t sdcardMutex;
 
-/*******************************************************************************/
-/* DECLARATION OF LOCAL FUNCTIONS                                              */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DECLARATION OF LOCAL FUNCTIONS                                            */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF LOCAL FUNCTIONS                                               */
-/*******************************************************************************/
-static FRESULT scanFiles(BaseSequentialStream *chp, char *path) {
+/*****************************************************************************/
+/* DEFINITION OF LOCAL FUNCTIONS                                             */
+/*****************************************************************************/
+static FRESULT scanFiles(BaseSequentialStream *chp, char *path)
+{
   static FILINFO fno;
   FRESULT res;
   DIR dir;
@@ -79,12 +92,11 @@ static FRESULT scanFiles(BaseSequentialStream *chp, char *path) {
       if (fno.fattrib & AM_DIR) {
         *(path + i) = '/';
         strcpy(path + i + 1, fn);
-        res = scanFiles(chp, path);
+        res         = scanFiles(chp, path);
         *(path + i) = '\0';
         if (res != FR_OK)
           break;
-      }
-      else {
+      } else {
         chprintf(chp, "%s/%s\r\n", path, fn);
       }
     }
@@ -92,28 +104,32 @@ static FRESULT scanFiles(BaseSequentialStream *chp, char *path) {
   return res;
 }
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL FUNCTIONS                                              */
-/*******************************************************************************/
-void sdcardInit(void) {
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL FUNCTIONS                                            */
+/*****************************************************************************/
+void sdcardInit(void)
+{
   mmcObjectInit(&MMCD1);
   chMtxObjectInit(&sdcardMutex);
 }
 
-void sdcardLock(void) {
+void sdcardLock(void)
+{
   chMtxLock(&sdcardMutex);
 }
 
-void sdcardUnlock(void) {
+void sdcardUnlock(void)
+{
   chMtxUnlock(&sdcardMutex);
 }
 
-void sdcardMount(void) {
+void sdcardMount(void)
+{
   sdcardLock();
   if (!fsReady) {
     mmcStart(&MMCD1, &mmccfg);
-  
-    if (mmcConnect(&MMCD1)) 
+
+    if (mmcConnect(&MMCD1))
       return;
 
     if (FR_OK != f_mount(&SDC_FS, "/", 1)) {
@@ -129,13 +145,14 @@ void sdcardMount(void) {
   sdcardUnlock();
 }
 
-void sdcardUnmount(void) {
+void sdcardUnmount(void)
+{
   sdcardLock();
-  
+
   if (fsReady) {
     mmcDisconnect(&MMCD1);
     mmcStop(&MMCD1);
-  
+
     fsReady = FALSE;
     palSetLine(LINE_LED_2_RED);
   }
@@ -143,21 +160,22 @@ void sdcardUnmount(void) {
   sdcardUnlock();
 }
 
-void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[]) {
+void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[])
+{
   sdcardLock();
   FRESULT err;
   uint32_t clusters;
   FATFS *fsp;
 
   (void)argv;
-  
+
   if (argc > 0) {
     chprintf(chp, "Usage: tree\r\n");
     sdcardUnlock();
     return;
   }
   if (!fsReady) {
-    chprintf(chp, "File System not mounted\r\n");    
+    chprintf(chp, "File System not mounted\r\n");
     sdcardUnlock();
     return;
   }
@@ -169,11 +187,12 @@ void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
   chprintf(chp,
            "FS: %lu free clusters, %lu sectors per cluster, %lu bytes free\r\n",
-           clusters, (uint32_t)SDC_FS.csize,
+           clusters,
+           (uint32_t)SDC_FS.csize,
            clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE);
   fbuff[0] = 0;
   scanFiles(chp, (char *)fbuff);
   sdcardUnlock();
 }
 
-/******************************* END OF FILE ***********************************/
+/****************************** END OF FILE **********************************/

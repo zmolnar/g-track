@@ -3,49 +3,52 @@
  * @brief Thread to handle board events.
  */
 
-/*******************************************************************************/
-/* INCLUDES                                                                    */
-/*******************************************************************************/
+/*****************************************************************************/
+/* INCLUDES                                                                  */
+/*****************************************************************************/
 #include "BoardMonitorThread.h"
+
 #include "ChainOilerThread.h"
 #include "PeripheralManagerThread.h"
 #include "SystemThread.h"
 #include "hal.h"
 
-/*******************************************************************************/
-/* DEFINED CONSTANTS                                                           */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DEFINED CONSTANTS                                                         */
+/*****************************************************************************/
 #define DEBOUNCE_COUNTER_START 10
-#define POLLING_DELAY          10
-#define SW1_CYCLE_IN_MS        1000
+#define POLLING_DELAY 10
+#define SW1_CYCLE_IN_MS 1000
 
-/*******************************************************************************/
-/* TYPE DEFINITIONS                                                            */
-/*******************************************************************************/
+/*****************************************************************************/
+/* TYPE DEFINITIONS                                                          */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* MACRO DEFINITIONS                                                           */
-/*******************************************************************************/
+/*****************************************************************************/
+/* MACRO DEFINITIONS                                                         */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
+/*****************************************************************************/
 static virtual_timer_t timer;
 static virtual_timer_t Sw1Timer;
 static semaphore_t sync;
 
-/*******************************************************************************/
-/* DECLARATION OF LOCAL FUNCTIONS                                              */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DECLARATION OF LOCAL FUNCTIONS                                            */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF LOCAL FUNCTIONS                                               */
-/*******************************************************************************/
-static bool isSdcardInserted(void) {
+/*****************************************************************************/
+/* DEFINITION OF LOCAL FUNCTIONS                                             */
+/*****************************************************************************/
+static bool isSdcardInserted(void)
+{
   return PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT);
 }
 
-static void checkSdcard(void) {
+static void checkSdcard(void)
+{
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
@@ -63,11 +66,13 @@ static void checkSdcard(void) {
   }
 }
 
-static bool isUsbConnected(void) {
+static bool isUsbConnected(void)
+{
   return PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE);
 }
 
-static void checkUsb(void) {
+static void checkUsb(void)
+{
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
@@ -87,11 +92,13 @@ static void checkUsb(void) {
   }
 }
 
-static bool isBT0Pressed(void) {
+static bool isBT0Pressed(void)
+{
   return PAL_LOW == palReadLine(LINE_BT0);
 }
 
-static void checkBT0(void) {
+static void checkBT0(void)
+{
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
@@ -105,14 +112,16 @@ static void checkBT0(void) {
     if (!isBT0Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
     }
-  }  
+  }
 }
 
-static bool isIgnitionPressed(void) {
+static bool isIgnitionPressed(void)
+{
   return PAL_HIGH == palReadLine(LINE_EXT_IGNITION);
 }
 
-static void checkIgnition(void) {
+static void checkIgnition(void)
+{
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
@@ -127,21 +136,24 @@ static void checkIgnition(void) {
       counter = DEBOUNCE_COUNTER_START;
       SystemThreadIgnitionOff();
     }
-  }  
+  }
 }
 
-static void ExtSW1TimerCallback(void *p) {
+static void ExtSW1TimerCallback(void *p)
+{
   (void)p;
   chSysLockFromISR();
   ChainOilerForceStartI();
   chSysUnlockFromISR();
 }
 
-static bool isExtSW1Pressed(void) {
+static bool isExtSW1Pressed(void)
+{
   return PAL_HIGH == palReadLine(LINE_EXT_SW1);
 }
 
-static void checkExtSW1(void) {
+static void checkExtSW1(void)
+{
   static uint8_t counter = DEBOUNCE_COUNTER_START;
   static systime_t start;
 
@@ -149,7 +161,8 @@ static void checkExtSW1(void) {
     if (isExtSW1Pressed()) {
       if (--counter == 0) {
         start = chVTGetSystemTime();
-        chVTSet(&Sw1Timer, TIME_MS2I(SW1_CYCLE_IN_MS), ExtSW1TimerCallback, NULL);
+        chVTSet(
+            &Sw1Timer, TIME_MS2I(SW1_CYCLE_IN_MS), ExtSW1TimerCallback, NULL);
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
@@ -163,14 +176,16 @@ static void checkExtSW1(void) {
         ChainOilerForceStop();
       }
     }
-  }  
+  }
 }
 
-static bool isExtSW2Pressed(void) {
+static bool isExtSW2Pressed(void)
+{
   return PAL_HIGH == palReadLine(LINE_EXT_SW2);
 }
 
-static void checkExtSW2(void) {
+static void checkExtSW2(void)
+{
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
@@ -184,10 +199,11 @@ static void checkExtSW2(void) {
     if (!isExtSW2Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
     }
-  }  
+  }
 }
 
-static void timerCallback(void *p) {
+static void timerCallback(void *p)
+{
   (void)p;
   chSysLockFromISR();
   chSemSignalI(&sync);
@@ -195,10 +211,11 @@ static void timerCallback(void *p) {
   chSysUnlockFromISR();
 }
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL FUNCTIONS                                              */
-/*******************************************************************************/
-THD_FUNCTION(BoardMonitorThread, arg) {
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL FUNCTIONS                                            */
+/*****************************************************************************/
+THD_FUNCTION(BoardMonitorThread, arg)
+{
   (void)arg;
   chRegSetThreadName("board");
 
@@ -220,8 +237,8 @@ THD_FUNCTION(BoardMonitorThread, arg) {
   }
 }
 
-void BoardMonitorThreadInit(void) {
-  
+void BoardMonitorThreadInit(void)
+{
 }
 
-/******************************* END OF FILE ***********************************/
+/****************************** END OF FILE **********************************/

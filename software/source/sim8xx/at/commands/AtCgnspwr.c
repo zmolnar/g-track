@@ -7,8 +7,10 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "AtCgnspwr.h"
+
 #include "hal.h"
 #include "chprintf.h"
+
 #include <string.h>
 
 /*****************************************************************************/
@@ -19,8 +21,8 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef enum {
-    GNSSPWR_OFF = 0,
-    GNSSPWR_ON  = 1
+  GNSSPWR_OFF = 0,
+  GNSSPWR_ON  = 1,
 } CGNSPWR_Action_t;
 
 /*****************************************************************************/
@@ -38,20 +40,23 @@ typedef enum {
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static bool atCgnspwrCreate(char buf[], size_t length, CGNSPWR_Action_t act) {
-    memset(buf, 0, length);
-    chsnprintf(buf, length, "AT+CGNSPWR=%d", (int)act);
-    return true;
+static bool atCgnspwrCreate(char buf[], size_t length, CGNSPWR_Action_t act)
+{
+  memset(buf, 0, length);
+  chsnprintf(buf, length, "AT+CGNSPWR=%d", (int)act);
+  return true;
 }
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool atCgnspwrCreateOn(char buf[], size_t length) {
+bool atCgnspwrCreateOn(char buf[], size_t length)
+{
   return atCgnspwrCreate(buf, length, GNSSPWR_ON);
 }
 
-bool atCgnspwrCreateOff(char buf[], size_t length) {
+bool atCgnspwrCreateOff(char buf[], size_t length)
+{
   return atCgnspwrCreate(buf, length, GNSSPWR_OFF);
 }
 

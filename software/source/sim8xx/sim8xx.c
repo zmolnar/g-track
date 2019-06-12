@@ -4,44 +4,47 @@
  * @author Molnar Zoltan
  */
 
-/*******************************************************************************/
-/* INCLUDES                                                                    */
-/*******************************************************************************/
+/*****************************************************************************/
+/* INCLUDES                                                                  */
+/*****************************************************************************/
 #include "sim8xx.h"
-#include "sim8xxReaderThread.h"
+
 #include "chprintf.h"
+#include "sim8xxReaderThread.h"
+
 #include <string.h>
 
-/*******************************************************************************/
-/* DEFINED CONSTANTS                                                           */
-/*******************************************************************************/
-#define READER_WA_SIZE   THD_WORKING_AREA_SIZE(2048)
+/*****************************************************************************/
+/* DEFINED CONSTANTS                                                         */
+/*****************************************************************************/
+#define READER_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 
-/*******************************************************************************/
-/* TYPE DEFINITIONS                                                            */
-/*******************************************************************************/
+/*****************************************************************************/
+/* TYPE DEFINITIONS                                                          */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* MACRO DEFINITIONS                                                           */
-/*******************************************************************************/
+/*****************************************************************************/
+/* MACRO DEFINITIONS                                                         */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
+/*****************************************************************************/
 Sim8xxDriver SIM8D1;
 
-/*******************************************************************************/
-/* DECLARATION OF LOCAL FUNCTIONS                                              */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DECLARATION OF LOCAL FUNCTIONS                                            */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF LOCAL FUNCTIONS                                               */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DEFINITION OF LOCAL FUNCTIONS                                             */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL FUNCTIONS                                              */
-/*******************************************************************************/
-void sim8xxInit(Sim8xxDriver *simp) {
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL FUNCTIONS                                            */
+/*****************************************************************************/
+void sim8xxInit(Sim8xxDriver *simp)
+{
   simp->config = NULL;
   simp->writer = NULL;
   simp->reader = NULL;
@@ -50,34 +53,41 @@ void sim8xxInit(Sim8xxDriver *simp) {
   chSemObjectInit(&simp->sync, 1);
   memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
   simp->rxlength = 0;
-  simp->state = SIM8XX_STOP;
+  simp->state    = SIM8XX_STOP;
 }
 
-void sim8xxStart(Sim8xxDriver *simp, Sim8xxConfig *cfgp) {
+void sim8xxStart(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
+{
   chMtxLock(&simp->lock);
   simp->config = cfgp;
   sdStart(cfgp->sdp, cfgp->sdConfig);
   simp->reader = NULL;
-  chThdCreateFromHeap(NULL, READER_WA_SIZE, "sim8xx",
-                      NORMALPRIO + 1, sim8xxReaderThread, (void*)simp);
-  
+  chThdCreateFromHeap(NULL,
+                      READER_WA_SIZE,
+                      "sim8xx",
+                      NORMALPRIO + 1,
+                      sim8xxReaderThread,
+                      (void *)simp);
+
   simp->state = SIM8XX_READY;
   chMtxUnlock(&simp->lock);
 }
 
-void sim8xxCommandInit(Sim8xxCommand *cmdp) {
+void sim8xxCommandInit(Sim8xxCommand *cmdp)
+{
   memset(cmdp, 0, sizeof(Sim8xxCommand));
   cmdp->status = SIM8XX_INVALID_STATUS;
 }
 
-void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp) {
+void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
+{
   chMtxLock(&simp->lock);
   chSemWait(&simp->sync);
 
-  chprintf((BaseSequentialStream*)simp->config->sdp, "%s\r", cmdp->request);
+  chprintf((BaseSequentialStream *)simp->config->sdp, "%s\r", cmdp->request);
 
   chSysLock();
-  msg_t msg = chThdSuspendTimeoutS(&simp->writer, chTimeMS2I(5000));
+  msg_t msg    = chThdSuspendTimeoutS(&simp->writer, chTimeMS2I(5000));
   simp->writer = NULL;
   chSysUnlock();
 
@@ -100,22 +110,23 @@ void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp) {
   chMtxUnlock(&simp->lock);
 }
 
-Sim8xxCommandStatus_t sim8xxGetStatus(char *data) {
+Sim8xxCommandStatus_t sim8xxGetStatus(char *data)
+{
   size_t length = strlen(data);
-  if(length < 2)
+  if (length < 2)
     return SIM8XX_INVALID_STATUS;
 
-  if (('\r' != data[length-2]) || ('\n' != data[length-1]))
+  if (('\r' != data[length - 2]) || ('\n' != data[length - 1]))
     return SIM8XX_INVALID_STATUS;
 
-  data[length-2] = '\0';
+  data[length - 2] = '\0';
 
   char *crlf, *needle;
-  for(crlf = needle = data; crlf; crlf = strstr(needle, "\r\n"))
-    needle = crlf + strlen("\r\n");   
+  for (crlf = needle = data; crlf; crlf = strstr(needle, "\r\n"))
+    needle = crlf + strlen("\r\n");
 
   Sim8xxCommandStatus_t status;
-  
+
   if (0 == strcmp(needle, "OK"))
     status = SIM8XX_OK;
   else if (0 == strcmp(needle, "CONNECT"))
@@ -137,19 +148,20 @@ Sim8xxCommandStatus_t sim8xxGetStatus(char *data) {
   else
     status = SIM8XX_INVALID_STATUS;
 
-  data[length-2] = '\r';
+  data[length - 2] = '\r';
 
   return status;
 }
 
-bool sim8xxIsConnected(Sim8xxDriver *simp) {
+bool sim8xxIsConnected(Sim8xxDriver *simp)
+{
   chMtxLock(&simp->lock);
   chSemWait(&simp->sync);
 
-  chprintf((BaseSequentialStream*)simp->config->sdp, "at\r");
+  chprintf((BaseSequentialStream *)simp->config->sdp, "at\r");
 
   chSysLock();
-  msg_t msg = chThdSuspendTimeoutS(&simp->writer, chTimeMS2I(1000));
+  msg_t msg    = chThdSuspendTimeoutS(&simp->writer, chTimeMS2I(1000));
   simp->writer = NULL;
   chSysUnlock();
 
@@ -165,9 +177,9 @@ bool sim8xxIsConnected(Sim8xxDriver *simp) {
   }
 
   if (simp->reader) {
-      chSysLock();  
-      chThdResumeS(&simp->reader, MSG_OK);
-      chSysUnlock();
+    chSysLock();
+    chThdResumeS(&simp->reader, MSG_OK);
+    chSysUnlock();
   }
 
   chMtxUnlock(&simp->lock);
@@ -175,7 +187,8 @@ bool sim8xxIsConnected(Sim8xxDriver *simp) {
   return result;
 }
 
-void sim8xxTogglePower(Sim8xxDriver *simp) {
+void sim8xxTogglePower(Sim8xxDriver *simp)
+{
   chMtxLock(&simp->lock);
   palClearLine(simp->config->powerline);
   chThdSleepMilliseconds(2500);
@@ -185,5 +198,4 @@ void sim8xxTogglePower(Sim8xxDriver *simp) {
   chMtxUnlock(&simp->lock);
 }
 
-/******************************* END OF FILE ***********************************/
-
+/****************************** END OF FILE **********************************/

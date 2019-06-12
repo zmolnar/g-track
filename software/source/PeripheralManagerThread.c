@@ -3,9 +3,9 @@
  * @brief
  */
 
-/*******************************************************************************/
-/* INCLUDES                                                                    */
-/*******************************************************************************/
+/*****************************************************************************/
+/* INCLUDES                                                                  */
+/*****************************************************************************/
 #include "PeripheralManagerThread.h"
 
 #include "DebugShell.h"
@@ -14,43 +14,53 @@
 
 #include <string.h>
 
-/*******************************************************************************/
-/* DEFINED CONSTANTS                                                           */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DEFINED CONSTANTS                                                         */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* TYPE DEFINITIONS                                                            */
-/*******************************************************************************/
+/*****************************************************************************/
+/* TYPE DEFINITIONS                                                          */
+/*****************************************************************************/
 typedef enum {
   SDC_INSERTED,
   SDC_REMOVED,
   USB_CONNECTED,
-  USB_DISCONNECTED
+  USB_DISCONNECTED,
 } PeripheralEvent_t;
 
-/*******************************************************************************/
-/* MACRO DEFINITIONS                                                           */
-/*******************************************************************************/
+/*****************************************************************************/
+/* MACRO DEFINITIONS                                                         */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                                */
-/*******************************************************************************/
-static SerialConfig sd_config  = {115200, 0, 0, 0};
-static Sim8xxConfig sim_config = {&SD1, &sd_config, LINE_WAVESHARE_POWER};
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
+/*****************************************************************************/
+static SerialConfig sd_config = {
+    115200,
+    0,
+    0,
+    0,
+};
+static Sim8xxConfig sim_config = {
+    &SD1,
+    &sd_config,
+    LINE_WAVESHARE_POWER,
+};
 
 static msg_t events[10];
 static mailbox_t periphMailbox;
 
-/*******************************************************************************/
-/* DECLARATION OF LOCAL FUNCTIONS                                              */
-/*******************************************************************************/
+/*****************************************************************************/
+/* DECLARATION OF LOCAL FUNCTIONS                                            */
+/*****************************************************************************/
 
-/*******************************************************************************/
-/* DEFINITION OF LOCAL FUNCTIONS                                               */
-/*******************************************************************************/
-static void saveBuffer(const char *data, size_t length) {
+/*****************************************************************************/
+/* DEFINITION OF LOCAL FUNCTIONS                                             */
+/*****************************************************************************/
+static void saveBuffer(const char *data, size_t length)
+{
   FIL log;
-  
+
   sdcardLock();
   if (FR_OK == f_open(&log, "/system.nfo", FA_CREATE_ALWAYS | FA_WRITE)) {
     UINT bw = 0;
@@ -60,7 +70,8 @@ static void saveBuffer(const char *data, size_t length) {
   sdcardUnlock();
 }
 
-static void writeSysInfo(void) {
+static void writeSysInfo(void)
+{
   char line[128]             = {0};
   char buf[8 * sizeof(line)] = {0};
 
@@ -98,10 +109,11 @@ static void writeSysInfo(void) {
   saveBuffer(buf, strlen(buf));
 }
 
-/*******************************************************************************/
-/* DEFINITION OF GLOBAL FUNCTIONS                                              */
-/*******************************************************************************/
-THD_FUNCTION(PeripheralManagerThread, arg) {
+/*****************************************************************************/
+/* DEFINITION OF GLOBAL FUNCTIONS                                            */
+/*****************************************************************************/
+THD_FUNCTION(PeripheralManagerThread, arg)
+{
   (void)arg;
   chRegSetThreadName("peripheral");
 
@@ -110,7 +122,8 @@ THD_FUNCTION(PeripheralManagerThread, arg) {
 
   while (true) {
     PeripheralEvent_t evt;
-    if (MSG_OK == chMBFetchTimeout(&periphMailbox, (msg_t *)&evt, TIME_INFINITE)) {
+    if (MSG_OK ==
+        chMBFetchTimeout(&periphMailbox, (msg_t *)&evt, TIME_INFINITE)) {
       switch (evt) {
       case SDC_INSERTED: {
         sdcardMount();
@@ -129,15 +142,16 @@ THD_FUNCTION(PeripheralManagerThread, arg) {
         debugShellStop();
         break;
       }
-      default: { 
-        ; 
+      default: {
+        ;
       }
       }
     }
   }
 }
 
-void PeripheralManagerThreadInit(void) {
+void PeripheralManagerThreadInit(void)
+{
   sim8xxInit(&SIM8D1);
   sim8xxStart(&SIM8D1, &sim_config);
 
@@ -145,28 +159,32 @@ void PeripheralManagerThreadInit(void) {
   chMBObjectInit(&periphMailbox, events, sizeof(events) / sizeof(events[0]));
 }
 
-void PeripheralManagerSdcInserted(void) {
+void PeripheralManagerSdcInserted(void)
+{
   chSysLock();
   chMBPostI(&periphMailbox, SDC_INSERTED);
   chSysUnlock();
 }
 
-void PeripheralManagerSdcRemoved(void) {
+void PeripheralManagerSdcRemoved(void)
+{
   chSysLock();
   chMBPostI(&periphMailbox, SDC_REMOVED);
   chSysUnlock();
 }
 
-void PeripheralManagerUsbConnected(void) {
+void PeripheralManagerUsbConnected(void)
+{
   chSysLock();
   chMBPostI(&periphMailbox, USB_CONNECTED);
   chSysUnlock();
 }
 
-void PeripheralManagerUsbDisconnected(void) {
+void PeripheralManagerUsbDisconnected(void)
+{
   chSysLock();
   chMBPostI(&periphMailbox, USB_DISCONNECTED);
   chSysUnlock();
 }
 
-/******************************* END OF FILE ***********************************/
+/****************************** END OF FILE **********************************/
