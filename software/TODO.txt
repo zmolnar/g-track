@@ -1,7 +1,1 @@
-* add RTC
-* add dashboard
-* implement chain oiler thread
-* add LIS3DSH driver
-* add phone call handler
-* add position reporter
-* add bluetooth manager
+

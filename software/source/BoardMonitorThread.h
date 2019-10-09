@@ -14,6 +14,7 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+#define BOARD_MONITOR_THREAD_NAME "boardmonitor"
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -30,8 +31,15 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(BoardMonitorThread, arg);
-void BoardMonitorThreadInit(void);
+/**
+ * @brief Thread function of the board monitor.
+ */
+THD_FUNCTION(BMT_Thread, arg);
+
+/**
+ * @brief Initialize board monitor resources.
+ */
+void BMT_Init(void);
 
 #endif /* BOARD_MONITOR_THREAD_H */
 

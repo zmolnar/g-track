@@ -214,14 +214,10 @@ static void timerCallback(void *p)
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-THD_FUNCTION(BoardMonitorThread, arg)
+THD_FUNCTION(BMT_Thread, arg)
 {
   (void)arg;
-  chRegSetThreadName("board");
-
-  chSemObjectInit(&sync, 0);
-  chVTObjectInit(&timer);
-  chVTObjectInit(&Sw1Timer);
+  chRegSetThreadName(BOARD_MONITOR_THREAD_NAME);
 
   chVTSet(&timer, TIME_MS2I(POLLING_DELAY), timerCallback, NULL);
 
@@ -237,8 +233,11 @@ THD_FUNCTION(BoardMonitorThread, arg)
   }
 }
 
-void BoardMonitorThreadInit(void)
+void BMT_Init(void)
 {
+  chSemObjectInit(&sync, 0);
+  chVTObjectInit(&timer);
+  chVTObjectInit(&Sw1Timer);
 }
 
 /****************************** END OF FILE **********************************/

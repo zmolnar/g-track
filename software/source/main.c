@@ -59,7 +59,7 @@ int main(void) {
   chSysInit();
 
   SystemThreadInit();
-  BoardMonitorThreadInit();
+  BMT_Init();
   PeripheralManagerThreadInit();
   GpsReaderThreadInit();
   ChainOilerThreadInit();  
