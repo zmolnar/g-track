@@ -1,20 +1,18 @@
 /**
- * @file ChainOilerThread.h
- * @brief Declaration of the chain oiler module interface.
+ * @file OilPump.h
+ * @brief Declaration of the oil pump module.
  */
 
-#ifndef CHAIN_OILER_THREAD_H
-#define CHAIN_OILER_THREAD_H
+#ifndef OIL_PUMP_H
+#define OIL_PUMP_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "ch.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define CHAIN_OILER_THREAD_NAME "chainoiler"
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -32,76 +30,20 @@
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
 /**
- * @brief Thread function of the chain oiler.
+ * @brief Start continuous operation.
  */
-THD_FUNCTION(COT_Thread, arg);
+void OLP_StartContinuous(void);
 
 /**
- * @brief Initialize resources that are used by the chain oiler module.
+ * @brief Stop operation.
  */
-void COT_Init(void);
+void OLP_Stop(void);
 
 /**
- * @brief Start chain oiler from kernel locked state.
+ * @brief Release one single oil drop.
  */
-void COT_StartI(void);
+void OLP_ReleaseOneDrop(void);
 
-/**
- * @brief Start chain oiler.
- */
-void COT_Start(void);
-
-/**
- * @brief Stop chain oiler from kernel locked state.
- */
-void COT_StopI(void);
-
-/**
- * @brief Stop chain oiler.
- */
-void COT_Stop(void);
-
-/**
- * @brief Force chain oiler to operate continuously from kernel locked state.
- */
-void COT_ForceStartI(void);
-
-/**
- * @brief Force chain oiler to operate continuously.
- */
-void COT_ForceStart(void);
-
-/**
- * @brief Stop chain oiler continuous operation, return to normal, enabled state.
- *        I-class API function.
- */
-void COT_ForceStopI(void);
-
-/**
- * @brief Stop chain oiler continuous operation, return to normal, enabled state.
- */
-void COT_ForceStop(void);
-
-/**
- * @brief Release one oil drop from kernel locked state.
- */
-void COT_OneShotI(void);
-
-/**
- * @brief Release one oil drop.
- */
-void COT_OneShot(void);
-
-/**
- * @brief Get the string describing the state of the chain oiler module.
- */
-const char *COT_GetStateString(void);
-
-/**
- * @brief Get the error descriptor string of the chain oiler module.
- */
-const char *COT_GetErrorString(void);
-
-#endif /* CHAIN_OILER_THREAD_H */
+#endif /* OIL_PUMP_H */
 
 /****************************** END OF FILE **********************************/

@@ -100,7 +100,7 @@ size_t dbCreateTimestamp(char buf[], size_t length)
 
   int n = chsnprintf(buf,
                      length,
-                     "%d-%02d-%02d %02d:%02d:%02d >>> ",
+                     "%d-%02d-%02d %02d:%02d:%02d ",
                      dt.year,
                      dt.month,
                      dt.day,
