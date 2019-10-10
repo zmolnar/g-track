@@ -143,7 +143,7 @@ static void ExtSW1TimerCallback(void *p)
 {
   (void)p;
   chSysLockFromISR();
-  ChainOilerForceStartI();
+  COT_ForceStartI();
   chSysUnlockFromISR();
 }
 
@@ -171,9 +171,9 @@ static void checkExtSW1(void)
       counter = DEBOUNCE_COUNTER_START;
       if (chVTIsSystemTimeWithinX(start, start + chTimeMS2I(SW1_CYCLE_IN_MS))) {
         chVTReset(&Sw1Timer);
-        ChainOilerOneShot();
+        COT_OneShot();
       } else {
-        ChainOilerForceStop();
+        COT_ForceStop();
       }
     }
   }

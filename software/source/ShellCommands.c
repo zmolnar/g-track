@@ -82,8 +82,8 @@ void shGetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[])
   chprintf(chp,
            "%10s    %10s    %10s" SHELL_NEWLINE_STR,
            CHAIN_OILER_THREAD_NAME,
-           ChainOilerGetStateString(),
-           ChainOilerGetErrorString());
+           COT_GetStateString(),
+           COT_GetErrorString());
 }
 
 /****************************** END OF FILE **********************************/

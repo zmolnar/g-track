@@ -291,7 +291,7 @@
  * PB7  - RPI_UART_RX               (input pullup).
  * PB8  - PB8_NC                    (input pullup).
  * PB9  - EXT_SW1                   (input push-pull pull-down).
- * PB10 - BUZZER_PWM                (input pullup).
+ * PB10 - BUZZER_PWM                (output push-pull).
  * PB11 - PB11_NC                   (input pullup).
  * PB12 - SDC_SPI2_CS               (alternate 5).
  * PB13 - SDC_SPI2_SCK              (alternate 5).
@@ -308,7 +308,7 @@
                                      PIN_MODE_ALTERNATE(GPIOB_RPI_UART_RX)    | \
                                      PIN_MODE_INPUT(GPIOB_PB8_NC)             | \
                                      PIN_MODE_INPUT(GPIOB_EXT_SW1)            | \
-                                     PIN_MODE_INPUT(GPIOB_BUZZER_PWM)         | \
+                                     PIN_MODE_OUTPUT(GPIOB_BUZZER_PWM)        | \
                                      PIN_MODE_INPUT(GPIOB_PB11_NC)            | \
                                      PIN_MODE_ALTERNATE(GPIOB_SDC_SPI2_CS)    | \
                                      PIN_MODE_ALTERNATE(GPIOB_SDC_SPI2_SCK)   | \
@@ -356,7 +356,7 @@
                                      PIN_PUPDR_PULLUP(GPIOB_RPI_UART_RX)        | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB8_NC)             | \
                                      PIN_PUPDR_PULLDOWN(GPIOB_EXT_SW1)          | \
-                                     PIN_PUPDR_PULLUP(GPIOB_BUZZER_PWM)         | \
+                                     PIN_PUPDR_PULLDOWN(GPIOB_BUZZER_PWM)       | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB11_NC)            | \
                                      PIN_PUPDR_PULLUP(GPIOB_SDC_SPI2_CS)        | \
                                      PIN_PUPDR_PULLDOWN(GPIOB_SDC_SPI2_SCK)     | \
@@ -372,7 +372,7 @@
                                      PIN_ODR_HIGH(GPIOB_RPI_UART_RX)        | \
                                      PIN_ODR_HIGH(GPIOB_PB8_NC)             | \
                                      PIN_ODR_HIGH(GPIOB_EXT_SW1)            | \
-                                     PIN_ODR_HIGH(GPIOB_BUZZER_PWM)         | \
+                                     PIN_ODR_LOW(GPIOB_BUZZER_PWM)          | \
                                      PIN_ODR_HIGH(GPIOB_PB11_NC)            | \
                                      PIN_ODR_HIGH(GPIOB_SDC_SPI2_CS)        | \
                                      PIN_ODR_LOW(GPIOB_SDC_SPI2_SCK)        | \
@@ -388,7 +388,7 @@
                                      PIN_AFIO_AF(GPIOB_RPI_UART_RX, 7U))
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF(GPIOB_PB8_NC, 0U)             | \
                                      PIN_AFIO_AF(GPIOB_EXT_SW1, 0U)            | \
-                                     PIN_AFIO_AF(GPIOB_BUZZER_PWM, 0U)         | \
+                                     PIN_AFIO_AF(GPIOB_BUZZER_PWM, 1U)         | \
                                      PIN_AFIO_AF(GPIOB_PB11_NC, 0U)            | \
                                      PIN_AFIO_AF(GPIOB_SDC_SPI2_CS, 5U)        | \
                                      PIN_AFIO_AF(GPIOB_SDC_SPI2_SCK, 5U)       | \

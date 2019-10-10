@@ -62,7 +62,7 @@ int main(void) {
   BMT_Init();
   PeripheralManagerThreadInit();
   GpsReaderThreadInit();
-  ChainOilerThreadInit();  
+  COT_Init();  
 
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
@@ -79,7 +79,7 @@ int main(void) {
   chThdCreateStatic(waBoardMonitorThread,
                     sizeof(waBoardMonitorThread),
                     NORMALPRIO,
-                    BoardMonitorThread,
+                    BMT_Thread,
                     NULL);  
 
   chThdCreateStatic(waPeripheralManagerThread,
@@ -97,7 +97,7 @@ int main(void) {
   chThdCreateStatic(waChainOilerThread,
                     sizeof(waChainOilerThread),
                     NORMALPRIO,
-                    ChainOilerThread,
+                    COT_Thread,
                     NULL);     
 
   while (true) {

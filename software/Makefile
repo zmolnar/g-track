@@ -126,6 +126,8 @@ CSRC = $(ALLCSRC) \
        source/GpsReaderThread.c \
        source/DebugShell.c \
        source/Dashboard.c \
+       source/Logger.c \
+       source/OilPump.c \
        source/Sdcard.c \
        source/ShellCommands.c \
        source/Time.c \

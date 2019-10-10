@@ -85,7 +85,7 @@ static SystemState_t systemInitHandler(SystemEvent_t evt)
   case SYS_EVT_IGNITION_ON: {
     if (connectModem()) {
       GpsReaderStart();
-      ChainOilerStart();
+      COT_Start();
       newState = SYSTEM_RIDING;
     } else {
       systemError = SYS_E_MODEM_POWER_ON;
@@ -95,7 +95,7 @@ static SystemState_t systemInitHandler(SystemEvent_t evt)
   }
   case SYS_EVT_IGNITION_OFF: {
     if (disconnectModem()) {
-      ChainOilerStop();
+      COT_Stop();
       GpsReaderStop();
       newState = SYSTEM_PARKING;
     } else {
@@ -119,7 +119,7 @@ static SystemState_t systemParkingHandler(SystemEvent_t evt)
   case SYS_EVT_IGNITION_ON: {
     if (connectModem()) {
       GpsReaderStart();
-      ChainOilerStart();
+      COT_Start();
       newState = SYSTEM_RIDING;
     } else {
       systemError = SYS_E_MODEM_POWER_ON;
@@ -139,7 +139,7 @@ static SystemState_t systemRidingHandler(SystemEvent_t evt)
   SystemState_t newState = SYSTEM_RIDING;
   switch (evt) {
   case SYS_EVT_IGNITION_OFF: {
-    ChainOilerStop();
+    COT_Stop();
     GpsReaderStop();
     if (disconnectModem()) {
       newState = SYSTEM_PARKING;
