@@ -120,6 +120,7 @@ LDSCRIPT= $(STARTUPLD)/STM32L452xC.ld
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
        source/main.c \
+       source/Averager.c \
        source/BoardMonitorThread.c \
        source/PeripheralManagerThread.c \
        source/SystemThread.c \

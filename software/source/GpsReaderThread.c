@@ -8,6 +8,8 @@
 /*****************************************************************************/
 #include "GpsReaderThread.h"
 
+#include "ChainOilerThread.h"
+
 #include "Dashboard.h"
 #include "Sdcard.h"
 #include "at.h"
@@ -162,6 +164,9 @@ static void savePosition(CGNSINF_Response_t *data)
   gpsPos.gnssSatInView = data->gnssSatInView;
   gpsPos.gpsSatInView  = data->gpsSatInView;
   dbSetPosition(&gpsPos);
+
+#warning Fix it
+  COT_SpeedAvailable();
 }
 
 static bool isUpdateNeeded(DateTime_t *gpsTime)

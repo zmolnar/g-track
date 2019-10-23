@@ -72,15 +72,26 @@ void COT_ForceStartI(void);
 void COT_ForceStart(void);
 
 /**
- * @brief Stop chain oiler continuous operation, return to normal, enabled state.
- *        I-class API function.
+ * @brief Stop chain oiler continuous operation, return to normal, enabled
+ * state. I-class API function.
  */
 void COT_ForceStopI(void);
 
 /**
- * @brief Stop chain oiler continuous operation, return to normal, enabled state.
+ * @brief Stop chain oiler continuous operation, return to normal, enabled
+ * state.
  */
 void COT_ForceStop(void);
+
+/**
+ * @brief Speed value is ready to read from kernel locked state.
+ */
+void COT_SpeedAvailableI(void);
+
+/**
+ * @brief Speed value is ready to read.
+ */
+void COT_SpeedAvailable(void);
 
 /**
  * @brief Release one oil drop from kernel locked state.
