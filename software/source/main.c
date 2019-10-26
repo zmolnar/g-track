@@ -38,9 +38,42 @@ static THD_FUNCTION(HeartBeatThread, arg) {
   (void)arg;
   chRegSetThreadName("heartbeat");
 
+  palSetLine(LINE_LED_3_GREEN);
+
   while (true) {
-    palToggleLine(LINE_LED_3_GREEN);
-    chThdSleepMilliseconds(500);
+    GpsLockState_t state = GpsGetLockState();
+    switch (state)
+    {
+    case GPS_NOT_POWERED: {
+      palClearLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(250);
+      palSetLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(1750);
+      break;
+    }
+    case GPS_SEARCHING: {
+      palClearLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(250);
+      palSetLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(250);
+      break;
+    }
+    case GPS_LOCKED: {
+      palClearLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(100);
+      palSetLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(100);
+      palClearLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(100);
+      palSetLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(1700);
+      break;
+    }
+    default: {
+      chThdSleepSeconds(1);
+      break;
+    }
+    }
   }
 }
 

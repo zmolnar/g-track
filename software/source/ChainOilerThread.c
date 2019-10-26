@@ -161,7 +161,9 @@ static time_msecs_t calculatePeriodInMsec(double speed)
 void timerCallbackI(void *p)
 {
   (void)p;
+  chSysLockFromISR();
   chMBPostI(&chainOiler.mailbox, COT_CMD_SHOOT);
+  chSysUnlockFromISR();
 }
 
 void processSpeedAndReloadTimer(void)
@@ -182,7 +184,7 @@ void processSpeedAndReloadTimer(void)
       time_msecs_t timeToWaitInMsec = periodInMsec - elapsedTimeInMsec;
       chVTReset(&chainOiler.period.timer);
       chVTSet(&chainOiler.period.timer,
-              TIME_S2I(timeToWaitInMsec),
+              TIME_MS2I(timeToWaitInMsec),
               timerCallbackI,
               NULL);
     } else {

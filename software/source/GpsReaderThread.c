@@ -64,6 +64,7 @@ static Sim8xxCommand cmd;
 static msg_t events[10];
 static mailbox_t gpsMailbox;
 
+GpsLockState_t gpsLockState = GPS_NOT_POWERED;
 GpsReaderState_t gpsState = GPS_INIT;
 GpsError_t gpsError       = GPS_E_NO_ERROR;
 
@@ -165,7 +166,8 @@ static void savePosition(CGNSINF_Response_t *data)
   gpsPos.gpsSatInView  = data->gpsSatInView;
   dbSetPosition(&gpsPos);
 
-#warning Fix it
+  gpsLockState = (1 == data->fixStatus) ? GPS_LOCKED : GPS_SEARCHING;
+
   COT_SpeedAvailable();
 }
 
@@ -296,6 +298,7 @@ static GpsReaderState_t GpsReaderInitHandler(GpsCommand_t cmd)
   case GPS_CMD_START: {
     if (gpsPowerOn()) {
       startTimer();
+      gpsLockState = GPS_SEARCHING;
       newState = GPS_ENABLED;
     } else {
       newState = GPS_ERROR;
@@ -304,6 +307,7 @@ static GpsReaderState_t GpsReaderInitHandler(GpsCommand_t cmd)
     break;
   }
   case GPS_CMD_STOP: {
+    gpsLockState = GPS_NOT_POWERED;
     newState = GPS_DISABLED;
     break;
   }
@@ -326,6 +330,7 @@ static GpsReaderState_t GpsReaderEnabledHandler(GpsCommand_t cmd)
   case GPS_CMD_STOP: {
     stopTimer();
     if (gpsPowerOff()) {
+      gpsLockState = GPS_NOT_POWERED;
       newState = GPS_DISABLED;
     } else {
       newState = GPS_ERROR;
@@ -449,6 +454,11 @@ void GpsReaderStop(void)
   chSysLock();
   chMBPostI(&gpsMailbox, GPS_CMD_STOP);
   chSysUnlock();
+}
+
+GpsLockState_t GpsGetLockState(void)
+{
+  return gpsLockState;
 }
 
 const char *GpsReaderGetStateString(void)
