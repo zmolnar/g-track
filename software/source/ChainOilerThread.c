@@ -194,6 +194,7 @@ void processSpeedAndReloadTimer(void)
     }
   } else {
     AVG_Clear(&chainOiler.speedAverager);
+    chVTReset(&chainOiler.period.timer);
   }
 }
 
@@ -301,10 +302,13 @@ static COT_State_t enabledStateHandler(COT_Command_t cmd)
     break;
   }
   case COT_CMD_SHOOT: {
-    logPeriodData();
-    chainOiler.period.start = chVTGetSystemTimeX();
-    AVG_Clear(&chainOiler.speedAverager);
-    OLP_ReleaseOneDrop();
+    double speed = getSpeed();
+    if (0 < speed) {
+      logPeriodData();
+      chainOiler.period.start = chVTGetSystemTimeX();
+      AVG_Clear(&chainOiler.speedAverager);
+      OLP_ReleaseOneDrop();
+    }
     break;
   }
   case COT_CMD_START:
