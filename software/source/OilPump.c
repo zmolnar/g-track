@@ -70,7 +70,7 @@ static void motorReverseDirection(void)
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void OLP_StartContinuous(void)
+void OLP_Start(void)
 {
   outputHighZ();
   leaveSleepMode();
@@ -85,16 +85,15 @@ void OLP_Stop(void)
 
 void OLP_ReleaseOneDrop(void)
 {
-  outputHighZ();
-  leaveSleepMode();
-  motorForwardDirection();
+  OLP_Start();
+
   chThdSleepMilliseconds(335);
   outputHighZ();
   chThdSleepMilliseconds(500);
   motorReverseDirection();
   chThdSleepMilliseconds(110);
-  outputHighZ();
-  enterSleepMode();
+
+  OLP_Stop();
 }
 
 /****************************** END OF FILE **********************************/

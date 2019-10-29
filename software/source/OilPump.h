@@ -32,7 +32,7 @@
 /**
  * @brief Start continuous operation.
  */
-void OLP_StartContinuous(void);
+void OLP_Start(void);
 
 /**
  * @brief Stop operation.

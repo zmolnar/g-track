@@ -43,29 +43,29 @@
  * @brief State machine of the chain oiler.
  */
 typedef enum {
-  COT_STATE_INIT,
-  COT_STATE_DISABLED,
-  COT_STATE_ENABLED,
-  COT_STATE_FORCED,
+  COT_STATE_INIT,     /**< First state after system start.*/
+  COT_STATE_DISABLED, /**< Chain oiler is disabled.*/
+  COT_STATE_ENABLED,  /**< Chain oiler is enabled to run.*/
+  COT_STATE_FORCED,   /**< Oil is forced to flow continuously.*/
 } COT_State_t;
 
 /**
  * @brief Input commands of the chain oiler.
  */
 typedef enum {
-  COT_CMD_START,
-  COT_CMD_FORCE_START,
-  COT_CMD_STOP,
-  COT_CMD_FORCE_STOP,
-  COT_CMD_SPEED_AVAILABLE,
-  COT_CMD_SHOOT,
+  COT_CMD_START,           /**< Enable chain oiler.*/
+  COT_CMD_FORCE_START,     /**< Enter force mode.*/
+  COT_CMD_STOP,            /**< Disable chain oiler.*/
+  COT_CMD_FORCE_STOP,      /**< Exit force mode.*/
+  COT_CMD_SPEED_AVAILABLE, /**< Speed is avaible to read.*/ 
+  COT_CMD_SHOOT,           /**< Release one oil drop.*/
 } COT_Command_t;
 
 /**
  * @brief Chain oiler error codes.
  */
 typedef enum {
-  COT_ERR_NO_ERROR,
+  COT_ERR_NO_ERROR,        /**< No error.*/
 } COT_Error_t;
 
 /**
@@ -127,6 +127,9 @@ typedef struct ChainOiler_s {
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
+/**
+ * @brief Chain oiler module.
+ */
 static ChainOiler_t chainOiler;
 
 /*****************************************************************************/
@@ -136,14 +139,14 @@ static ChainOiler_t chainOiler;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static double getSpeed(void)
+static double COT_getSpeed(void)
 {
   Position_t pos = {0};
   dbGetPosition(&pos);
   return pos.speed;
 }
 
-static time_msecs_t calculatePeriodInMsec(double speed)
+static time_msecs_t COT_calculatePeriodLength(double speed)
 {
   double sec = 0;
   if (speed < SPEED_MIN)
@@ -158,7 +161,7 @@ static time_msecs_t calculatePeriodInMsec(double speed)
   return (time_msecs_t)msec;
 }
 
-void timerCallbackI(void *p)
+void COT_timerCallbackI(void *p)
 {
   (void)p;
   chSysLockFromISR();
@@ -166,26 +169,27 @@ void timerCallbackI(void *p)
   chSysUnlockFromISR();
 }
 
-void processSpeedAndReloadTimer(void)
+void COT_processSpeedAndReloadTimer(void)
 {
-  double speed = getSpeed();
+  double speed = COT_getSpeed();
   AVG_Put(&chainOiler.speedAverager, speed);
   double avgSpeed = AVG_GetAverage(&chainOiler.speedAverager);
 
-  time_msecs_t periodInMsec = calculatePeriodInMsec(avgSpeed);
+  time_msecs_t periodLength = COT_calculatePeriodLength(avgSpeed);
 
   chainOiler.period.speed = avgSpeed;
-  chainOiler.period.length = periodInMsec / 1000;
+  chainOiler.period.length = periodLength / 1000;
 
-  if (0 < periodInMsec) {
-    time_msecs_t elapsedTimeInMsec = TIME_I2MS(chVTTimeElapsedSinceX(chainOiler.period.start));
+  if (0 < periodLength) {
+    sysinterval_t timeSinceStart = chVTTimeElapsedSinceX(chainOiler.period.start);
+    time_msecs_t elapsedTime = TIME_I2MS(timeSinceStart);
 
-    if (elapsedTimeInMsec < periodInMsec) {
-      time_msecs_t timeToWaitInMsec = periodInMsec - elapsedTimeInMsec;
+    if (elapsedTime < periodLength) {
+      time_msecs_t timeToWait = periodLength - elapsedTime;
       chVTReset(&chainOiler.period.timer);
       chVTSet(&chainOiler.period.timer,
-              TIME_MS2I(timeToWaitInMsec),
-              timerCallbackI,
+              TIME_MS2I(timeToWait),
+              COT_timerCallbackI,
               NULL);
     } else {
       chSysLock();
@@ -198,39 +202,35 @@ void processSpeedAndReloadTimer(void)
   }
 }
 
-const char *getStateString(COT_State_t state)
+const char *COT_getStateString(COT_State_t state)
 {
-  const char *stateString[] = {
+  const char *stateStrings[] = {
       [COT_STATE_INIT]     = "INIT",
       [COT_STATE_DISABLED] = "DISABLED",
       [COT_STATE_ENABLED]  = "ENABLED",
       [COT_STATE_FORCED]   = "FORCED",
   };
 
-  return stateString[state];
+  return stateStrings[state];
 }
 
-static void logStateChange(COT_State_t from, COT_State_t to)
+static void COT_logStateChange(COT_State_t from, COT_State_t to)
 {
   char entry[32] = {0};
-  chsnprintf(entry,
-             sizeof(entry),
-             "%s -> %s",
-             getStateString(from),
-             getStateString(to));
+  chsnprintf(entry, sizeof(entry), "%s -> %s",
+             COT_getStateString(from), COT_getStateString(to));
   LOG_Write(COT_LOGFILE, entry);
 }
 
-static void logPeriodData(void)
+static void COT_logPeriodData(void)
 {
   char entry[100] = {0};
   chsnprintf(entry, sizeof(entry), "%.2f km/h %d sec", 
-             chainOiler.period.speed, 
-             chainOiler.period.length);
+             chainOiler.period.speed, chainOiler.period.length);
   LOG_Write(COT_LOGFILE, entry);
 }
 
-static COT_State_t initStateHandler(COT_Command_t cmd)
+static COT_State_t COT_initStateHandler(COT_Command_t cmd)
 {
   COT_State_t newState = COT_STATE_INIT;
 
@@ -252,12 +252,12 @@ static COT_State_t initStateHandler(COT_Command_t cmd)
   }
 
   if (newState != COT_STATE_INIT)
-    logStateChange(COT_STATE_INIT, newState);
+    COT_logStateChange(COT_STATE_INIT, newState);
 
   return newState;
 }
 
-static COT_State_t disabledStateHandler(COT_Command_t cmd)
+static COT_State_t COT_disabledStateHandler(COT_Command_t cmd)
 {
   COT_State_t newState = COT_STATE_DISABLED;
 
@@ -276,19 +276,19 @@ static COT_State_t disabledStateHandler(COT_Command_t cmd)
   }
 
   if (newState != COT_STATE_DISABLED)
-    logStateChange(COT_STATE_DISABLED, newState);
+    COT_logStateChange(COT_STATE_DISABLED, newState);
 
   return newState;
 }
 
-static COT_State_t enabledStateHandler(COT_Command_t cmd)
+static COT_State_t COT_enabledStateHandler(COT_Command_t cmd)
 {
   COT_State_t newState = COT_STATE_ENABLED;
 
   switch (cmd) {
   case COT_CMD_FORCE_START: {
     chVTReset(&chainOiler.period.timer);
-    OLP_StartContinuous();
+    OLP_Start();
     newState = COT_STATE_FORCED;
     break;
   }
@@ -298,13 +298,13 @@ static COT_State_t enabledStateHandler(COT_Command_t cmd)
     break;
   }
   case COT_CMD_SPEED_AVAILABLE: {
-    processSpeedAndReloadTimer();
+    COT_processSpeedAndReloadTimer();
     break;
   }
   case COT_CMD_SHOOT: {
-    double speed = getSpeed();
+    double speed = COT_getSpeed();
     if (0 < speed) {
-      logPeriodData();
+      COT_logPeriodData();
       chainOiler.period.start = chVTGetSystemTimeX();
       AVG_Clear(&chainOiler.speedAverager);
       OLP_ReleaseOneDrop();
@@ -318,12 +318,12 @@ static COT_State_t enabledStateHandler(COT_Command_t cmd)
   }
 
   if (newState != COT_STATE_ENABLED)
-    logStateChange(COT_STATE_ENABLED, newState);
+    COT_logStateChange(COT_STATE_ENABLED, newState);
 
   return newState;
 }
 
-static COT_State_t forcedStateHandler(COT_Command_t cmd)
+static COT_State_t COT_forcedStateHandler(COT_Command_t cmd)
 {
   COT_State_t newState = COT_STATE_FORCED;
 
@@ -347,7 +347,7 @@ static COT_State_t forcedStateHandler(COT_Command_t cmd)
   }
 
   if (newState != COT_STATE_FORCED)
-    logStateChange(COT_STATE_FORCED, newState);
+    COT_logStateChange(COT_STATE_FORCED, newState);
 
   return newState;
 }
@@ -369,19 +369,19 @@ THD_FUNCTION(COT_Thread, arg)
     if (MSG_OK == chMBFetchTimeout(&chainOiler.mailbox, (msg_t *)&cmd, TIME_INFINITE)) {
       switch (chainOiler.state) {
       case COT_STATE_INIT: {
-        chainOiler.state = initStateHandler(cmd);
+        chainOiler.state = COT_initStateHandler(cmd);
         break;
       }
       case COT_STATE_DISABLED: {
-        chainOiler.state = disabledStateHandler(cmd);
+        chainOiler.state = COT_disabledStateHandler(cmd);
         break;
       }
       case COT_STATE_ENABLED: {
-        chainOiler.state = enabledStateHandler(cmd);
+        chainOiler.state = COT_enabledStateHandler(cmd);
         break;
       }
       case COT_STATE_FORCED: {
-        chainOiler.state = forcedStateHandler(cmd);
+        chainOiler.state = COT_forcedStateHandler(cmd);
         break;
       }
       default: {
@@ -479,7 +479,7 @@ void COT_OneShot(void)
 
 const char *COT_GetStateString(void)
 {
-  return getStateString(chainOiler.state);
+  return COT_getStateString(chainOiler.state);
 }
 
 const char *COT_GetErrorString(void)
