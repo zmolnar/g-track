@@ -41,7 +41,7 @@ static THD_FUNCTION(HeartBeatThread, arg) {
   palSetLine(LINE_LED_3_GREEN);
 
   while (true) {
-    GpsLockState_t state = GpsGetLockState();
+    GpsLockState_t state = GPS_GetLockState();
     switch (state)
     {
     case GPS_NOT_POWERED: {
@@ -94,7 +94,7 @@ int main(void) {
   SystemThreadInit();
   BMT_Init();
   PeripheralManagerThreadInit();
-  GpsReaderThreadInit();
+  GPS_Init();
   COT_Init();  
 
   chThdCreateStatic(waHeartBeatThread,
@@ -124,7 +124,7 @@ int main(void) {
   chThdCreateStatic(waGpsReaderThread,
                     sizeof(waGpsReaderThread),
                     NORMALPRIO,
-                    GpsReaderThread,
+                    GPS_Thread,
                     NULL);       
 
   chThdCreateStatic(waChainOilerThread,

@@ -36,14 +36,14 @@ typedef enum {
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(GpsReaderThread, arg);
-void GpsReaderThreadInit(void);
-void GpsReaderStart(void);
-void GpsReaderStop(void);
-GpsLockState_t GpsGetLockState(void);
+THD_FUNCTION(GPS_Thread, arg);
+void GPS_Init(void);
+void GPS_Start(void);
+void GPS_Stop(void);
+GpsLockState_t GPS_GetLockState(void);
 
-    const char *GpsReaderGetStateString(void);
-const char *GpsReaderGetErrorString(void);
+const char *GPS_GetStateString(void);
+const char *GPS_GetErrorString(void);
 
 #endif /* GPS_READER_THREAD_H */
 

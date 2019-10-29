@@ -76,8 +76,8 @@ void shGetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[])
   chprintf(chp,
            "%10s    %10s    %10s" SHELL_NEWLINE_STR,
            GPS_READER_THREAD_NAME,
-           GpsReaderGetStateString(),
-           GpsReaderGetErrorString());
+           GPS_GetStateString(),
+           GPS_GetErrorString());
 
   chprintf(chp,
            "%10s    %10s    %10s" SHELL_NEWLINE_STR,
