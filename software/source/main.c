@@ -106,7 +106,7 @@ int main(void) {
   chThdCreateStatic(waSystemThread,
                     sizeof(waSystemThread),
                     NORMALPRIO,
-                    SystemThread,
+                    SYS_Thread,
                     NULL);
 
   chThdCreateStatic(waBoardMonitorThread,

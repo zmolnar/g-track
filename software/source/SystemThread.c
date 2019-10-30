@@ -14,6 +14,7 @@
 #include "Logger.h"
 #include "sim8xx.h"
 
+#include "chprintf.h"
 #include <string.h>
 
 /*****************************************************************************/

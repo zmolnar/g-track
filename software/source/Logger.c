@@ -43,15 +43,15 @@ static void LOG_createTimeStamp(char timestamp[], size_t length)
   DSB_DateTime_t dt = {0};
   DSB_GetTime(&dt);
 
-  int n = chsnprintf(timestamp, length,
-                     "%d-%02d-%02d %02d:%02d:%02d ",
-                     dt.year,
-                     dt.month,
-                     dt.day,
-                     dt.hour,
-                     dt.min,
-                     dt.sec);
-  return (size_t)n;
+  chsnprintf(timestamp,
+             length,
+             "%d-%02d-%02d %02d:%02d:%02d ",
+             dt.year,
+             dt.month,
+             dt.day,
+             dt.hour,
+             dt.min,
+             dt.sec);
 }
 
 /*****************************************************************************/

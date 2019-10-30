@@ -164,7 +164,7 @@ void DSB_GetTime(DSB_DateTime_t *time)
   DSB_lock();
   rtcGetTime(&RTCD1, &rtcDateTime);
   DSB_unlock();
-  convertRTCDateTimeToDateTime(&rtcDateTime, time);
+  DSB_convertRTCDateTimeToDateTime(&rtcDateTime, time);
 }
 
 void DSB_SetTime(DSB_DateTime_t *time)
