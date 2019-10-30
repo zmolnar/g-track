@@ -131,7 +131,7 @@ static void GPS_savePositionInLogfile(CGNSINF_Response_t *pdata)
 {
   char entry[150] = {0};
   chsnprintf(entry, sizeof(entry),
-             "%s %f %f %f %f %d %d %d %d\n",
+             "%s %f %f %f %f %d %d %d %d",
              pdata->date,
              pdata->latitude,
              pdata->longitude,
@@ -156,8 +156,6 @@ static void GPS_savePositionInDashboard(CGNSINF_Response_t *data)
   pos.gnssSatInView = data->gnssSatInView;
   pos.gpsSatInView  = data->gpsSatInView;
   DSB_SetPosition(&pos);
-
-  gps.lockState = (1 == data->fixStatus) ? GPS_LOCKED : GPS_SEARCHING;
 
   COT_SpeedAvailable();
 }
@@ -209,9 +207,14 @@ static void GPS_updatePosition(void)
   if (SIM8XX_OK == gps.cmd.status) {
     CGNSINF_Response_t response;
     if (atCgnsinfParse(&response, gps.cmd.response)) {
-      gps.error = GPS_ERR_NO_ERROR;
-      GPS_savePositionInDashboard(&response);
-      GPS_updateClockInDashboard(response.date);
+      if (1 == response.fixStatus) {
+        gps.lockState = GPS_LOCKED;
+        gps.error = GPS_ERR_NO_ERROR;
+        GPS_savePositionInDashboard(&response);
+        GPS_updateClockInDashboard(response.date);
+      } else {
+        gps.lockState = GPS_SEARCHING;
+      }
       GPS_savePositionInLogfile(&response);
     } else {
       gps.error = GPS_ERR_IN_RESPONSE;

@@ -61,7 +61,7 @@ void LOG_Write(const char *file, const char *entry)
 {
   char timestamp[25] = {0};
   LOG_createTimeStamp(timestamp, sizeof(timestamp));
-  
+
   sdcardLock();
   FIL logfile;
   if (FR_OK == f_open(&logfile, file, FA_OPEN_APPEND | FA_WRITE)) {
