@@ -91,7 +91,7 @@ int main(void) {
   halInit();
   chSysInit();
 
-  SystemThreadInit();
+  SYS_Init();
   BMT_Init();
   PeripheralManagerThreadInit();
   GPS_Init();

@@ -79,7 +79,7 @@ static void checkUsb(void)
     if (isUsbConnected()) {
       if (--counter == 0) {
         PeripheralManagerUsbConnected();
-        SystemThreadIgnitionOn();
+        SYS_IgnitionOn();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
@@ -87,7 +87,7 @@ static void checkUsb(void)
     if (!isUsbConnected()) {
       counter = DEBOUNCE_COUNTER_START;
       PeripheralManagerUsbDisconnected();
-      SystemThreadIgnitionOff();
+      SYS_IgnitionOff();
     }
   }
 }
@@ -127,14 +127,14 @@ static void checkIgnition(void)
   if (counter > 0) {
     if (isIgnitionPressed()) {
       if (--counter == 0) {
-        SystemThreadIgnitionOn();
+        SYS_IgnitionOn();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
     if (!isIgnitionPressed()) {
       counter = DEBOUNCE_COUNTER_START;
-      SystemThreadIgnitionOff();
+      SYS_IgnitionOff();
     }
   }
 }

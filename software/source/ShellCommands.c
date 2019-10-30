@@ -70,8 +70,8 @@ void shGetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[])
   chprintf(chp,
            "%10s    %10s    %10s" SHELL_NEWLINE_STR,
            SYSTEM_THREAD_NAME,
-           SystemThreadGetStateString(),
-           SystemThreadGetErrorString());
+           SYS_GetStateString(),
+           SYS_GetErrorString());
 
   chprintf(chp,
            "%10s    %10s    %10s" SHELL_NEWLINE_STR,

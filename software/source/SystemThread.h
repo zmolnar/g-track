@@ -31,13 +31,35 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(SystemThread, arg);
-void SystemThreadInit(void);
-void SystemThreadIgnitionOn(void);
-void SystemThreadIgnitionOff(void);
+/**
+ * @brief System thread.
+ */
+THD_FUNCTION(SYS_Thread, arg);
 
-const char *SystemThreadGetStateString(void);
-const char *SystemThreadGetErrorString(void);
+/**
+ * @brief Initialize resources used by the system thread.
+ */
+void SYS_Init(void);
+
+/**
+ * @brief Notifies the system module that the ignition was set on.
+ */
+void SYS_IgnitionOn(void);
+
+/**
+ * @brief Notifies the system module that the ignition was set off.
+ */
+void SYS_IgnitionOff(void);
+
+/**
+ * @brief Get the text representation of system modules actual state.
+ */
+const char *SYS_GetStateString(void);
+
+/**
+ * @brief Get the text representation of the actual system module error code.
+ */
+const char *SYS_GetErrorString(void);
 
 #endif /* SYSTEM_THREAD_H */
 
