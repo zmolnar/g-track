@@ -141,8 +141,8 @@ static ChainOiler_t chainOiler;
 /*****************************************************************************/
 static double COT_getSpeed(void)
 {
-  Position_t pos = {0};
-  dbGetPosition(&pos);
+  DSB_Position_t pos = {0};
+  DSB_GetPosition(&pos);
   return pos.speed;
 }
 

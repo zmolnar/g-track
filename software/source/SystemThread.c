@@ -228,7 +228,7 @@ THD_FUNCTION(SystemThread, arg)
 
 void SystemThreadInit(void)
 {
-  dbInit();
+  DSB_Init();
   memset(&events, 0, sizeof(events));
   chMBObjectInit(&systemMailbox, events, sizeof(events) / sizeof(events[0]));
 }

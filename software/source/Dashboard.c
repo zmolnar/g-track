@@ -22,8 +22,8 @@
 /*****************************************************************************/
 typedef struct {
   mutex_t lock;
-  Position_t position;
-} Dashboard_t;
+  DSB_Position_t position;
+} DSB_Dashboard_t;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -32,7 +32,7 @@ typedef struct {
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
-static Dashboard_t dashboard;
+static DSB_Dashboard_t dashboard;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -41,73 +41,139 @@ static Dashboard_t dashboard;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void dbLock(void)
+static void DSB_lock(void)
 {
   chMtxLock(&dashboard.lock);
 }
 
-static void dbUnlock(void)
+static void DSB_unlock(void)
 {
   chMtxUnlock(&dashboard.lock);
+}
+
+static int DSB_dayOfWeek(int year, int month, int day)
+{
+  if (month == 1) {
+    month = 13;
+    year--;
+  }
+
+  if (month == 2) {
+    month = 14;
+    year--;
+  }
+
+  int q = day;
+  int m = month;
+  int k = year % 100;
+  int j = year / 100;
+  int h = q + 13 * (m + 1) / 5 + k + k / 4 + j / 4 + 5 * j;
+  h %= 7;
+
+  return h;
+}
+
+static bool DSB_isDaylightSavingTime(int day, int month, int dow)
+{
+  if (month < 3 || month > 10)
+    return false;
+  if (month > 3 && month < 10)
+    return true;
+
+  int previousSunday = day - dow;
+
+  if (month == 3)
+    return previousSunday >= 25;
+  if (month == 10)
+    return previousSunday < 25;
+
+  return false;
+}
+
+static uint32_t DSB_convertMillisecondToHour(uint32_t millisecond)
+{
+  return millisecond / 3600000;
+}
+
+static uint32_t DSB_convertMillisecondToMinute(uint32_t millisecond)
+{
+  return millisecond % 3600000 / 60000;
+}
+
+static uint32_t DSB_convertMillisecondToSecond(uint32_t millisecond)
+{
+  return millisecond % 3600000 % 60000 / 1000;
+}
+
+static uint32_t DSB_convertMillisecondToMilliSecond(uint32_t millisecond)
+{
+  return millisecond % 3600000 % 60000 % 1000;
+}
+
+static void DSB_convertDateTimeToRTCDateTime(DSB_DateTime_t *dt, RTCDateTime *rtc)
+{
+  rtc->year        = dt->year - 1980;
+  rtc->month       = dt->month;
+  rtc->day         = dt->day;
+  rtc->millisecond = 60 * 60 * 1000 * dt->hour;
+  rtc->millisecond += 60 * 1000 * dt->min;
+  rtc->millisecond += 1000 * dt->sec;
+  rtc->millisecond += dt->msec;
+  rtc->dayofweek = DSB_dayOfWeek(dt->year, dt->month, dt->day);
+  rtc->dstflag = DSB_isDaylightSavingTime(dt->day, dt->month, rtc->dayofweek) ? 1 : 0;
+}
+
+static void DSB_convertRTCDateTimeToDateTime(RTCDateTime *rtc, DSB_DateTime_t *dt)
+{
+  dt->year  = rtc->year + 1980;
+  dt->month = rtc->month;
+  dt->day   = rtc->day;
+  dt->hour  = DSB_convertMillisecondToHour(rtc->millisecond);
+  dt->min   = DSB_convertMillisecondToMinute(rtc->millisecond);
+  dt->sec   = DSB_convertMillisecondToSecond(rtc->millisecond);
+  dt->msec  = DSB_convertMillisecondToMilliSecond(rtc->millisecond);
 }
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void dbInit(void)
+void DSB_Init(void)
 {
   memset(&dashboard, 0, sizeof(dashboard));
   chMtxObjectInit(&dashboard.lock);
   rtcObjectInit(&RTCD1);
 }
 
-void dbGetPosition(Position_t *pos)
+void DSB_GetPosition(DSB_Position_t *pos)
 {
-  dbLock();
+  DSB_lock();
   *pos = dashboard.position;
-  dbUnlock();
+  DSB_unlock();
 }
 
-void dbSetPosition(Position_t *new)
+void DSB_SetPosition(DSB_Position_t *new)
 {
-  dbLock();
+  DSB_lock();
   dashboard.position = *new;
-  dbUnlock();
+  DSB_unlock();
 }
 
-void dbGetTime(DateTime_t *time)
+void DSB_GetTime(DSB_DateTime_t *time)
 {
   RTCDateTime rtcDateTime = {0};
-  dbLock();
+  DSB_lock();
   rtcGetTime(&RTCD1, &rtcDateTime);
-  dbUnlock();
+  DSB_unlock();
   convertRTCDateTimeToDateTime(&rtcDateTime, time);
 }
 
-void dbSetTime(DateTime_t *time)
+void DSB_SetTime(DSB_DateTime_t *time)
 {
   RTCDateTime rtcDateTime = {0};
-  convertDateTimeToRTCDateTime(time, &rtcDateTime);
-  dbLock();
+  DSB_convertDateTimeToRTCDateTime(time, &rtcDateTime);
+  DSB_lock();
   rtcSetTime(&RTCD1, &rtcDateTime);
-  dbUnlock();
-}
-
-size_t dbCreateTimestamp(char buf[], size_t length)
-{
-  DateTime_t dt = {0};
-  dbGetTime(&dt);
-
-  int n = chsnprintf(buf,
-                     length,
-                     "%d-%02d-%02d %02d:%02d:%02d ",
-                     dt.year,
-                     dt.month,
-                     dt.day,
-                     dt.hour,
-                     dt.min,
-                     dt.sec);
-  return (size_t)n;
+  DSB_unlock();
 }
 
 /****************************** END OF FILE **********************************/

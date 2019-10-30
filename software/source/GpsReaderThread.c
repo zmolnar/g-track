@@ -92,7 +92,7 @@ static void GPS_restoreChar(char *c, char *tmp)
   *c = *tmp;
 }
 
-static bool GPS_convertRawDateToDateTime(DateTime_t *dt, char *raw)
+static bool GPS_convertRawDateToDateTime(DSB_DateTime_t *dt, char *raw)
 {
   if (18 != strlen(raw))
     return false;
@@ -146,7 +146,7 @@ static void GPS_savePositionInLogfile(CGNSINF_Response_t *pdata)
 
 static void GPS_savePositionInDashboard(CGNSINF_Response_t *data)
 {
-  Position_t pos = {0};
+  DSB_Position_t pos = {0};
   strncpy(pos.date, data->date, sizeof(pos.date));
   pos.latitude      = data->latitude;
   pos.longitude     = data->longitude;
@@ -155,17 +155,17 @@ static void GPS_savePositionInDashboard(CGNSINF_Response_t *data)
   pos.gnssSatInUse  = data->gnssSatInUse;
   pos.gnssSatInView = data->gnssSatInView;
   pos.gpsSatInView  = data->gpsSatInView;
-  dbSetPosition(&pos);
+  DSB_SetPosition(&pos);
 
   gps.lockState = (1 == data->fixStatus) ? GPS_LOCKED : GPS_SEARCHING;
 
   COT_SpeedAvailable();
 }
 
-static bool GPS_isClockUpdateNeeded(DateTime_t *gpsTime)
+static bool GPS_isClockUpdateNeeded(DSB_DateTime_t *gpsTime)
 {
-  DateTime_t rtcTime = {0};
-  dbGetTime(&rtcTime);
+  DSB_DateTime_t rtcTime = {0};
+  DSB_GetTime(&rtcTime);
 
   bool result = false;
   if (rtcTime.year != gpsTime->year)
@@ -193,11 +193,11 @@ static bool GPS_isClockUpdateNeeded(DateTime_t *gpsTime)
 
 static void GPS_updateClockInDashboard(char *rawDateTime)
 {
-  DateTime_t gpsDateTime = {0};
+  DSB_DateTime_t gpsDateTime = {0};
   GPS_convertRawDateToDateTime(&gpsDateTime, rawDateTime);
 
   if (GPS_isClockUpdateNeeded(&gpsDateTime))
-    dbSetTime(&gpsDateTime);
+    DSB_SetTime(&gpsDateTime);
 }
 
 static void GPS_updatePosition(void)

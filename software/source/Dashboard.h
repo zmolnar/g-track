@@ -9,7 +9,6 @@
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "Time.h"
 #include "ch.h"
 #include "hal.h"
 
@@ -33,7 +32,17 @@ typedef struct {
   int gpsSatInView;
   int gnssSatInUse;
   int gnssSatInView;
-} Position_t;
+} DSB_Position_t;
+
+typedef struct {
+  uint32_t year;
+  uint32_t month;
+  uint32_t day;
+  uint32_t hour;
+  uint32_t min;
+  uint32_t sec;
+  uint32_t msec;
+} DSB_DateTime_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
@@ -42,13 +51,11 @@ typedef struct {
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void dbInit(void);
-void dbGetPosition(Position_t *pos);
-void dbSetPosition(Position_t *new);
-void dbGetTime(DateTime_t *time);
-void dbSetTime(DateTime_t *time);
-
-size_t dbCreateTimestamp(char buf[], size_t length);
+void DSB_Init(void);
+void DSB_GetPosition(DSB_Position_t *pos);
+void DSB_SetPosition(DSB_Position_t *new);
+void DSB_GetTime(DSB_DateTime_t *time);
+void DSB_SetTime(DSB_DateTime_t *time);
 
 #endif /* DASHBOARD_H */
 
