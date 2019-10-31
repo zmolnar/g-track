@@ -23,6 +23,11 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
+typedef struct {
+  virtual_timer_t timer;
+  virtual_timer_t sw1Timer;
+  semaphore_t sync;
+} BoardMonitor_t;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -31,9 +36,7 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
-static virtual_timer_t timer;
-static virtual_timer_t Sw1Timer;
-static semaphore_t sync;
+BoardMonitor_t monitor = {0};
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -42,41 +45,41 @@ static semaphore_t sync;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static bool isSdcardInserted(void)
+static bool BMT_isSdcardInserted(void)
 {
   return PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT);
 }
 
-static void checkSdcard(void)
+static void BMT_checkSdcard(void)
 {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
-    if (isSdcardInserted()) {
+    if (BMT_isSdcardInserted()) {
       if (--counter == 0) {
         PeripheralManagerSdcInserted();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
-    if (!isSdcardInserted()) {
+    if (!BMT_isSdcardInserted()) {
       counter = DEBOUNCE_COUNTER_START;
       PeripheralManagerSdcRemoved();
     }
   }
 }
 
-static bool isUsbConnected(void)
+static bool BMT_isUsbConnected(void)
 {
   return PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE);
 }
 
-static void checkUsb(void)
+static void BMT_checkUsb(void)
 {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
-    if (isUsbConnected()) {
+    if (BMT_isUsbConnected()) {
       if (--counter == 0) {
         PeripheralManagerUsbConnected();
         SYS_IgnitionOn();
@@ -84,7 +87,7 @@ static void checkUsb(void)
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
-    if (!isUsbConnected()) {
+    if (!BMT_isUsbConnected()) {
       counter = DEBOUNCE_COUNTER_START;
       PeripheralManagerUsbDisconnected();
       SYS_IgnitionOff();
@@ -92,54 +95,54 @@ static void checkUsb(void)
   }
 }
 
-static bool isBT0Pressed(void)
+static bool BMT_isBT0Pressed(void)
 {
   return PAL_LOW == palReadLine(LINE_BT0);
 }
 
-static void checkBT0(void)
+static void BMT_checkBT0(void)
 {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
-    if (isBT0Pressed()) {
+    if (BMT_isBT0Pressed()) {
       if (--counter == 0) {
         PeripheralManagerSdcRemoved();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
-    if (!isBT0Pressed()) {
+    if (!BMT_isBT0Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
     }
   }
 }
 
-static bool isIgnitionPressed(void)
+static bool BMT_isIgnitionPressed(void)
 {
   return PAL_HIGH == palReadLine(LINE_EXT_IGNITION);
 }
 
-static void checkIgnition(void)
+static void BMT_checkIgnition(void)
 {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
-    if (isIgnitionPressed()) {
+    if (BMT_isIgnitionPressed()) {
       if (--counter == 0) {
         SYS_IgnitionOn();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
-    if (!isIgnitionPressed()) {
+    if (!BMT_isIgnitionPressed()) {
       counter = DEBOUNCE_COUNTER_START;
       SYS_IgnitionOff();
     }
   }
 }
 
-static void ExtSW1TimerCallback(void *p)
+static void BMT_sw1TimerCallback(void *p)
 {
   (void)p;
   chSysLockFromISR();
@@ -147,30 +150,30 @@ static void ExtSW1TimerCallback(void *p)
   chSysUnlockFromISR();
 }
 
-static bool isExtSW1Pressed(void)
+static bool BMT_isSw1Pressed(void)
 {
   return PAL_HIGH == palReadLine(LINE_EXT_SW1);
 }
 
-static void checkExtSW1(void)
+static void BMT_checkSw1(void)
 {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
   static systime_t start;
 
   if (counter > 0) {
-    if (isExtSW1Pressed()) {
+    if (BMT_isSw1Pressed()) {
       if (--counter == 0) {
         start = chVTGetSystemTime();
         chVTSet(
-            &Sw1Timer, TIME_MS2I(SW1_CYCLE_IN_MS), ExtSW1TimerCallback, NULL);
+            &sw1Timer, TIME_MS2I(SW1_CYCLE_IN_MS), BMT_sw1TimerCallback, NULL);
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
-    if (!isExtSW1Pressed()) {
+    if (!BMT_isSw1Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
       if (chVTIsSystemTimeWithinX(start, start + chTimeMS2I(SW1_CYCLE_IN_MS))) {
-        chVTReset(&Sw1Timer);
+        chVTReset(&sw1Timer);
         COT_OneShot();
       } else {
         COT_ForceStop();
@@ -179,35 +182,35 @@ static void checkExtSW1(void)
   }
 }
 
-static bool isExtSW2Pressed(void)
+static bool BMT_isSw2Pressed(void)
 {
   return PAL_HIGH == palReadLine(LINE_EXT_SW2);
 }
 
-static void checkExtSW2(void)
+static void BMT_checkSw2(void)
 {
   static uint8_t counter = DEBOUNCE_COUNTER_START;
 
   if (counter > 0) {
-    if (isExtSW2Pressed()) {
+    if (BMT_isSw2Pressed()) {
       if (--counter == 0) {
         ;
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
-    if (!isExtSW2Pressed()) {
+    if (!BMT_isSw2Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
     }
   }
 }
 
-static void timerCallback(void *p)
+static void BMT_timerCallback(void *p)
 {
   (void)p;
   chSysLockFromISR();
   chSemSignalI(&sync);
-  chVTSetI(&timer, TIME_MS2I(POLLING_DELAY), timerCallback, NULL);
+  chVTSetI(&timer, TIME_MS2I(POLLING_DELAY), BMT_timerCallback, NULL);
   chSysUnlockFromISR();
 }
 
@@ -219,25 +222,25 @@ THD_FUNCTION(BMT_Thread, arg)
   (void)arg;
   chRegSetThreadName(BOARD_MONITOR_THREAD_NAME);
 
-  chVTSet(&timer, TIME_MS2I(POLLING_DELAY), timerCallback, NULL);
+  chVTSet(&timer, TIME_MS2I(POLLING_DELAY), BMT_timerCallback, NULL);
 
   while (true) {
     chSemWait(&sync);
 
-    checkIgnition();
-    checkSdcard();
-    checkUsb();
-    checkBT0();
-    checkExtSW1();
-    checkExtSW2();
+    BMT_checkIgnition();
+    BMT_checkSdcard();
+    BMT_checkUsb();
+    BMT_checkBT0();
+    BMT_checkSw1();
+    BMT_checkSw2();
   }
 }
 
 void BMT_Init(void)
 {
-  chSemObjectInit(&sync, 0);
-  chVTObjectInit(&timer);
-  chVTObjectInit(&Sw1Timer);
+  chSemObjectInit(&monitor.sync, 0);
+  chVTObjectInit(&monitor.timer);
+  chVTObjectInit(&monitor.sw1Timer);
 }
 
 /****************************** END OF FILE **********************************/
