@@ -35,7 +35,7 @@ static thread_reference_t shelltp;
 
 static const ShellCommand commands[] = {
     {"tree", SDC_Tree},
-    {"status", shGetSystemStatus},
+    {"status", SHC_GetSystemStatus},
     {NULL, NULL},
 };
 
