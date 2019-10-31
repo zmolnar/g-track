@@ -34,7 +34,7 @@
 static thread_reference_t shelltp;
 
 static const ShellCommand commands[] = {
-    {"tree", sdcardCmdTree},
+    {"tree", SDC_Tree},
     {"status", shGetSystemStatus},
     {NULL, NULL},
 };

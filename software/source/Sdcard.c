@@ -74,7 +74,7 @@ static mutex_t sdcardMutex;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static FRESULT scanFiles(BaseSequentialStream *chp, char *path)
+static FRESULT SDC_scanFiles(BaseSequentialStream *chp, char *path)
 {
   static FILINFO fno;
   FRESULT res;
@@ -92,7 +92,7 @@ static FRESULT scanFiles(BaseSequentialStream *chp, char *path)
       if (fno.fattrib & AM_DIR) {
         *(path + i) = '/';
         strcpy(path + i + 1, fn);
-        res         = scanFiles(chp, path);
+        res         = SDC_scanFiles(chp, path);
         *(path + i) = '\0';
         if (res != FR_OK)
           break;
@@ -107,25 +107,25 @@ static FRESULT scanFiles(BaseSequentialStream *chp, char *path)
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void sdcardInit(void)
+void SDC_Init(void)
 {
   mmcObjectInit(&MMCD1);
   chMtxObjectInit(&sdcardMutex);
 }
 
-void sdcardLock(void)
+void SDC_Lock(void)
 {
   chMtxLock(&sdcardMutex);
 }
 
-void sdcardUnlock(void)
+void SDC_Unlock(void)
 {
   chMtxUnlock(&sdcardMutex);
 }
 
-void sdcardMount(void)
+void SDC_Mount(void)
 {
-  sdcardLock();
+  SDC_Lock();
   if (!fsReady) {
     mmcStart(&MMCD1, &mmccfg);
 
@@ -142,12 +142,12 @@ void sdcardMount(void)
     palClearLine(LINE_LED_2_RED);
   }
 
-  sdcardUnlock();
+  SDC_Unlock();
 }
 
-void sdcardUnmount(void)
+void SDC_Unmount(void)
 {
-  sdcardLock();
+  SDC_Lock();
 
   if (fsReady) {
     mmcDisconnect(&MMCD1);
@@ -157,12 +157,12 @@ void sdcardUnmount(void)
     palSetLine(LINE_LED_2_RED);
   }
 
-  sdcardUnlock();
+  SDC_Unlock();
 }
 
-void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[])
+void SDC_Tree(BaseSequentialStream *chp, int argc, char *argv[])
 {
-  sdcardLock();
+  SDC_Lock();
   FRESULT err;
   uint32_t clusters;
   FATFS *fsp;
@@ -171,18 +171,18 @@ void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[])
 
   if (argc > 0) {
     chprintf(chp, "Usage: tree\r\n");
-    sdcardUnlock();
+    SDC_Unlock();
     return;
   }
   if (!fsReady) {
     chprintf(chp, "File System not mounted\r\n");
-    sdcardUnlock();
+    SDC_Unlock();
     return;
   }
   err = f_getfree("/", &clusters, &fsp);
   if (err != FR_OK) {
     chprintf(chp, "FS: f_getfree() failed\r\n");
-    sdcardUnlock();
+    SDC_Unlock();
     return;
   }
   chprintf(chp,
@@ -192,7 +192,7 @@ void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[])
            clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE);
   fbuff[0] = 0;
   scanFiles(chp, (char *)fbuff);
-  sdcardUnlock();
+  SDC_Unlock();
 }
 
 /****************************** END OF FILE **********************************/

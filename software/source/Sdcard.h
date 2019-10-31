@@ -32,13 +32,35 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void sdcardInit(void);
-void sdcardLock(void);
-void sdcardUnlock(void);
-void sdcardMount(void);
-void sdcardUnmount(void);
+/**
+ * @brief Initialize SD card resources.
+ */
+void SDC_Init(void);
 
-void sdcardCmdTree(BaseSequentialStream *chp, int argc, char *argv[]);
+/**
+ * @brief Lock SD card.
+ */
+void SDC_Lock(void);
+
+/**
+ * @brief Unlock SD card.
+ */
+void SDC_Unlock(void);
+
+/**
+ * @brief Mount filesystem on SD card.
+ */
+void SDC_Mount(void);
+
+/**
+ * @brief Unmount filesystem on SD card.
+ */
+void SDC_Unmount(void);
+
+/**
+ * @brief Recursively list all files in the filesystem.
+ */
+void SDC_Tree(BaseSequentialStream *chp, int argc, char *argv[]);
 
 #endif /* SDCARD_H */
 

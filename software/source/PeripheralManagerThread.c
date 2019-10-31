@@ -61,13 +61,13 @@ static void saveBuffer(const char *data, size_t length)
 {
   FIL log;
 
-  sdcardLock();
+  SDC_Lock();
   if (FR_OK == f_open(&log, "/system.nfo", FA_CREATE_ALWAYS | FA_WRITE)) {
     UINT bw = 0;
     f_write(&log, data, length, &bw);
     f_close(&log);
   }
-  sdcardUnlock();
+  SDC_Unlock();
 }
 
 static void writeSysInfo(void)
@@ -117,7 +117,7 @@ THD_FUNCTION(PeripheralManagerThread, arg)
   (void)arg;
   chRegSetThreadName("peripheral");
 
-  sdcardInit();
+  SDC_Init();
   debugShellInit();
 
   while (true) {
@@ -126,12 +126,12 @@ THD_FUNCTION(PeripheralManagerThread, arg)
         chMBFetchTimeout(&periphMailbox, (msg_t *)&evt, TIME_INFINITE)) {
       switch (evt) {
       case SDC_INSERTED: {
-        sdcardMount();
+        SDC_Mount();
         writeSysInfo();
         break;
       }
       case SDC_REMOVED: {
-        sdcardUnmount();
+        SDC_Unmount();
         break;
       }
       case USB_CONNECTED: {
