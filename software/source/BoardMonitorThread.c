@@ -165,7 +165,7 @@ static void BMT_checkSw1(void)
       if (--counter == 0) {
         start = chVTGetSystemTime();
         chVTSet(
-            &sw1Timer, TIME_MS2I(SW1_CYCLE_IN_MS), BMT_sw1TimerCallback, NULL);
+            &monitor.sw1Timer, TIME_MS2I(SW1_CYCLE_IN_MS), BMT_sw1TimerCallback, NULL);
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
@@ -173,7 +173,7 @@ static void BMT_checkSw1(void)
     if (!BMT_isSw1Pressed()) {
       counter = DEBOUNCE_COUNTER_START;
       if (chVTIsSystemTimeWithinX(start, start + chTimeMS2I(SW1_CYCLE_IN_MS))) {
-        chVTReset(&sw1Timer);
+        chVTReset(&monitor.sw1Timer);
         COT_OneShot();
       } else {
         COT_ForceStop();
@@ -209,8 +209,8 @@ static void BMT_timerCallback(void *p)
 {
   (void)p;
   chSysLockFromISR();
-  chSemSignalI(&sync);
-  chVTSetI(&timer, TIME_MS2I(POLLING_DELAY), BMT_timerCallback, NULL);
+  chSemSignalI(&monitor.sync);
+  chVTSetI(&monitor.timer, TIME_MS2I(POLLING_DELAY), BMT_timerCallback, NULL);
   chSysUnlockFromISR();
 }
 
@@ -222,10 +222,10 @@ THD_FUNCTION(BMT_Thread, arg)
   (void)arg;
   chRegSetThreadName(BOARD_MONITOR_THREAD_NAME);
 
-  chVTSet(&timer, TIME_MS2I(POLLING_DELAY), BMT_timerCallback, NULL);
+  chVTSet(&monitor.timer, TIME_MS2I(POLLING_DELAY), BMT_timerCallback, NULL);
 
   while (true) {
-    chSemWait(&sync);
+    chSemWait(&monitor.sync);
 
     BMT_checkIgnition();
     BMT_checkSdcard();

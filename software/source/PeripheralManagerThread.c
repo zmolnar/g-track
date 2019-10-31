@@ -100,7 +100,7 @@ static void PRP_writeSysInfo(void)
 #endif
 #endif
 
-  LOG_OverWrite(PRP_SYS_FILE, sysinfo);
+  LOG_Overwrite(PRP_SYS_FILE, sysinfo);
 }
 
 /*****************************************************************************/

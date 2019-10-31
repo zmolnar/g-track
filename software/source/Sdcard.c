@@ -191,7 +191,7 @@ void SDC_Tree(BaseSequentialStream *chp, int argc, char *argv[])
            (uint32_t)SDC_FS.csize,
            clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE);
   fbuff[0] = 0;
-  scanFiles(chp, (char *)fbuff);
+  SDC_scanFiles(chp, (char *)fbuff);
   SDC_Unlock();
 }
 

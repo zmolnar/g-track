@@ -118,7 +118,7 @@ int main(void) {
   chThdCreateStatic(waPeripheralManagerThread,
                     sizeof(waPeripheralManagerThread),
                     NORMALPRIO,
-                    PeripheralManagerThread,
+                    PRP_Thread,
                     NULL);   
 
   chThdCreateStatic(waGpsReaderThread,
