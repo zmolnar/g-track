@@ -39,13 +39,13 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool atCgnsinfCreate(char buf[], size_t length)
+bool AT_CgnsinfCreate(char buf[], size_t length)
 {
   strncpy(buf, "AT+CGNSINF", length);
   return true;
 }
 
-bool atCgnsinfParse(CGNSINF_Response_t *pdata, char str[])
+bool AT_CgnsinfParse(CGNSINF_Response_t *pdata, char str[])
 {
   memset(pdata, 0, sizeof(*pdata));
 
@@ -58,104 +58,104 @@ bool atCgnsinfParse(CGNSINF_Response_t *pdata, char str[])
   ++start;
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &pdata->runStatus, ','))
+    if (!AT_GetNextInt(&start, &pdata->runStatus, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &pdata->fixStatus, ','))
+    if (!AT_GetNextInt(&start, &pdata->fixStatus, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextString(&start, pdata->date, sizeof(pdata->date), ','))
+    if (!AT_GetNextString(&start, pdata->date, sizeof(pdata->date), ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->latitude, ','))
+    if (!AT_GetNextDouble(&start, &pdata->latitude, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->longitude, ','))
+    if (!AT_GetNextDouble(&start, &pdata->longitude, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->altitude, ','))
+    if (!AT_GetNextDouble(&start, &pdata->altitude, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->speed, ','))
+    if (!AT_GetNextDouble(&start, &pdata->speed, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->course, ','))
+    if (!AT_GetNextDouble(&start, &pdata->course, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &pdata->fixMode, ','))
+    if (!AT_GetNextInt(&start, &pdata->fixMode, ','))
       return false;
   }
 
   if (start < strEnd) {
-    atSkipReserved(&start, 1, ',');
+    AT_SkipReserved(&start, 1, ',');
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->hdop, ','))
+    if (!AT_GetNextDouble(&start, &pdata->hdop, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->pdop, ','))
+    if (!AT_GetNextDouble(&start, &pdata->pdop, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->vdop, ','))
+    if (!AT_GetNextDouble(&start, &pdata->vdop, ','))
       return false;
   }
 
   if (start < strEnd) {
-    atSkipReserved(&start, 1, ',');
+    AT_SkipReserved(&start, 1, ',');
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &pdata->gpsSatInView, ','))
+    if (!AT_GetNextInt(&start, &pdata->gpsSatInView, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &pdata->gnssSatInUse, ','))
+    if (!AT_GetNextInt(&start, &pdata->gnssSatInUse, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &pdata->gnssSatInView, ','))
+    if (!AT_GetNextInt(&start, &pdata->gnssSatInView, ','))
       return false;
   }
 
   if (start < strEnd) {
-    atSkipReserved(&start, 1, ',');
+    AT_SkipReserved(&start, 1, ',');
   }
 
   if (start < strEnd) {
-    if (!atGetNextInt(&start, &pdata->cnomax, ','))
+    if (!AT_GetNextInt(&start, &pdata->cnomax, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->hpa, ','))
+    if (!AT_GetNextDouble(&start, &pdata->hpa, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!atGetNextDouble(&start, &pdata->vpa, '\r'))
+    if (!AT_GetNextDouble(&start, &pdata->vpa, '\r'))
       return false;
   }
 

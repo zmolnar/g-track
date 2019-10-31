@@ -11,6 +11,7 @@
 
 #include "sim8xx.h"
 #include "source/Sdcard.h"
+#include "source/Logger.h"
 
 #include <string.h>
 
@@ -18,6 +19,7 @@
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
 #define GUARD_TIME_IN_MS 250
+#define SIM_READER_LOGFILE "/sim8xx.log"
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -39,22 +41,9 @@ static virtual_timer_t guard_timer;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void save_buffer(const char *data, size_t length)
+static bool SIM_processResponse(Sim8xxDriver *simp)
 {
-  FIL log;
-
-  SDC_Lock();
-  if (FR_OK == f_open(&log, "/sim8xx_at.log", FA_OPEN_APPEND | FA_WRITE)) {
-    UINT bw = 0;
-    f_write(&log, data, length, &bw);
-    f_close(&log);
-  }
-  SDC_Unlock();
-}
-
-static bool process_response(Sim8xxDriver *simp)
-{
-  if (SIM8XX_INVALID_STATUS == sim8xxGetStatus(simp->rxbuf))
+  if (SIM8XX_INVALID_STATUS == SIM_GetCommandStatus(simp->rxbuf))
     return false;
 
   chSysLock();
@@ -67,19 +56,19 @@ static bool process_response(Sim8xxDriver *simp)
   return true;
 }
 
-static bool process_urc(Sim8xxDriver *simp)
+static bool SIM_processUrc(Sim8xxDriver *simp)
 {
   // send appropriate urc event
   (void)simp;
   return false;
 }
 
-static bool process_message(Sim8xxDriver *simp)
+static bool SIM_processMessage(Sim8xxDriver *simp)
 {
-  return process_response(simp) || process_urc(simp);
+  return SIM_processResponse(simp) || SIM_processUrc(simp);
 }
 
-static void timer_cb(void *p)
+static void SIM_timerCallback(void *p)
 {
   Sim8xxDriver *simp = (Sim8xxDriver *)p;
   chSysLockFromISR();
@@ -90,7 +79,7 @@ static void timer_cb(void *p)
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-THD_FUNCTION(sim8xxReaderThread, arg)
+THD_FUNCTION(SIM_ReaderThread, arg)
 {
   Sim8xxDriver *simp = (Sim8xxDriver *)arg;
   event_listener_t serial_event_listener;
@@ -105,7 +94,7 @@ THD_FUNCTION(sim8xxReaderThread, arg)
     memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
     simp->rxlength = 0;
 
-    while (!process_message(simp)) {
+    while (!SIM_processMessage(simp)) {
       eventmask_t evt = chEvtWaitAny(EVENT_MASK(7));
       if (evt && EVENT_MASK(7)) {
         eventflags_t flags = chEvtGetAndClearFlags(&serial_event_listener);
@@ -120,10 +109,10 @@ THD_FUNCTION(sim8xxReaderThread, arg)
       }
     }
 
-    save_buffer(simp->rxbuf, simp->rxlength);
+    LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
 
     chSysLock();
-    chVTSetI(&guard_timer, TIME_MS2I(GUARD_TIME_IN_MS), timer_cb, simp);
+    chVTSetI(&guard_timer, TIME_MS2I(GUARD_TIME_IN_MS), SIM_timerCallback, simp);
     chMtxUnlockS(&simp->rxlock);
     chThdSuspendS(&simp->reader);
     simp->reader = NULL;

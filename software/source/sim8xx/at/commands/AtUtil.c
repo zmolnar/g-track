@@ -39,7 +39,7 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool atGetNextInt(char **start, int *value, char delim)
+bool AT_GetNextInt(char **start, int *value, char delim)
 {
   char *end = strchr(*start, delim);
   if (!end)
@@ -51,7 +51,7 @@ bool atGetNextInt(char **start, int *value, char delim)
   return true;
 }
 
-double atAsciiToDouble(char str[])
+double AT_AsciiToDouble(char str[])
 {
   size_t len = strlen(str);
   if (0 == len)
@@ -76,19 +76,19 @@ double atAsciiToDouble(char str[])
   return val;
 }
 
-bool atGetNextDouble(char **start, double *value, char delim)
+bool AT_GetNextDouble(char **start, double *value, char delim)
 {
   char *end = strchr(*start, delim);
   if (!end)
     return false;
   *end   = '\0';
-  *value = atAsciiToDouble(*start);
+  *value = AT_AsciiToDouble(*start);
   *end   = delim;
   *start = end + 1;
   return true;
 }
 
-bool atGetNextString(char **start, char *buf, size_t length, char delim)
+bool AT_GetNextString(char **start, char *buf, size_t length, char delim)
 {
   char *end = strchr(*start, delim);
   if (!end)
@@ -100,7 +100,7 @@ bool atGetNextString(char **start, char *buf, size_t length, char delim)
   return true;
 }
 
-bool atSkipReserved(char **start, size_t num, char delim)
+bool AT_SkipReserved(char **start, size_t num, char delim)
 {
   while (num--) {
     char *end = strchr(*start, delim);

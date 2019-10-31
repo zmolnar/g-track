@@ -30,8 +30,15 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-bool atCgnspwrCreateOn(char buf[], size_t length);
-bool atCgnspwrCreateOff(char buf[], size_t length);
+/**
+ * 
+ */
+bool AT_CgnspwrCreateOn(char buf[], size_t length);
+
+/**
+ * 
+ */
+bool AT_CgnspwrCreateOff(char buf[], size_t length);
 
 #endif /* AT_CGNSPWR_H */
 

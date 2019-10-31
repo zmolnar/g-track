@@ -145,8 +145,8 @@ THD_FUNCTION(PRP_Thread, arg)
 
 void PRP_Init(void)
 {
-  sim8xxInit(&SIM8D1);
-  sim8xxStart(&SIM8D1, &sim_config);
+  SIM_Init(&SIM8D1);
+  SIM_Start(&SIM8D1, &sim_config);
 
   memset(manager.commands, 0, sizeof(manager.commands));
   chMBObjectInit(&manager.mailbox, manager.commands, ARRAY_LENGTH(manager.commands));

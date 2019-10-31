@@ -43,7 +43,7 @@ Sim8xxDriver SIM8D1;
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void sim8xxInit(Sim8xxDriver *simp)
+void SIM_Init(Sim8xxDriver *simp)
 {
   simp->config = NULL;
   simp->writer = NULL;
@@ -56,7 +56,7 @@ void sim8xxInit(Sim8xxDriver *simp)
   simp->state    = SIM8XX_STOP;
 }
 
-void sim8xxStart(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
+void SIM_Start(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
 {
   chMtxLock(&simp->lock);
   simp->config = cfgp;
@@ -66,20 +66,20 @@ void sim8xxStart(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
                       READER_WA_SIZE,
                       "sim8xx",
                       NORMALPRIO + 1,
-                      sim8xxReaderThread,
+                      SIM_ReaderThread,
                       (void *)simp);
 
   simp->state = SIM8XX_READY;
   chMtxUnlock(&simp->lock);
 }
 
-void sim8xxCommandInit(Sim8xxCommand *cmdp)
+void SIM_CommandInit(Sim8xxCommand *cmdp)
 {
   memset(cmdp, 0, sizeof(Sim8xxCommand));
   cmdp->status = SIM8XX_INVALID_STATUS;
 }
 
-void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
+void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
 {
   chMtxLock(&simp->lock);
   chSemWait(&simp->sync);
@@ -94,7 +94,7 @@ void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
   if (MSG_OK == msg) {
     chMtxLock(&simp->rxlock);
     strcpy(cmdp->response, simp->rxbuf);
-    cmdp->status = sim8xxGetStatus(cmdp->response);
+    cmdp->status = SIM_GetCommandStatus(cmdp->response);
     chMtxUnlock(&simp->rxlock);
   } else {
     chSemSignal(&simp->sync);
@@ -110,7 +110,7 @@ void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
   chMtxUnlock(&simp->lock);
 }
 
-Sim8xxCommandStatus_t sim8xxGetStatus(char *data)
+Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
 {
   size_t length = strlen(data);
   if (length < 2)
@@ -153,7 +153,7 @@ Sim8xxCommandStatus_t sim8xxGetStatus(char *data)
   return status;
 }
 
-bool sim8xxIsConnected(Sim8xxDriver *simp)
+bool SIM_IsConnected(Sim8xxDriver *simp)
 {
   chMtxLock(&simp->lock);
   chSemWait(&simp->sync);
@@ -168,7 +168,7 @@ bool sim8xxIsConnected(Sim8xxDriver *simp)
   bool result = FALSE;
   if (MSG_OK == msg) {
     chMtxLock(&simp->rxlock);
-    Sim8xxCommandStatus_t status = sim8xxGetStatus(simp->rxbuf);
+    Sim8xxCommandStatus_t status = SIM_GetCommandStatus(simp->rxbuf);
     chMtxUnlock(&simp->rxlock);
     result = (SIM8XX_OK == status) ? true : false;
   } else if (MSG_TIMEOUT == msg) {
@@ -187,7 +187,7 @@ bool sim8xxIsConnected(Sim8xxDriver *simp)
   return result;
 }
 
-void sim8xxTogglePower(Sim8xxDriver *simp)
+void SIM_TogglePower(Sim8xxDriver *simp)
 {
   chMtxLock(&simp->lock);
   palClearLine(simp->config->powerline);

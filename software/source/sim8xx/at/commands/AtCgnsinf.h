@@ -50,8 +50,15 @@ typedef struct {
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-bool atCgnsinfCreate(char buf[], size_t length);
-bool atCgnsinfParse(CGNSINF_Response_t *pres, char str[]);
+/**
+ * 
+ */
+bool AT_CgnsinfCreate(char buf[], size_t length);
+
+/**
+ * 
+ */
+bool AT_CgnsinfParse(CGNSINF_Response_t *pres, char str[]);
 
 #endif /* AT_CGNSINF_H */
 

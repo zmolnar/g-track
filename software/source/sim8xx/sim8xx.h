@@ -76,13 +76,40 @@ extern Sim8xxDriver SIM8D1;
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void sim8xxInit(Sim8xxDriver *simp);
-void sim8xxStart(Sim8xxDriver *simp, Sim8xxConfig *cfgp);
-void sim8xxCommandInit(Sim8xxCommand *cmdp);
-void sim8xxExecute(Sim8xxDriver *simp, Sim8xxCommand *cmdp);
-bool sim8xxIsConnected(Sim8xxDriver *simp);
-void sim8xxTogglePower(Sim8xxDriver *simp);
-Sim8xxCommandStatus_t sim8xxGetStatus(char *data);
+/**
+ * 
+ */
+void SIM_Init(Sim8xxDriver *simp);
+
+/**
+ * 
+ */
+void SIM_Start(Sim8xxDriver *simp, Sim8xxConfig *cfgp);
+
+/**
+ * 
+ */
+void SIM_CommandInit(Sim8xxCommand *cmdp);
+
+/**
+ * 
+ */
+void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp);
+
+/**
+ * 
+ */
+bool SIM_IsConnected(Sim8xxDriver *simp);
+
+/**
+ * 
+ */
+void SIM_TogglePower(Sim8xxDriver *simp);
+
+/**
+ * 
+ */
+Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data);
 
 #endif
 

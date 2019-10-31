@@ -40,7 +40,7 @@ typedef enum {
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static bool atCgnspwrCreate(char buf[], size_t length, CGNSPWR_Action_t act)
+static bool AT_cgnspwrCreate(char buf[], size_t length, CGNSPWR_Action_t act)
 {
   memset(buf, 0, length);
   chsnprintf(buf, length, "AT+CGNSPWR=%d", (int)act);
@@ -50,14 +50,14 @@ static bool atCgnspwrCreate(char buf[], size_t length, CGNSPWR_Action_t act)
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool atCgnspwrCreateOn(char buf[], size_t length)
+bool AT_CgnspwrCreateOn(char buf[], size_t length)
 {
-  return atCgnspwrCreate(buf, length, GNSSPWR_ON);
+  return AT_cgnspwrCreate(buf, length, GNSSPWR_ON);
 }
 
-bool atCgnspwrCreateOff(char buf[], size_t length)
+bool AT_CgnspwrCreateOff(char buf[], size_t length)
 {
-  return atCgnspwrCreate(buf, length, GNSSPWR_OFF);
+  return AT_cgnspwrCreate(buf, length, GNSSPWR_OFF);
 }
 
 /****************************** END OF FILE **********************************/

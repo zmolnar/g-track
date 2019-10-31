@@ -200,13 +200,13 @@ static void GPS_updateClockInDashboard(char *rawDateTime)
 
 static void GPS_updatePosition(void)
 {
-  sim8xxCommandInit(&gps.cmd);
-  atCgnsinfCreate(gps.cmd.request, sizeof(gps.cmd.request));
-  sim8xxExecute(&SIM8D1, &gps.cmd);
+  SIM_CommandInit(&gps.cmd);
+  AT_CgnsinfCreate(gps.cmd.request, sizeof(gps.cmd.request));
+  SIM_ExecuteCommand(&SIM8D1, &gps.cmd);
 
   if (SIM8XX_OK == gps.cmd.status) {
     CGNSINF_Response_t response;
-    if (atCgnsinfParse(&response, gps.cmd.response)) {
+    if (AT_CgnsinfParse(&response, gps.cmd.response)) {
       if (1 == response.fixStatus) {
         gps.lockState = GPS_LOCKED;
         gps.error = GPS_ERR_NO_ERROR;
@@ -238,9 +238,9 @@ static bool GPS_modulePowerOn(void)
   bool success = false;
   uint32_t i   = 0;
   do {
-    sim8xxCommandInit(&gps.cmd);
-    atCgnspwrCreateOn(gps.cmd.request, sizeof(gps.cmd.request));
-    sim8xxExecute(&SIM8D1, &gps.cmd);
+    SIM_CommandInit(&gps.cmd);
+    AT_CgnspwrCreateOn(gps.cmd.request, sizeof(gps.cmd.request));
+    SIM_ExecuteCommand(&SIM8D1, &gps.cmd);
     if (SIM8XX_OK == gps.cmd.status) {
       success = true;
     } else {
@@ -257,9 +257,9 @@ static bool GPS_modulePowerOff(void)
   bool success = false;
   uint32_t i   = 0;
   do {
-    sim8xxCommandInit(&gps.cmd);
-    atCgnspwrCreateOff(gps.cmd.request, sizeof(gps.cmd.request));
-    sim8xxExecute(&SIM8D1, &gps.cmd);
+    SIM_CommandInit(&gps.cmd);
+    AT_CgnspwrCreateOff(gps.cmd.request, sizeof(gps.cmd.request));
+    SIM_ExecuteCommand(&SIM8D1, &gps.cmd);
     if (SIM8XX_OK == gps.cmd.status) {
       success = true;
     } else {

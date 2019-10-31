@@ -73,8 +73,8 @@ static System_t system = {0};
 static bool SYS_connectModem(void)
 {
   uint32_t i = 0;
-  while ((i++ < MAX_TRIES) && (!sim8xxIsConnected(&SIM8D1))) {
-    sim8xxTogglePower(&SIM8D1);
+  while ((i++ < MAX_TRIES) && (!SIM_IsConnected(&SIM8D1))) {
+    SIM_TogglePower(&SIM8D1);
   }
 
   return (i <= MAX_TRIES);
@@ -83,8 +83,8 @@ static bool SYS_connectModem(void)
 static bool SYS_disconnectModem(void)
 {
   uint32_t i = 0;
-  while ((i++ < MAX_TRIES) && (sim8xxIsConnected(&SIM8D1))) {
-    sim8xxTogglePower(&SIM8D1);
+  while ((i++ < MAX_TRIES) && (SIM_IsConnected(&SIM8D1))) {
+    SIM_TogglePower(&SIM8D1);
   }
 
   return (i <= MAX_TRIES);

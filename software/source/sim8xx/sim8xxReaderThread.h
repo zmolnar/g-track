@@ -32,7 +32,7 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(sim8xxReaderThread, arg);
+THD_FUNCTION(SIM_ReaderThread, arg);
 
 #endif
 
