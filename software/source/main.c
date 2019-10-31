@@ -93,7 +93,7 @@ int main(void) {
 
   SYS_Init();
   BMT_Init();
-  PeripheralManagerThreadInit();
+  PRP_Init();
   GPS_Init();
   COT_Init();  
 

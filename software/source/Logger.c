@@ -74,4 +74,17 @@ void LOG_Write(const char *file, const char *entry)
   SDC_Unlock();
 }
 
+void LOG_Overwrite(const char *file, const char *entry)
+{
+  SDC_Lock();
+  FIL logfile;
+  if (FR_OK == f_open(&logfile, file, FA_OPEN_APPEND | FA_WRITE)) {
+    UINT bw = 0;
+    f_write(&logfile, entry, strlen(entry), &bw);
+    f_write(&logfile, "\n", 1, &bw);
+    f_close(&logfile);
+  }
+  SDC_Unlock();
+}
+
 /****************************** END OF FILE **********************************/

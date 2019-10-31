@@ -57,14 +57,14 @@ static void BMT_checkSdcard(void)
   if (counter > 0) {
     if (BMT_isSdcardInserted()) {
       if (--counter == 0) {
-        PeripheralManagerSdcInserted();
+        PRP_SdcInserted();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;
   } else {
     if (!BMT_isSdcardInserted()) {
       counter = DEBOUNCE_COUNTER_START;
-      PeripheralManagerSdcRemoved();
+      PRP_SdcRemoved();
     }
   }
 }
@@ -81,7 +81,7 @@ static void BMT_checkUsb(void)
   if (counter > 0) {
     if (BMT_isUsbConnected()) {
       if (--counter == 0) {
-        PeripheralManagerUsbConnected();
+        PRP_UsbConnected();
         SYS_IgnitionOn();
       }
     } else
@@ -89,7 +89,7 @@ static void BMT_checkUsb(void)
   } else {
     if (!BMT_isUsbConnected()) {
       counter = DEBOUNCE_COUNTER_START;
-      PeripheralManagerUsbDisconnected();
+      PRP_UsbDisconnected();
       SYS_IgnitionOff();
     }
   }
@@ -107,7 +107,7 @@ static void BMT_checkBT0(void)
   if (counter > 0) {
     if (BMT_isBT0Pressed()) {
       if (--counter == 0) {
-        PeripheralManagerSdcRemoved();
+        PRP_SdcRemoved();
       }
     } else
       counter = DEBOUNCE_COUNTER_START;

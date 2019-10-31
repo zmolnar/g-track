@@ -29,7 +29,15 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
+/**
+ * @brief Append content to the end of the given file.
+ */
 void LOG_Write(const char *file, const char *entry);
+
+/**
+ * @brief Overwrite the given file with the new content.
+ */
+void LOG_Overwrite(const char *file, const char *entry)
 
 #endif /* LOGGER_H */
 
