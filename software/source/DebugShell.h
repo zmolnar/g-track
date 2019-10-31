@@ -32,9 +32,20 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void debugShellInit(void);
-void debugShellStart(void);
-void debugShellStop(void);
+/**
+ * @brief Initialize debug shell.
+ */
+void DSH_Init(void);
+
+/**
+ * @brief Start debug shell.
+ */
+void DSH_Start(void);
+
+/**
+ * @brief Stop debug shell.
+ */
+void DSH_Stop(void);
 
 #endif /* DEBUG_SHELL_H */
 

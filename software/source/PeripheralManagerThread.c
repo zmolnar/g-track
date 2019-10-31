@@ -118,7 +118,7 @@ THD_FUNCTION(PeripheralManagerThread, arg)
   chRegSetThreadName("peripheral");
 
   SDC_Init();
-  debugShellInit();
+  DSH_Init();
 
   while (true) {
     PeripheralEvent_t evt;
@@ -135,11 +135,11 @@ THD_FUNCTION(PeripheralManagerThread, arg)
         break;
       }
       case USB_CONNECTED: {
-        debugShellStart();
+        DSH_Start();
         break;
       }
       case USB_DISCONNECTED: {
-        debugShellStop();
+        DSH_Stop();
         break;
       }
       default: {

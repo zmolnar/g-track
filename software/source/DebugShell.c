@@ -55,7 +55,7 @@ static const ShellConfig usb_shell_cfg = {
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void debugShellInit(void)
+void DSH_Init(void)
 {
   sduObjectInit(&SDU1);
   shellInit();
@@ -63,7 +63,7 @@ void debugShellInit(void)
   chThdSleepMilliseconds(1000);
 }
 
-void debugShellStart(void)
+void DSH_Start(void)
 {
   sduStart(&SDU1, &serusbcfg);
   usbStart(serusbcfg.usbp, &usbcfg);
@@ -80,7 +80,7 @@ void debugShellStart(void)
   }
 }
 
-void debugShellStop()
+void DSH_Stop()
 {
   if (shelltp && chThdTerminatedX(shelltp)) {
     chThdWait(shelltp);
