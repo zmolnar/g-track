@@ -11,6 +11,7 @@
 
 #include "chprintf.h"
 #include "sim8xxReaderThread.h"
+#include "sim8xxUrcThread.h"
 
 #include <string.h>
 
@@ -48,11 +49,17 @@ void SIM_Init(Sim8xxDriver *simp)
   simp->config = NULL;
   simp->writer = NULL;
   simp->reader = NULL;
+  simp->urcprocessor = NULL;
   chMtxObjectInit(&simp->lock);
   chMtxObjectInit(&simp->rxlock);
-  chSemObjectInit(&simp->sync, 1);
+  chSemObjectInit(&simp->guardSync, 0);
+  chSemObjectInit(&simp->atSync, 0);
+  chSemObjectInit(&simp->urcSync, 0);
   memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
   simp->rxlength = 0;
+  memset(simp->urcbuf, 0, sizeof(simp->urcbuf));
+  simp->urclength = 0;
+  chSemObjectInit(&simp->urcsema, 0);
   simp->state    = SIM8XX_STOP;
 }
 
@@ -68,8 +75,15 @@ void SIM_Start(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
                       NORMALPRIO + 1,
                       SIM_ReaderThread,
                       (void *)simp);
-
+  simp->urcprocessor = NULL;
+  chThdCreateFromHeap(NULL, 
+                      URCPROCESSOR_WA_SIZE, 
+                      "sim8xx-urc", 
+                      NORMALPRIO + 1, 
+                      SIM_UrcThread, 
+                      (void *)simp);
   simp->state = SIM8XX_READY;
+  chSemSignal(&simp->guardSync);
   chMtxUnlock(&simp->lock);
 }
 
@@ -82,32 +96,55 @@ void SIM_CommandInit(Sim8xxCommand *cmdp)
 void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
 {
   chMtxLock(&simp->lock);
-  chSemWait(&simp->sync);
+  chSemWait(&simp->guardSync);
 
   chprintf((BaseSequentialStream *)simp->config->sdp, "%s\r", cmdp->request);
 
   chSysLock();
-  msg_t msg    = chThdSuspendTimeoutS(&simp->writer, chTimeMS2I(5000));
+  msg_t msg    = chThdSuspendTimeoutS(&simp->writer, chTimeS2I(5));
   simp->writer = NULL;
   chSysUnlock();
 
   if (MSG_OK == msg) {
     chMtxLock(&simp->rxlock);
     strcpy(cmdp->response, simp->rxbuf);
-    cmdp->status = SIM_GetCommandStatus(cmdp->response);
+    chSemSignal(&simp->atSync);
     chMtxUnlock(&simp->rxlock);
+    cmdp->status = SIM_GetCommandStatus(cmdp->response);
   } else {
-    chSemSignal(&simp->sync);
     cmdp->status = SIM8XX_TIMEOUT;
   }
 
-  if (simp->reader) {
+  if (SIM8XX_WAITING_FOR_INPUT == cmdp->status) {
+    chprintf((BaseSequentialStream *)simp->config->sdp, "%s\x1A", cmdp->data);
+
     chSysLock();
-    chThdResumeS(&simp->reader, MSG_OK);
+    msg_t msg    = chThdSuspendTimeoutS(&simp->writer, chTimeS2I(5));
+    simp->writer = NULL;
     chSysUnlock();
+
+    if (MSG_OK == msg) {
+      chMtxLock(&simp->rxlock);
+      strcpy(cmdp->response, simp->rxbuf);
+      chSemSignal(&simp->atSync);
+      chMtxUnlock(&simp->rxlock);
+      cmdp->status = SIM_GetCommandStatus(cmdp->response);
+    } else {
+      cmdp->status = SIM8XX_TIMEOUT;
+    }
   }
 
   chMtxUnlock(&simp->lock);
+}
+
+char *SIM_GetUrcMessage(Sim8xxDriver *simp)
+{
+  return simp->urcbuf;
+}
+
+void SIM_ClearUrcMessage(Sim8xxDriver *simp)
+{
+  chSemSignal(&simp->urcsema);
 }
 
 Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
@@ -116,14 +153,14 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
   if (length < 2)
     return SIM8XX_INVALID_STATUS;
 
-  if (('\r' != data[length - 2]) || ('\n' != data[length - 1]))
+  if (('>' == data[length-2]) && (' ' == data[length-1]))
+    return SIM8XX_WAITING_FOR_INPUT;
+
+  char *needle = strrchr(data, '\n');
+  if (!needle)
     return SIM8XX_INVALID_STATUS;
 
-  data[length - 2] = '\0';
-
-  char *crlf, *needle;
-  for (crlf = needle = data; crlf; crlf = strstr(needle, "\r\n"))
-    needle = crlf + strlen("\r\n");
+  ++needle;
 
   Sim8xxCommandStatus_t status;
 
@@ -131,6 +168,10 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
     status = SIM8XX_OK;
   else if (0 == strcmp(needle, "CONNECT"))
     status = SIM8XX_CONNECT;
+  else if (0 == strcmp(needle, "SEND OK"))
+    status = SIM8XX_SEND_OK;
+  else if (0 == strcmp(needle, "SEND FAIL"))
+    status = SIM8XX_SEND_FAIL;
   else if (0 == strcmp(needle, "RING"))
     status = SIM8XX_RING;
   else if (0 == strcmp(needle, "NO CARRIER"))
@@ -145,10 +186,10 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
     status = SIM8XX_NO_ANSWER;
   else if (0 == strcmp(needle, "PROCEEDING"))
     status = SIM8XX_PROCEEDING;
+  else if (0 == strcmp(needle, "> "))
+    status = SIM8XX_WAITING_FOR_INPUT;
   else
     status = SIM8XX_INVALID_STATUS;
-
-  data[length - 2] = '\r';
 
   return status;
 }
@@ -156,7 +197,7 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
 bool SIM_IsConnected(Sim8xxDriver *simp)
 {
   chMtxLock(&simp->lock);
-  chSemWait(&simp->sync);
+  chSemWait(&simp->guardSync);
 
   chprintf((BaseSequentialStream *)simp->config->sdp, "at\r");
 
@@ -170,18 +211,19 @@ bool SIM_IsConnected(Sim8xxDriver *simp)
     chMtxLock(&simp->rxlock);
     Sim8xxCommandStatus_t status = SIM_GetCommandStatus(simp->rxbuf);
     chMtxUnlock(&simp->rxlock);
+    chSemSignal(&simp->atSync);
     result = (SIM8XX_OK == status) ? true : false;
   } else if (MSG_TIMEOUT == msg) {
     result = false;
-    chSemSignal(&simp->sync);
+    chSemSignal(&simp->guardSync);
   }
-
+#if 0
   if (simp->reader) {
     chSysLock();
     chThdResumeS(&simp->reader, MSG_OK);
     chSysUnlock();
   }
-
+#endif
   chMtxUnlock(&simp->lock);
 
   return result;
@@ -194,7 +236,6 @@ void SIM_TogglePower(Sim8xxDriver *simp)
   chThdSleepMilliseconds(2500);
   palSetLine(simp->config->powerline);
   chThdSleepMilliseconds(1000);
-  chSemSignal(&simp->sync);
   chMtxUnlock(&simp->lock);
 }
 

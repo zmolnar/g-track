@@ -44,9 +44,9 @@ typedef struct PeripheralManager_s {
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
 static SerialConfig sd_config = {
-    115200,
+    19200,
     0,
-    0,
+    USART_CR2_STOP1_BITS,
     0,
 };
 static Sim8xxConfig sim_config = {

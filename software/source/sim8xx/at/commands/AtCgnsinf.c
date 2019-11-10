@@ -8,7 +8,7 @@
 /*****************************************************************************/
 #include "AtCgnsinf.h"
 
-#include "AtUtil.h"
+#include "utils/Utils.h"
 
 #include <string.h>
 
@@ -58,104 +58,104 @@ bool AT_CgnsinfParse(CGNSINF_Response_t *pdata, char str[])
   ++start;
 
   if (start < strEnd) {
-    if (!AT_GetNextInt(&start, &pdata->runStatus, ','))
+    if (!UTL_GetNextInt(&start, &pdata->runStatus, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextInt(&start, &pdata->fixStatus, ','))
+    if (!UTL_GetNextInt(&start, &pdata->fixStatus, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextString(&start, pdata->date, sizeof(pdata->date), ','))
+    if (!UTL_GetNextString(&start, pdata->date, sizeof(pdata->date), ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->latitude, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->latitude, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->longitude, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->longitude, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->altitude, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->altitude, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->speed, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->speed, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->course, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->course, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextInt(&start, &pdata->fixMode, ','))
+    if (!UTL_GetNextInt(&start, &pdata->fixMode, ','))
       return false;
   }
 
   if (start < strEnd) {
-    AT_SkipReserved(&start, 1, ',');
+    UTL_SkipReserved(&start, 1, ',');
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->hdop, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->hdop, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->pdop, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->pdop, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->vdop, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->vdop, ','))
       return false;
   }
 
   if (start < strEnd) {
-    AT_SkipReserved(&start, 1, ',');
+    UTL_SkipReserved(&start, 1, ',');
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextInt(&start, &pdata->gpsSatInView, ','))
+    if (!UTL_GetNextInt(&start, &pdata->gpsSatInView, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextInt(&start, &pdata->gnssSatInUse, ','))
+    if (!UTL_GetNextInt(&start, &pdata->gnssSatInUse, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextInt(&start, &pdata->gnssSatInView, ','))
+    if (!UTL_GetNextInt(&start, &pdata->gnssSatInView, ','))
       return false;
   }
 
   if (start < strEnd) {
-    AT_SkipReserved(&start, 1, ',');
+    UTL_SkipReserved(&start, 1, ',');
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextInt(&start, &pdata->cnomax, ','))
+    if (!UTL_GetNextInt(&start, &pdata->cnomax, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->hpa, ','))
+    if (!UTL_GetNextDouble(&start, &pdata->hpa, ','))
       return false;
   }
 
   if (start < strEnd) {
-    if (!AT_GetNextDouble(&start, &pdata->vpa, '\r'))
+    if (!UTL_GetNextDouble(&start, &pdata->vpa, '\n'))
       return false;
   }
 

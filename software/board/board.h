@@ -352,7 +352,7 @@
                                      PIN_PUPDR_PULLUP(GPIOB_SWD_SWO)            | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB4_NC)             | \
                                      PIN_PUPDR_PULLUP(GPIOB_WAVESHARE_POWER)    | \
-                                     PIN_PUPDR_PULLUP(GPIOB_RPI_UART_TX)        | \
+                                     PIN_PUPDR_PULLDOWN(GPIOB_RPI_UART_TX)        | \
                                      PIN_PUPDR_PULLUP(GPIOB_RPI_UART_RX)        | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB8_NC)             | \
                                      PIN_PUPDR_PULLDOWN(GPIOB_EXT_SW1)          | \

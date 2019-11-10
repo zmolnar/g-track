@@ -22,12 +22,16 @@
 #include "PeripheralManagerThread.h"
 #include "GpsReaderThread.h"
 #include "ChainOilerThread.h"
+#include "CallManagerThread.h"
+#include "BluetoothManagerThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
 static THD_WORKING_AREA(waBoardMonitorThread, 8192);
 static THD_WORKING_AREA(waPeripheralManagerThread, 8192);
 static THD_WORKING_AREA(waGpsReaderThread, 8192);
 static THD_WORKING_AREA(waChainOilerThread, 8192);
+static THD_WORKING_AREA(waCallManagerThread, 8192);
+static THD_WORKING_AREA(waBluetoothManagerThread, 8192);
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -96,6 +100,8 @@ int main(void) {
   PRP_Init();
   GPS_Init();
   COT_Init();  
+  CLL_Init();
+  BLT_Init();
 
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
@@ -131,7 +137,19 @@ int main(void) {
                     sizeof(waChainOilerThread),
                     NORMALPRIO,
                     COT_Thread,
-                    NULL);     
+                    NULL);
+
+  chThdCreateStatic(waCallManagerThread, 
+                    sizeof(waCallManagerThread), 
+                    NORMALPRIO, 
+                    CLL_Thread, 
+                    NULL);
+
+  chThdCreateStatic(waBluetoothManagerThread, 
+                    sizeof(waBluetoothManagerThread), 
+                    NORMALPRIO, 
+                    BLT_Thread, 
+                    NULL);
 
   while (true) {
     chThdSleepMilliseconds(1000);

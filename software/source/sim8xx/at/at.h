@@ -9,8 +9,11 @@
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
+#include "commands/AtBtpower.h"
 #include "commands/AtCgnsinf.h"
 #include "commands/AtCgnspwr.h"
+#include "commands/AtClip.h"
+#include "commands/AtCpin.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */

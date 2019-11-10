@@ -1,10 +1,10 @@
 /**
- * @file AtUtil.h
+ * @file sim8xxUrcThread.h
  * @brief
  */
 
-#ifndef ATUTIL_H
-#define ATUTIL_H
+#ifndef SIM8XX_URC_THREAD_H
+#define SIM8XX_URC_THREAD_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
@@ -14,6 +14,7 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+#define URCPROCESSOR_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -30,31 +31,8 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-/**
- * 
- */
-bool AT_GetNextInt(char **start, int *value, char delim);
+THD_FUNCTION(SIM_UrcThread, arg);
 
-/**
- * 
- */
-double AT_AsciiToDouble(char str[]);
-
-/**
- * 
- */
-bool AT_GetNextDouble(char **start, double *value, char delim);
-
-/**
- * 
- */
-bool AT_GetNextString(char **start, char *buf, size_t length, char delim);
-
-/**
- * 
- */
-bool AT_SkipReserved(char **start, size_t num, char delim);
-
-#endif /* ATUTIL_H */
+#endif /* SIM8XX_URC_THREAD_H */
 
 /****************************** END OF FILE **********************************/

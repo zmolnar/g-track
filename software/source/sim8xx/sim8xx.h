@@ -12,6 +12,7 @@
 /*****************************************************************************/
 #include "ch.h"
 #include "hal.h"
+#include "sim8xxUrcThread.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -41,11 +42,20 @@ typedef struct Sim8xxDriver {
   const Sim8xxConfig *config;
   thread_reference_t writer;
   thread_reference_t reader;
+  thread_reference_t urcprocessor;
   mutex_t lock;
   mutex_t rxlock;
-  semaphore_t sync;
+  semaphore_t guardSync;
+  semaphore_t atSync;
+  semaphore_t urcSync;
   char rxbuf[512];
   size_t rxlength;
+  char *atmsg;
+  char *next;
+  char urcbuf[512];
+  size_t urclength;
+  char *urc;
+  semaphore_t urcsema;
 } Sim8xxDriver;
 
 typedef enum {
@@ -59,11 +69,15 @@ typedef enum {
   SIM8XX_NO_ANSWER,
   SIM8XX_PROCEEDING,
   SIM8XX_TIMEOUT,
+  SIM8XX_WAITING_FOR_INPUT,
+  SIM8XX_SEND_OK,
+  SIM8XX_SEND_FAIL,
   SIM8XX_INVALID_STATUS
 } Sim8xxCommandStatus_t;
 
 typedef struct Sim8xxCommand {
-  char request[512];
+  char request[128];
+  char data[128];
   char response[512];
   Sim8xxCommandStatus_t status;
 } Sim8xxCommand;
@@ -95,6 +109,16 @@ void SIM_CommandInit(Sim8xxCommand *cmdp);
  * 
  */
 void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp);
+
+/**
+ *
+ */
+char *SIM_GetUrcMessage(Sim8xxDriver *simp);
+
+/**
+ *
+ */
+void SIM_ClearUrcMessage(Sim8xxDriver *simp);
 
 /**
  * 

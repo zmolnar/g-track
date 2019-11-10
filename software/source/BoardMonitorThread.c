@@ -81,7 +81,7 @@ static void BMT_checkUsb(void)
   if (counter > 0) {
     if (BMT_isUsbConnected()) {
       if (--counter == 0) {
-        PRP_UsbConnected();
+        //PRP_UsbConnected();
         SYS_IgnitionOn();
       }
     } else
@@ -89,7 +89,7 @@ static void BMT_checkUsb(void)
   } else {
     if (!BMT_isUsbConnected()) {
       counter = DEBOUNCE_COUNTER_START;
-      PRP_UsbDisconnected();
+      //PRP_UsbDisconnected();
       SYS_IgnitionOff();
     }
   }

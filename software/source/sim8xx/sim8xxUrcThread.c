@@ -1,16 +1,19 @@
 /**
- * @file AtUtil.c
+ * @file sim8xxUrcThread.c
  * @brief
  */
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "AtUtil.h"
+#include "sim8xxUrcThread.h"
 
-#include "ch.h"
-#include "stdlib.h"
-#include "string.h"
+#include "sim8xx.h"
+#include "source/CallManagerThread.h"
+#include "source/BluetoothManagerThread.h"
+
+#include "urc/urc.h"
+#include <string.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -35,80 +38,60 @@
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
+static bool SIM_notifyUrcListener(char urc[])
+{
+  bool result = false;
+#if 0
+  if (SIM_beginsWith(urc, "\r\n+cpin:") || 
+      SIM_beginsWith(urc, "\r\ncall") ||
+      SIM_beginsWith(urc, "\r\nsms")) {
+    CLL_UrcReceived();
+    result = true;
+  } else {
+    result = false;
+  }
+#endif
 
+  if (URC_IsBtUrc(urc)) {
+    BLT_ProcessUrc();
+    result = true;
+  }
+
+  return result;
+}
+
+static void SIM_waitForClear(Sim8xxDriver *simp)
+{
+  chSemWait(&simp->urcsema);
+}
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool AT_GetNextInt(char **start, int *value, char delim)
-{
-  char *end = strchr(*start, delim);
-  if (!end)
-    return false;
-  *end   = '\0';
-  *value = atoi(*start);
-  *end   = delim;
-  *start = end + 1;
-  return true;
-}
+THD_FUNCTION(SIM_UrcThread, arg) {
+  Sim8xxDriver *simp = (Sim8xxDriver *)arg;
 
-double AT_AsciiToDouble(char str[])
-{
-  size_t len = strlen(str);
-  if (0 == len)
-    return 0.0;
+  while(true) {
+    memset(simp->urcbuf, 0, simp->urclength);
+    simp->urclength = 0;
+    
+    chSysLock();
+    msg_t msg = chThdSuspendS(&simp->urcprocessor);
+    simp->urcprocessor = NULL;
+    chSysUnlock();
 
-  double val = 0.0;
-  size_t i;
-  for (i = 0; i < len && str[i] != '.'; ++i) {
-    val = 10 * val + (str[i] - '0');
+    if (MSG_OK == msg) {
+      chMtxLock(&simp->rxlock);
+      memcpy(simp->urcbuf, simp->urc, strlen(simp->urc));
+      simp->urclength = strlen(simp->urcbuf);
+      chMtxUnlock(&simp->rxlock);
+      chSemSignal(&simp->urcSync);
+
+      if (SIM_notifyUrcListener(simp->urcbuf))
+        SIM_waitForClear(simp);
+    } else {
+      // TODO something....
+    }
   }
+} 
 
-  if (i == len)
-    return val;
-  i++;
-
-  double f = 1.0;
-  while (i < len) {
-    f *= 0.1;
-    val += f * (str[i++] - '0');
-  }
-
-  return val;
-}
-
-bool AT_GetNextDouble(char **start, double *value, char delim)
-{
-  char *end = strchr(*start, delim);
-  if (!end)
-    return false;
-  *end   = '\0';
-  *value = AT_AsciiToDouble(*start);
-  *end   = delim;
-  *start = end + 1;
-  return true;
-}
-
-bool AT_GetNextString(char **start, char *buf, size_t length, char delim)
-{
-  char *end = strchr(*start, delim);
-  if (!end)
-    return false;
-  *end = '\0';
-  strncpy(buf, *start, length);
-  *end   = delim;
-  *start = end + 1;
-  return true;
-}
-
-bool AT_SkipReserved(char **start, size_t num, char delim)
-{
-  while (num--) {
-    char *end = strchr(*start, delim);
-    if (!end)
-      return false;
-    *start = end + 1;
-  }
-  return true;
-}
-
-/***************************** END OF FILE * *********************************/
+/****************************** END OF FILE **********************************/
