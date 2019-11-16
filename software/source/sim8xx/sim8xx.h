@@ -45,16 +45,17 @@ typedef struct Sim8xxDriver {
   thread_reference_t urcprocessor;
   mutex_t lock;
   mutex_t rxlock;
+  virtual_timer_t guardTimer;
   semaphore_t guardSync;
   semaphore_t atSync;
   semaphore_t urcSync;
   char rxbuf[512];
   size_t rxlength;
-  char *atmsg;
-  char *next;
   char urcbuf[512];
   size_t urclength;
+  char *atmsg;
   char *urc;
+  size_t next;
   semaphore_t urcsema;
 } Sim8xxDriver;
 

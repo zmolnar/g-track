@@ -18,7 +18,6 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define GUARD_TIME_IN_MS 100
 #define SIM_READER_LOGFILE "/sim8xx.log"
 
 /*****************************************************************************/
@@ -32,7 +31,6 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
-static virtual_timer_t guard_timer;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -41,89 +39,72 @@ static virtual_timer_t guard_timer;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void SIM_timerCallback(void *p)
+static void SIM_clearRxBuffer(Sim8xxDriver *simp)
 {
-  Sim8xxDriver *simp = (Sim8xxDriver *)p;
-  chSysLockFromISR();
-  chSemResetI(&simp->guardSync, 1);
-  chSysUnlockFromISR();
-}
-#if 0
-static bool SIM_beginsWith(const char str[], const char pre[])
-{
-  return strncasecmp(pre, str, strlen(pre)) == 0;
-}
-#endif
-static bool SIM_processResponse(Sim8xxDriver *simp)
-{
-  simp->next = simp->rxbuf;
+  memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
+  simp->rxlength = 0;
   simp->atmsg = simp->rxbuf;
-  char *lf, *end = simp->rxbuf + simp->rxlength;
-
-  bool isAt = false;
-
-  if (SIM8XX_INVALID_STATUS != SIM_GetCommandStatus(simp->atmsg)) {
-    isAt = true;
-    chThdResume(&simp->writer, MSG_OK);
-    simp->next = simp->atmsg + strlen(simp->atmsg) + 1;
-  } else {
-    for (lf = strchr(simp->atmsg, '\n'); lf && (lf < end); lf = strchr(lf + 1, '\n')) {
-      *lf = '\0';
-      if (SIM8XX_INVALID_STATUS != SIM_GetCommandStatus(simp->atmsg)) {
-        isAt = true;
-        chThdResume(&simp->writer, MSG_OK);
-        simp->next = lf + 1;
-        break;
-      } else {
-        *lf = '\n';
-      }
-    }
-  }
-
-  return isAt;
-
-#if 0
-
-  if (0 == strcmp(simp->atmsg, "> ")) {
-    isAt = true;
-    simp->next = simp->atmsg + strlen(simp->atmsg);
-    chThdResume(&simp->writer, MSG_OK);
-  } else {
-    for (lf = strchr(simp->atmsg, '\n'); lf && (lf < end); lf = strchr(lf + 1, '\n')) {
-      *lf = '\0';
-      if (SIM8XX_INVALID_STATUS != SIM_GetCommandStatus(simp->atmsg)) {
-        isAt = true;
-        chThdResume(&simp->writer, MSG_OK);
-        simp->next = lf + 1;
-        break;
-      } else {
-        *lf = '\n';
-      }
-    }
-  }
-#endif
-
-
-#if 0
-  if (SIM8XX_INVALID_STATUS == SIM_GetCommandStatus(simp->rxbuf))
-    return false;
-
-  chSysLock();
-
-  if (simp->writer) {
-    chThdResumeS(&simp->writer, MSG_OK);
-  }
-
-  chSysUnlock();
-
-  return true;
-#endif
+  simp->urc = simp->rxbuf;
+  simp->next = 0;
 }
 
-static bool SIM_beginsAndEndsWithNewline(const char *msg, size_t length)
+static bool SIM_isValidResponseStatus(char *msg)
+{
+  return !(SIM8XX_INVALID_STATUS == SIM_GetCommandStatus(msg));
+}
+
+static size_t SIM_checkEmbeddedAtResponse(Sim8xxDriver *simp)
+{
+  size_t end = 0;
+  char *bufEnd = simp->rxbuf + simp->rxlength;
+
+  bool found = false;
+  char *lf = strchr(simp->atmsg, '\n');
+  while (!found && lf && (lf < bufEnd)) {
+    *lf = '\0';
+
+    if (SIM_isValidResponseStatus(simp->atmsg)) {
+      end = strlen(simp->atmsg);
+      found = true;
+    }
+    
+    *lf = '\n';
+    lf = strchr(lf + 1, '\n');
+  }
+
+  return end;
+}
+
+static bool SIM_checkAndSetAtResponse(Sim8xxDriver *simp)
+{
+  simp->atmsg = &simp->rxbuf[simp->next];
+
+  bool result = false;
+
+  if (SIM_isValidResponseStatus(simp->atmsg)) {
+    result = true;
+    simp->next = strlen(simp->atmsg) + 1;
+  } else {
+    size_t end = SIM_checkEmbeddedAtResponse(simp);
+    if (0 < end) {
+      result = true;
+      simp->rxbuf[end] = '\0';
+      simp->next = end + 1;
+    }
+  }
+
+  if (result && simp->writer) {
+    chThdResume(&simp->writer, MSG_OK);
+  }
+
+  return result;
+}
+
+static bool SIM_beginsAndEndsWithNewline(const char *msg)
 {
   bool result = false;
 
+  size_t length = strlen(msg);
   if ((2 < length) && ('\n' == msg[length - 1]) && ('\n' == msg[0])) {
     result = true;
   }
@@ -131,56 +112,61 @@ static bool SIM_beginsAndEndsWithNewline(const char *msg, size_t length)
   return result;
 }
 
-static bool SIM_processUrc(Sim8xxDriver *simp)
+static char *SIM_removeFirstChar(char *str)
 {
-  bool isUrc = false;
+  return str + 1;
+}
 
-  size_t length = strlen(simp->next);
-  if (SIM_beginsAndEndsWithNewline(simp->next, length)) {
-    simp->urc = simp->next + 1;
-    *(simp->next + length - 1) = '\0';
-    chSysLock();
+static void SIM_removeLastChar(char *str)
+{
+  str[strlen(str) - 1] = '\0';
+}
+
+static bool SIM_checkAndSetUrc(Sim8xxDriver *simp)
+{
+  simp->urc = &simp->rxbuf[simp->next];
+
+  bool result = false;
+
+  if (SIM_beginsAndEndsWithNewline(simp->urc)) {
+    simp->urc = SIM_removeFirstChar(simp->urc);
+    SIM_removeLastChar(simp->urc);
+
     if (simp->urcprocessor) {
-      chThdResumeS(&simp->urcprocessor, MSG_OK);
-      chSysUnlock();
+      chThdResume(&simp->urcprocessor, MSG_OK);
     } else {
-      chSysUnlock();
-      // TODO: Log missed URC
+      LOG_Write(SIM_READER_LOGFILE, "URC, but processor thread is busy!");
     }
 
-    isUrc = true;
+    result = true;
   }
 
-  return isUrc;
+  return result;
 }
-#if 0
-static bool SIM_processMessage(Sim8xxDriver *simp)
-{
-  return SIM_processResponse(simp) || SIM_processUrc(simp);
-}
-#endif
+
+
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
 THD_FUNCTION(SIM_ReaderThread, arg)
 {
   Sim8xxDriver *simp = (Sim8xxDriver *)arg;
-  event_listener_t serial_event_listener;
 
+  event_listener_t serialListener;
   chEvtRegisterMaskWithFlags(chnGetEventSource(simp->config->sdp),
-                             &serial_event_listener,
+                             &serialListener,
                              EVENT_MASK(7),
                              CHN_INPUT_AVAILABLE);
 
   while (true) {
     chMtxLock(&simp->rxlock);
-    memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
-    simp->rxlength = 0;
+    SIM_clearRxBuffer(simp);
 
     eventmask_t evt = chEvtWaitAny(EVENT_MASK(7));
 
     if (evt && EVENT_MASK(7)) {
-      eventflags_t flags = chEvtGetAndClearFlags(&serial_event_listener);
+      eventflags_t flags = chEvtGetAndClearFlags(&serialListener);
       if (flags & CHN_INPUT_AVAILABLE) {
         msg_t c;
         do {
@@ -193,13 +179,11 @@ THD_FUNCTION(SIM_ReaderThread, arg)
 
     chMtxUnlock(&simp->rxlock);
 
-    chSysLock();
-    chVTResetI(&guard_timer);
-    chVTSetI(&guard_timer, TIME_MS2I(GUARD_TIME_IN_MS), SIM_timerCallback, simp);
-    chSysUnlock();
+    bool isAt = SIM_checkAndSetAtResponse(simp);
+    bool isUrc = SIM_checkAndSetUrc(simp);
 
-    bool isAt = SIM_processResponse(simp);
-    bool isUrc = SIM_processUrc(simp);
+    if (!isAt && !isUrc)
+      LOG_Write(SIM_READER_LOGFILE, "Neither AT, nor URC!");
 
     LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
 
@@ -208,34 +192,7 @@ THD_FUNCTION(SIM_ReaderThread, arg)
 
     if (isUrc)
       chSemWait(&simp->urcSync);
-
-#if 0
-    while (!SIM_processMessage(simp)) {
-      eventmask_t evt = chEvtWaitAny(EVENT_MASK(7));
-      
-      if (evt && EVENT_MASK(7)) {
-        eventflags_t flags = chEvtGetAndClearFlags(&serial_event_listener);
-        if (flags & CHN_INPUT_AVAILABLE) {
-          msg_t c;
-          do {
-            c = chnGetTimeout(simp->config->sdp, TIME_MS2I(5));
-            if ((c != STM_TIMEOUT) && (c != '\r'))
-              simp->rxbuf[simp->rxlength++] = (char)c;
-          } while (c != STM_TIMEOUT);
-        }
-      }
-    }
-
-    LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
-
-    chSysLock();
-    chVTResetI(&guard_timer);
-    chVTSetI(&guard_timer, TIME_MS2I(GUARD_TIME_IN_MS), SIM_timerCallback, simp);
-    chMtxUnlockS(&simp->rxlock);
-    chThdSuspendS(&simp->reader);
-    simp->reader = NULL;
-    chSysUnlock();
-#endif    
+  
   }
 }
 

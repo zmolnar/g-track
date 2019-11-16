@@ -19,6 +19,7 @@
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
 #define READER_WA_SIZE THD_WORKING_AREA_SIZE(2048)
+#define GUARD_TIME_IN_MS 100
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -40,12 +41,28 @@ Sim8xxDriver SIM8D1;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
+static void SIM_timerCallback(void *p)
+{
+  Sim8xxDriver *simp = (Sim8xxDriver *)p;
+  chSysLockFromISR();
+  chSemResetI(&simp->guardSync, 1);
+  chSysUnlockFromISR();
+}
+
+static void SIM_startGuardTimer(Sim8xxDriver *simp)
+{
+  chSysLock();
+  chVTResetI(&simp->guardTimer);
+  chVTSetI(&simp->guardTimer, TIME_MS2I(GUARD_TIME_IN_MS), SIM_timerCallback, simp);
+  chSysUnlock();
+}
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
 void SIM_Init(Sim8xxDriver *simp)
 {
+  simp->state    = SIM8XX_STOP;
   simp->config = NULL;
   simp->writer = NULL;
   simp->reader = NULL;
@@ -59,8 +76,10 @@ void SIM_Init(Sim8xxDriver *simp)
   simp->rxlength = 0;
   memset(simp->urcbuf, 0, sizeof(simp->urcbuf));
   simp->urclength = 0;
+  simp->atmsg = NULL;
+  simp->urc = NULL;
+  simp->next = 0;
   chSemObjectInit(&simp->urcsema, 0);
-  simp->state    = SIM8XX_STOP;
 }
 
 void SIM_Start(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
@@ -108,8 +127,8 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
   if (MSG_OK == msg) {
     chMtxLock(&simp->rxlock);
     strcpy(cmdp->response, simp->rxbuf);
-    chSemSignal(&simp->atSync);
     chMtxUnlock(&simp->rxlock);
+    chSemSignal(&simp->atSync);
     cmdp->status = SIM_GetCommandStatus(cmdp->response);
   } else {
     cmdp->status = SIM8XX_TIMEOUT;
@@ -126,14 +145,15 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
     if (MSG_OK == msg) {
       chMtxLock(&simp->rxlock);
       strcpy(cmdp->response, simp->rxbuf);
-      chSemSignal(&simp->atSync);
       chMtxUnlock(&simp->rxlock);
+      chSemSignal(&simp->atSync);
       cmdp->status = SIM_GetCommandStatus(cmdp->response);
     } else {
       cmdp->status = SIM8XX_TIMEOUT;
     }
   }
 
+  SIM_startGuardTimer(simp);
   chMtxUnlock(&simp->lock);
 }
 
@@ -186,8 +206,6 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
     status = SIM8XX_NO_ANSWER;
   else if (0 == strcmp(needle, "PROCEEDING"))
     status = SIM8XX_PROCEEDING;
-  else if (0 == strcmp(needle, "> "))
-    status = SIM8XX_WAITING_FOR_INPUT;
   else
     status = SIM8XX_INVALID_STATUS;
 
@@ -196,37 +214,11 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
 
 bool SIM_IsConnected(Sim8xxDriver *simp)
 {
-  chMtxLock(&simp->lock);
-  chSemWait(&simp->guardSync);
-
-  chprintf((BaseSequentialStream *)simp->config->sdp, "at\r");
-
-  chSysLock();
-  msg_t msg    = chThdSuspendTimeoutS(&simp->writer, chTimeMS2I(1000));
-  simp->writer = NULL;
-  chSysUnlock();
-
-  bool result = FALSE;
-  if (MSG_OK == msg) {
-    chMtxLock(&simp->rxlock);
-    Sim8xxCommandStatus_t status = SIM_GetCommandStatus(simp->rxbuf);
-    chMtxUnlock(&simp->rxlock);
-    chSemSignal(&simp->atSync);
-    result = (SIM8XX_OK == status) ? true : false;
-  } else if (MSG_TIMEOUT == msg) {
-    result = false;
-    chSemSignal(&simp->guardSync);
-  }
-#if 0
-  if (simp->reader) {
-    chSysLock();
-    chThdResumeS(&simp->reader, MSG_OK);
-    chSysUnlock();
-  }
-#endif
-  chMtxUnlock(&simp->lock);
-
-  return result;
+  Sim8xxCommand cmd;
+  SIM_CommandInit(&cmd);
+  strncpy(cmd.request, "at", sizeof(cmd.request));
+  SIM_ExecuteCommand(simp, &cmd);
+  return SIM8XX_OK == cmd.status;
 }
 
 void SIM_TogglePower(Sim8xxDriver *simp)
