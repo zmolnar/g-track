@@ -28,12 +28,12 @@
 /*****************************************************************************/
 typedef enum {
   BLT_STATE_INIT,
-  BLT_STATE_ENABLED,
   BLT_STATE_DISABLED,
   BLT_STATE_CONNECTED,
   BLT_STATE_DISCONNECTED,
   BLT_STATE_ERROR,
 } BLT_State_t;
+
 
 typedef enum {
   BLT_CMD_START,
@@ -68,7 +68,6 @@ static const char *BLT_getStateString(BLT_State_t state)
 {
   static const char *const stateStrs[] = {
       [BLT_STATE_INIT]         = "INIT",
-      [BLT_STATE_ENABLED]      = "ENABLED",
       [BLT_STATE_DISABLED]     = "DISABLED",
       [BLT_STATE_CONNECTED]    = "CONNECTED",
       [BLT_STATE_DISCONNECTED] = "DISCONNECTED",
@@ -104,45 +103,45 @@ static bool BLT_powerOffDevice(void)
   return (SIM8XX_OK == bluetooth.cmd.status);
 }
 
-static BLT_State_t BLT_processUrc(void)
+static bool BLT_setHost(const char *host)
 {
-  BLT_State_t state = BLT_STATE_ENABLED;
+  SIM_CommandInit(&bluetooth.cmd);
+  chsnprintf(bluetooth.cmd.request, sizeof(bluetooth.cmd.request),
+             "AT+BTHOST=%s", host);
+  SIM_ExecuteCommand(&SIM8D1, &bluetooth.cmd);
 
-  char urc[512] = {0};
-  char *urctext = SIM_GetUrcMessage(&SIM8D1);
-  strncpy(urc, urctext, strlen(urctext));
-  SIM_ClearUrcMessage(&SIM8D1);
+  return (SIM8XX_OK == bluetooth.cmd.status);
+}
 
-  if (URC_IsBtConnecting(urc)) {    
-    SIM_CommandInit(&bluetooth.cmd);
-    strncat(bluetooth.cmd.request, "AT+BTACPT=1", sizeof(bluetooth.cmd.request));
-    SIM_ExecuteCommand(&SIM8D1, &bluetooth.cmd);
+static bool BLT_setPin(const char *pin)
+{
+  SIM_CommandInit(&bluetooth.cmd);
+  chsnprintf(bluetooth.cmd.request, sizeof(bluetooth.cmd.request),
+             "AT+BTPAIRCFG=1,%s", pin);
+  SIM_ExecuteCommand(&SIM8D1, &bluetooth.cmd);
 
-    if (SIM8XX_OK == bluetooth.cmd.status) {
-      state = BLT_STATE_CONNECTED;
-    } else {
-      state = BLT_STATE_ERROR;
-    }
-  } else if (URC_IsBtSppData(urc)) {
-    URC_BtSppData_t sppdata = {0};
-    if (URC_BtSppDataParse(urc, &sppdata)) {
-      Sim8xxCommand *pcmd = &bluetooth.cmd;
-      SIM_CommandInit(pcmd);
-      strncat(pcmd->request, "AT+BTSPPSEND", sizeof(pcmd->request));
-      chsnprintf(pcmd->data, sizeof(pcmd->data), "%s", sppdata.data);
-      SIM_ExecuteCommand(&SIM8D1, pcmd);
+  return (SIM8XX_OK == bluetooth.cmd.status);
+}
 
-      if (SIM8XX_SEND_OK != bluetooth.cmd.status) {
-        state = BLT_STATE_ERROR;
+static bool BLT_setupAndStart(void)
+{
+  bool result = false;
+
+  if (BLT_setHost("gtrack")) {
+    if (BLT_setPin("2019")) {
+      if (BLT_powerOnDevice()) {
+        result = true;
+      } else {
+        result = false;
       }
+    } else {
+      result = false;
     }
-  } else if (URC_IsBtConnect(urc)) {
-    URC_BtConnect_t connect = {0};
-    if (URC_BtConnectParse(urc, &connect))
-      ;//state = BLT_STATE_CONNECTED;
+  } else {
+    result = false;
   }
 
-  return state;
+  return result;
 }
 
 static BLT_State_t BLT_initStateHandler(BLT_Command_t cmd)
@@ -151,10 +150,11 @@ static BLT_State_t BLT_initStateHandler(BLT_Command_t cmd)
 
   switch(cmd) {
     case BLT_CMD_START: {
-      if (BLT_powerOnDevice())
-        newState = BLT_STATE_ENABLED;
-      else 
+      if (BLT_setupAndStart()) {
+        newState = BLT_STATE_DISCONNECTED;
+      } else {
         newState = BLT_STATE_ERROR;
+      }
       break;
     }
     case BLT_CMD_STOP: {
@@ -173,41 +173,17 @@ static BLT_State_t BLT_initStateHandler(BLT_Command_t cmd)
   return newState;
 }
 
-static BLT_State_t BLT_enabledStateHandler(BLT_Command_t cmd)
-{
-  BLT_State_t newState = BLT_STATE_ENABLED;
-
-  switch (cmd) {
-    case BLT_CMD_STOP: {
-      if (BLT_powerOffDevice())
-        newState = BLT_STATE_DISABLED;
-      else
-        newState = BLT_STATE_ERROR;
-      break;
-    }
-    case BLT_CMD_PROCESS_URC: {
-      newState = BLT_processUrc();
-      break;
-    }
-    case BLT_CMD_START:
-    default: {
-      break;
-    }
-  }
-
-  if (BLT_STATE_ENABLED != newState)
-    BLT_logStateChange(BLT_STATE_ENABLED, newState);
-
-  return newState;
-}
-
 static BLT_State_t BLT_disabledStateHandler(BLT_Command_t cmd)
 {
   BLT_State_t newState = BLT_STATE_DISABLED;
 
   switch (cmd) {
     case BLT_CMD_START: {
-      newState = BLT_STATE_ENABLED;
+      if (BLT_setupAndStart()) {
+        newState = BLT_STATE_DISCONNECTED;
+      } else {
+        newState = BLT_STATE_ERROR;
+      }
       break;
     }
     case BLT_CMD_STOP:
@@ -223,17 +199,114 @@ static BLT_State_t BLT_disabledStateHandler(BLT_Command_t cmd)
   return newState;
 }
 
+static BLT_State_t BLT_procesUrcInDisconnectedState(void)
+{
+  BLT_State_t state = BLT_STATE_DISCONNECTED;
+
+  char urc[512] = {0};
+  char *urctext = SIM_GetUrcMessage(&SIM8D1);
+  strncpy(urc, urctext, strlen(urctext));
+  SIM_ClearUrcMessage(&SIM8D1);
+
+  if (URC_IsBtConnect(urc)) {
+    URC_BtConnect_t connect = {0};
+    if (!URC_BtConnectParse(urc, &connect))
+      state = BLT_STATE_ERROR;
+  } else if (URC_IsBtConnecting(urc)) {    
+    SIM_CommandInit(&bluetooth.cmd);
+    strncat(bluetooth.cmd.request, "AT+BTACPT=1", sizeof(bluetooth.cmd.request));
+    SIM_ExecuteCommand(&SIM8D1, &bluetooth.cmd);
+
+    if (SIM8XX_OK == bluetooth.cmd.status) {
+      state = BLT_STATE_CONNECTED;
+    } else {
+      state = BLT_STATE_ERROR;
+    }
+
+  }
+
+  return state;
+}
+
+static BLT_State_t BLT_disconnectedStateHandler(BLT_Command_t cmd)
+{
+  BLT_State_t newState = BLT_STATE_DISCONNECTED;
+
+  switch (cmd) {
+    case BLT_CMD_STOP: {
+      if (BLT_powerOffDevice()) {
+        newState = BLT_STATE_DISABLED;
+      } else {
+        newState = BLT_STATE_ERROR;
+      }
+      break;
+    }
+    case BLT_CMD_PROCESS_URC: {
+      newState = BLT_procesUrcInDisconnectedState();
+      break;
+    }
+    case BLT_CMD_START:
+    default: {
+      break;
+    }
+  }
+
+  if (BLT_STATE_DISCONNECTED != newState)
+    BLT_logStateChange(BLT_STATE_DISCONNECTED, newState);
+
+  return newState;
+}
+
+static BLT_State_t BLT_procesUrcInConnectedState(void)
+{
+  BLT_State_t state = BLT_STATE_CONNECTED;
+
+  char urc[512] = {0};
+  char *urctext = SIM_GetUrcMessage(&SIM8D1);
+  strncpy(urc, urctext, strlen(urctext));
+  SIM_ClearUrcMessage(&SIM8D1);
+
+  if (URC_IsBtSppData(urc)) {
+    URC_BtSppData_t sppdata = {0};
+    if (URC_BtSppDataParse(urc, &sppdata)) {
+      Sim8xxCommand *pcmd = &bluetooth.cmd;
+      SIM_CommandInit(pcmd);
+      strncat(pcmd->request, "AT+BTSPPSEND", sizeof(pcmd->request));
+      strncat(pcmd->data, sppdata.data, sizeof(pcmd->data));
+      SIM_ExecuteCommand(&SIM8D1, pcmd);
+
+      if (SIM8XX_SEND_OK != bluetooth.cmd.status) {
+        state = BLT_STATE_ERROR;
+      }
+    }
+  } else if (URC_IsBtDisconnect(urc)) {
+    URC_BtDisconnect_t urcdata = {0};
+    if (URC_BtDisconnectParse(urc, &urcdata)) {
+      state = BLT_STATE_DISCONNECTED;
+    } else {
+      state = BLT_STATE_ERROR;
+    }
+  }
+
+  return state;
+}
+
 static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
 {
   BLT_State_t newState = BLT_STATE_CONNECTED;
 
   switch (cmd) {
     case BLT_CMD_PROCESS_URC: {
-      newState = BLT_processUrc();
+      newState = BLT_procesUrcInConnectedState();
       break;
     }
     case BLT_CMD_STOP: {
-      newState = BLT_STATE_DISABLED;
+      if (BLT_powerOffDevice()) {
+        newState = BLT_STATE_DISABLED;
+      } else {
+        newState = BLT_STATE_ERROR;
+      }
+      break;
     }
     case BLT_CMD_START:
     default: {
@@ -247,20 +320,14 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
   return newState;
 }
 
-static BLT_State_t BLT_disconnectedStateHandler(BLT_Command_t cmd)
-{
-  BLT_State_t newState = BLT_STATE_DISCONNECTED;
-
-
-  if (BLT_STATE_DISCONNECTED != newState)
-    BLT_logStateChange(BLT_STATE_DISCONNECTED, newState);
-
-  return newState;
-}
-
 static BLT_State_t BLT_errorStateHandler(BLT_Command_t cmd)
 {
   BLT_State_t newState = BLT_STATE_ERROR;
+
+  if (BLT_CMD_STOP == cmd) {
+    BLT_powerOffDevice();
+    newState = BLT_STATE_DISABLED;
+  }
 
   if (BLT_STATE_ERROR != newState)
     BLT_logStateChange(BLT_STATE_ERROR, newState);
@@ -284,10 +351,6 @@ THD_FUNCTION(BLT_Thread, arg)
       switch (bluetooth.state) {
         case BLT_STATE_INIT: {
           bluetooth.state = BLT_initStateHandler(cmd);
-          break;
-        }
-        case BLT_STATE_ENABLED: {
-          bluetooth.state = BLT_enabledStateHandler(cmd);
           break;
         }
         case BLT_STATE_DISABLED: {

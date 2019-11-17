@@ -29,6 +29,12 @@ typedef struct URC_BtConnect_s {
   char profile[5];
 } URC_BtConnect_t;
 
+typedef struct URC_BtDisconnect_s {
+  char name[18];
+  char address[18];
+  char profile[5];
+} URC_BtDisconnect_t;
+
 typedef struct URC_BtConnecting_s {
   char address[18];
   char profile[5];
@@ -61,6 +67,16 @@ bool URC_IsBtConnect(const char str[]);
  *
  */
 bool URC_BtConnectParse(char str[], URC_BtConnect_t *urc);
+
+/**
+ *
+ */
+bool URC_IsBtDisconnect(const char str[]);
+
+/**
+ *
+ */
+bool URC_BtDisconnectParse(char str[], URC_BtDisconnect_t *urc);
 
 /*
  *

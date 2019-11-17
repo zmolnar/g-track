@@ -182,10 +182,7 @@ THD_FUNCTION(SIM_ReaderThread, arg)
     bool isAt = SIM_checkAndSetAtResponse(simp);
     bool isUrc = SIM_checkAndSetUrc(simp);
 
-    if (!isAt && !isUrc)
-      LOG_Write(SIM_READER_LOGFILE, "Neither AT, nor URC!");
-
-    LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
+    //LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
 
     if (isAt)
       chSemWait(&simp->atSync);
