@@ -21,10 +21,15 @@
   uint8_t txbuf[128];                                                         \
   uint8_t *ibuf;                                                              \
   const uint8_t *obuf;                                                        \
+  size_t rxlength;                                                            \
+  size_t txlength;                                                            \
+  size_t rdindex;                                                             \
+  size_t wrindex;                                                             \
   semaphore_t rxsync;                                                         \
   semaphore_t txsync;                                                         \
   mutex_t rxlock;                                                             \
-  mutex_t txlock;
+  mutex_t txlock;                                                             \
+  thread_reference_t reader;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -37,10 +42,10 @@ struct BluetoothStreamVMT {
   _base_sequential_stream_methods
 };
 
-typedef struct {
+typedef struct BluetoothStream_s {
   const struct BluetoothStreamVMT *vmt;
   _bluetooth_stream_data
-} BluetoothStream;
+} BluetoothStream_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
@@ -49,7 +54,7 @@ typedef struct {
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void BLS_ObjectInit(BluetoothStream *bsp);
+void BLS_ObjectInit(BluetoothStream_t *bsp);
 
 #endif /* BLUETOOTH_STREAM_H */
 

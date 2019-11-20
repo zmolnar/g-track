@@ -51,7 +51,7 @@ typedef struct {
   msg_t commands[10];
   mailbox_t mailbox;
   Sim8xxCommand cmd;
-  BluetoothStream stream;
+  BluetoothStream_t stream;
   thread_reference_t shell;
 } Bluetooth_t;
 
@@ -157,7 +157,7 @@ static bool BLT_setupAndStart(void)
 
 static void BLT_startShell(void)
 {
-  if (bluetooth.shell) {
+  if (!bluetooth.shell) {
     bluetooth.shell = chThdCreateFromHeap(NULL,
                                           SHELL_WA_SIZE,
                                           "bluetoothshell",
@@ -304,17 +304,9 @@ static BLT_State_t BLT_procesUrcInConnectedState(void)
   SIM_ClearUrcMessage(&SIM8D1);
 
   if (URC_IsBtSppData(urc)) {
-    URC_BtSppData_t sppdata = {0};
-    if (URC_BtSppDataParse(urc, &sppdata)) {
-      Sim8xxCommand *pcmd = &bluetooth.cmd;
-      SIM_CommandInit(pcmd);
-      strncat(pcmd->request, "AT+BTSPPSEND", sizeof(pcmd->request));
-      strncat(pcmd->data, sppdata.data, sizeof(pcmd->data));
-      SIM_ExecuteCommand(&SIM8D1, pcmd);
-
-      if (SIM8XX_SEND_OK != bluetooth.cmd.status) {
-        state = BLT_STATE_ERROR;
-      }
+    URC_BtSppData_t spp = {0};
+    if (URC_BtSppDataParse(urc, &spp)) {
+      BLS_ProcessRxData(&bluetooth.stream, spp.data, spp.length);
     }
   } else if (URC_IsBtDisconnect(urc)) {
     URC_BtDisconnect_t urcdata = {0};
@@ -357,10 +349,10 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
       break;
     }
     case BLT_CMD_SEND_STREAM_DATA: {
-      if (!BLT_sendSppData(bluetooth.stream.obuf)) {
-        newState = BLT_STATE_ERROR;
-      } else {
+      if (BLT_sendSppData(bluetooth.stream.obuf)) {
         chSemSignal(&bluetooth.stream.txsync);
+      } else {
+        newState = BLT_STATE_ERROR;
       }
       break;
     }
