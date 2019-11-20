@@ -7,6 +7,8 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "BluetoothManagerThread.h"
+#include "BluetoothShell.h"
+#include "shell.h"
 #include "Logger.h"
 #include "sim8xx.h"
 #include "at.h"
@@ -22,6 +24,8 @@
 #define ARRAY_LENGTH(a) (sizeof(a) / sizeof(a[0]))
 
 #define BLT_LOGFILE "/bluetooth.log"
+
+#define SHELL_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -39,6 +43,7 @@ typedef enum {
   BLT_CMD_START,
   BLT_CMD_STOP,
   BLT_CMD_PROCESS_URC,
+  BLT_CMD_SEND_STREAM_DATA,
 } BLT_Command_t;
 
 typedef struct {
@@ -46,6 +51,8 @@ typedef struct {
   msg_t commands[10];
   mailbox_t mailbox;
   Sim8xxCommand cmd;
+  BluetoothStream stream;
+  thread_reference_t shell;
 } Bluetooth_t;
 
 /*****************************************************************************/
@@ -55,7 +62,12 @@ typedef struct {
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
-Bluetooth_t bluetooth = {0};
+Bluetooth_t bluetooth;
+
+static const ShellConfig BluetoothShellConfig = {
+  (BaseSequentialStream *)&bluetooth.stream,
+   BL_Commands,
+};
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -72,7 +84,6 @@ static const char *BLT_getStateString(BLT_State_t state)
       [BLT_STATE_CONNECTED]    = "CONNECTED",
       [BLT_STATE_DISCONNECTED] = "DISCONNECTED",
       [BLT_STATE_ERROR]        = "ERROR",
-
   };
 
   return stateStrs[(size_t)state];
@@ -144,6 +155,26 @@ static bool BLT_setupAndStart(void)
   return result;
 }
 
+static void BLT_startShell(void)
+{
+  if (bluetooth.shell) {
+    bluetooth.shell = chThdCreateFromHeap(NULL,
+                                          SHELL_WA_SIZE,
+                                          "bluetoothshell",
+                                          NORMALPRIO + 1,
+                                          shellThread,
+                                          (void *)&BluetoothShellConfig);
+  }
+}
+
+static void BLT_StopShell(void)
+{
+  if (bluetooth.shell && chThdTerminatedX(bluetooth.shell)) {
+    chThdWait(bluetooth.shell);
+    bluetooth.shell = NULL;
+  }
+}
+
 static BLT_State_t BLT_initStateHandler(BLT_Command_t cmd)
 {
   BLT_State_t newState = BLT_STATE_INIT;
@@ -162,6 +193,7 @@ static BLT_State_t BLT_initStateHandler(BLT_Command_t cmd)
       break;
     }
     case BLT_CMD_PROCESS_URC:
+    case BLT_CMD_SEND_STREAM_DATA:
     default: {
       break;
     }
@@ -188,6 +220,7 @@ static BLT_State_t BLT_disabledStateHandler(BLT_Command_t cmd)
     }
     case BLT_CMD_STOP:
     case BLT_CMD_PROCESS_URC:
+    case BLT_CMD_SEND_STREAM_DATA:
     default: {
       break;
     }
@@ -246,10 +279,14 @@ static BLT_State_t BLT_disconnectedStateHandler(BLT_Command_t cmd)
       break;
     }
     case BLT_CMD_START:
+    case BLT_CMD_SEND_STREAM_DATA:
     default: {
       break;
     }
   }
+
+  if (BLT_STATE_CONNECTED == newState)
+    BLT_startShell();
 
   if (BLT_STATE_DISCONNECTED != newState)
     BLT_logStateChange(BLT_STATE_DISCONNECTED, newState);
@@ -291,6 +328,17 @@ static BLT_State_t BLT_procesUrcInConnectedState(void)
   return state;
 }
 
+static bool BLT_sendSppData(uint8_t *str)
+{
+  Sim8xxCommand *pcmd = &bluetooth.cmd;
+  SIM_CommandInit(pcmd);
+  strncat(pcmd->request, "AT+BTSPPSEND", sizeof(pcmd->request));
+  strncat(pcmd->data, str, sizeof(pcmd->data));
+  SIM_ExecuteCommand(&SIM8D1, pcmd);
+
+  return (SIM8XX_SEND_OK == pcmd->status);
+}
+
 static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
 {
   BLT_State_t newState = BLT_STATE_CONNECTED;
@@ -308,14 +356,24 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
       }
       break;
     }
+    case BLT_CMD_SEND_STREAM_DATA: {
+      if (!BLT_sendSppData(bluetooth.stream.obuf)) {
+        newState = BLT_STATE_ERROR;
+      } else {
+        chSemSignal(&bluetooth.stream.txsync);
+      }
+      break;
+    }
     case BLT_CMD_START:
     default: {
       break;
     }
   }
 
-  if (BLT_STATE_CONNECTED != newState)
+  if (BLT_STATE_CONNECTED != newState) {
+    BLT_StopShell();
     BLT_logStateChange(BLT_STATE_CONNECTED, newState);
+  }
 
   return newState;
 }
@@ -383,6 +441,7 @@ void BLT_Init(void)
   memset(bluetooth.commands, 0, sizeof(bluetooth.commands));
   chMBObjectInit(&bluetooth.mailbox, bluetooth.commands, ARRAY_LENGTH(bluetooth.commands));
   memset(&bluetooth.cmd, 0, sizeof(bluetooth.cmd));
+  BLS_ObjectInit(&bluetooth.stream);
 }
 
 void BLT_Start(void)
@@ -404,6 +463,13 @@ void BLT_ProcessUrc(void)
   chSysLock();
   chMBPostI(&bluetooth.mailbox, BLT_CMD_PROCESS_URC);
   chSysUnlock();
+}
+
+void BLT_SendStreamData(void)
+{
+  chSysLock();
+  chMBPostI(&bluetooth.mailbox, BLT_CMD_SEND_STREAM_DATA);
+  chSysUnlock(); 
 }
 
 /****************************** END OF FILE **********************************/

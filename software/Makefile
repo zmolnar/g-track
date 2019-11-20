@@ -135,6 +135,8 @@ CSRC = $(ALLCSRC) \
        source/ChainOilerThread.c \
        source/CallManagerThread.c \
        source/BluetoothManagerThread.c \
+       source/BluetoothShell.c \
+       source/BluetoothStream.c \
        $(SIM8XX)/utils/Utils.c \
        $(SIM8XX)/sim8xx.c \
        $(ATLIB)/commands/AtBtpower.c \

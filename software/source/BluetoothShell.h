@@ -1,16 +1,16 @@
 /**
- * @file BluetoothManagerThread.h
+ * @file BluetoothShell.h
  * @brief
  */
 
-#ifndef BLUETOOTH_MANAGER_THREAD_H
-#define BLUETOOTH_MANAGER_THREAD_H
+#ifndef BLUETOOTH_SHELL_H
+#define BLUETOOTH_SHELL_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "ch.h"
-#include "BluetoothStream.h"
+#include "hal.h"
+#include "shell.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -27,37 +27,12 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
 /*****************************************************************************/
+extern const ShellCommand BL_Commands[];
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(BLT_Thread, arg);
 
-/**
- * 
- */
-void BLT_Init(void);
+#endif /* BLUETOOTH_SHELL_H */
 
-/**
- * 
- */
-void BLT_Start(void);
-
-/**
- * 
- */
-void BLT_Stop(void);
-
-/**
- * 
- */
-void BLT_ProcessUrc(void);
-
-/**
- * 
- */
-void BLT_SendStreamData(void);
-
-#endif /* BLUETOOTH_MANAGER_THREAD_H */
-
-    /****************************** END OF FILE **********************************/
+/****************************** END OF FILE **********************************/

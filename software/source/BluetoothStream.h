@@ -1,20 +1,30 @@
 /**
- * @file BluetoothManagerThread.h
+ * @file BluetoothStream.h
  * @brief
  */
 
-#ifndef BLUETOOTH_MANAGER_THREAD_H
-#define BLUETOOTH_MANAGER_THREAD_H
+#ifndef BLUETOOTH_STREAM_H
+#define BLUETOOTH_STREAM_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
+#include "hal.h"
 #include "ch.h"
-#include "BluetoothStream.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+#define _bluetooth_stream_data                                                \
+  _base_sequential_stream_data                                                \
+  uint8_t rxbuf[128];                                                         \
+  uint8_t txbuf[128];                                                         \
+  uint8_t *ibuf;                                                              \
+  const uint8_t *obuf;                                                        \
+  semaphore_t rxsync;                                                         \
+  semaphore_t txsync;                                                         \
+  mutex_t rxlock;                                                             \
+  mutex_t txlock;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -23,6 +33,14 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
+struct BluetoothStreamVMT {
+  _base_sequential_stream_methods
+};
+
+typedef struct {
+  const struct BluetoothStreamVMT *vmt;
+  _bluetooth_stream_data
+} BluetoothStream;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
@@ -31,33 +49,8 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(BLT_Thread, arg);
+void BLS_ObjectInit(BluetoothStream *bsp);
 
-/**
- * 
- */
-void BLT_Init(void);
+#endif /* BLUETOOTH_STREAM_H */
 
-/**
- * 
- */
-void BLT_Start(void);
-
-/**
- * 
- */
-void BLT_Stop(void);
-
-/**
- * 
- */
-void BLT_ProcessUrc(void);
-
-/**
- * 
- */
-void BLT_SendStreamData(void);
-
-#endif /* BLUETOOTH_MANAGER_THREAD_H */
-
-    /****************************** END OF FILE **********************************/
+/****************************** END OF FILE **********************************/
