@@ -15,21 +15,24 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+typedef struct Buffer_s {
+  uint8_t data[128];
+  size_t end;
+  size_t index;
+  mutext_t lock;
+} Buffer_t;
+
 #define _bluetooth_stream_data                                                \
   _base_sequential_stream_data                                                \
-  uint8_t rxbuf[128];                                                         \
-  uint8_t txbuf[128];                                                         \
-  uint8_t *ibuf;                                                              \
-  const uint8_t *obuf;                                                        \
-  size_t rxlength;                                                            \
-  size_t txlength;                                                            \
-  size_t rdindex;                                                             \
-  size_t wrindex;                                                             \
-  semaphore_t rxsync;                                                         \
-  semaphore_t txsync;                                                         \
-  mutex_t rxlock;                                                             \
-  mutex_t txlock;                                                             \
-  thread_reference_t reader;
+  Buffer_t rx;                                                                \
+  Buffer_t tx;                                                                \
+  const uint8_t *udata;                                                       \
+  size_t ulength;                                                             \
+  mutex_t readlock;                                                           \
+  mutex_t writelock;                                                          \
+  thread_reference_t reader;                                                  \
+  thread_reference_t writer;                                                  \
+  virtual_timer_t txtimer;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -55,6 +58,10 @@ typedef struct BluetoothStream_s {
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
 void BLS_ObjectInit(BluetoothStream_t *bsp);
+void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength);
+void BLS_ClearTxBuffer(BluetoothStream_t *bsp);
+void BLS_NotifyWriter(BluetoothStream_t *bsp));
+void BLS_NotifyReader(BluetoothStream_t *bsp));
 
 #endif /* BLUETOOTH_STREAM_H */
 

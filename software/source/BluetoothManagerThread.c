@@ -44,6 +44,7 @@ typedef enum {
   BLT_CMD_STOP,
   BLT_CMD_PROCESS_URC,
   BLT_CMD_SEND_STREAM_DATA,
+  BLT_CMD_SEND_USER_DATA,
 } BLT_Command_t;
 
 typedef struct {
@@ -194,6 +195,7 @@ static BLT_State_t BLT_initStateHandler(BLT_Command_t cmd)
     }
     case BLT_CMD_PROCESS_URC:
     case BLT_CMD_SEND_STREAM_DATA:
+    case BLT_CMD_SEND_USER_DATA:
     default: {
       break;
     }
@@ -221,6 +223,7 @@ static BLT_State_t BLT_disabledStateHandler(BLT_Command_t cmd)
     case BLT_CMD_STOP:
     case BLT_CMD_PROCESS_URC:
     case BLT_CMD_SEND_STREAM_DATA:
+    case BLT_CMD_SEND_USER_DATA:
     default: {
       break;
     }
@@ -280,6 +283,7 @@ static BLT_State_t BLT_disconnectedStateHandler(BLT_Command_t cmd)
     }
     case BLT_CMD_START:
     case BLT_CMD_SEND_STREAM_DATA:
+    case BLT_CMD_SEND_USER_DATA:
     default: {
       break;
     }
@@ -320,12 +324,14 @@ static BLT_State_t BLT_procesUrcInConnectedState(void)
   return state;
 }
 
-static bool BLT_sendSppData(uint8_t *str)
+static bool BLT_sendSppData(uint8_t *str, size_t length)
 {
   Sim8xxCommand *pcmd = &bluetooth.cmd;
   SIM_CommandInit(pcmd);
   strncat(pcmd->request, "AT+BTSPPSEND", sizeof(pcmd->request));
-  strncat(pcmd->data, str, sizeof(pcmd->data));
+  size_t n = length < sizeof(pcmd->data) ? length : sizeof(pcmd->data);
+  memcpy(pcmd->data, str, n);
+
   SIM_ExecuteCommand(&SIM8D1, pcmd);
 
   return (SIM8XX_SEND_OK == pcmd->status);
@@ -349,8 +355,21 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
       break;
     }
     case BLT_CMD_SEND_STREAM_DATA: {
-      if (BLT_sendSppData(bluetooth.stream.obuf)) {
-        chSemSignal(&bluetooth.stream.txsync);
+      uint8_t *data = bluetooth.stream.tx.data;
+      size_t length = bluetooth.stream.tx.end;
+      if (BLT_sendSppData(data, length)) {
+        BLS_ClearTxBuffer(&bluetooth.stream);
+        BLS_NotifyWriter(&bluetooth.stream);
+      } else {
+        newState = BLT_STATE_ERROR;
+      }
+      break;
+    }
+    case BLT_CMD_SEND_USER_DATA: {
+      uint8_t *data = bluetooth.stream.udata;
+      size_t length = bluetooth.stream.ulength;
+      if (BLT_sendSppData(data, length)) {
+        BLS_NotifyWriter(&bluetooth.stream);
       } else {
         newState = BLT_STATE_ERROR;
       }
@@ -461,6 +480,13 @@ void BLT_SendStreamData(void)
 {
   chSysLock();
   chMBPostI(&bluetooth.mailbox, BLT_CMD_SEND_STREAM_DATA);
+  chSysUnlock(); 
+}
+
+void BLT_SendUserData(void)
+{
+  chSysLock();
+  chMBPostI(&bluetooth.mailbox, BLT_CMD_SEND_USER_DATA);
   chSysUnlock(); 
 }
 

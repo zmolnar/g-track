@@ -33,93 +33,160 @@
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static size_t writes(void *ip, const uint8_t *bp, size_t n) {
-  (void)n;
-  BluetoothStream_t *bsp = (BluetoothStream_t *)ip;
-
-  chMtxLock(&bsp->txlock);
-
-  bsp->obuf = bp;
-  BLT_SendStreamData();
-  chSemWait(&bsp->txsync);
-  bsp->obuf = bsp->txbuf;
-
-  chMtxUnlock(&bsp->txlock);
-
-  return strlen(bp);
+static void BLS_clearBuffer(Buffer_t *bp)
+{
+  memset(bp->data, 0, sizeof(bp->data));
+  bp->end = 0;
+  bp->index = 0;
 }
 
-static size_t reads(void *ip, uint8_t *bp, size_t n)
+static void BLS_initBuffer(Buffer_t *bp)
 {
+  BLS_clearBuffer(bp);
+  chMtxObjectInit(&bp->lock);
+}
+
+static uint8_t *BLS_getFirstFree(Buffer_t *bp)
+{
+  return bp->data + bp->end;
+}
+
+static size_t BLS_getFreeLength(Buffer_t *bp)
+{
+  return sizeof(bp->data)/sizeof(bp->data[0]) - bp->end;
+}
+
+static size_t BLS_write(void *ip, const uint8_t *bp, size_t n) {
+  (void)n;
   BluetoothStream_t *bsp = ip;
 
-  chMtxLock(&bsp->rxlock);
+  chMtxLock(&bsp->writelock);
 
-  if (0 == bsp->rxlength) {
+  bsp->udata = bp;
+  bsp->ulength = n;
+
+  BLT_SendUserData();
+  
+  chSysLock();
+  msg_t msg = chThdSuspendTimeoutS(&bsp->writer, TIME_INFINITE);
+  bsp->writer = NULL;
+  chSysUnlock();
+
+  chMtxUnlock(&bsp->writelock);
+
+  return n;
+}
+
+static size_t BLS_read(void *ip, uint8_t *bp, size_t n)
+{
+  BluetoothStream_t *bsp = ip;
+  Buffer_t *rxbuf = &bsp->rx;
+
+  chMtxLock(&bsp->readlock);
+  chMtxLock(&rxbuf->lock);
+
+  if (rxbuf->end <= rxbuf->index) {
+    chMtxUnlock(&rxbuf->lock);
+
     chSysLock();
     msg_t msg = chThdSuspendTimeoutS(&bsp->reader, TIME_INFINITE);
     bsp->reader = NULL;
     chSysUnlock();
+    
+    chMtxLock(&rxbuf->lock);
   } 
   
-  size_t datalength = bsp->rxlength - bsp->rdindex;
-  size_t length = (n < datalength) ? n : datalength;
-  memcpy(bp, &bsp->rxbuf[bsp->rdindex], length);
+  size_t length = rxbuf->end - rxbuf->index;
+  length = (n < length) ? n : length;
+  memcpy(bp, rxbuf->data + rxbuf->index, length);
+  rxbuf->index += length;
+  
+  if (rxbuf->end <= rxbuf->index)
+    BLS_clearBuffer(rxbuf);
 
-
-  // Clear rxbuffer
-  memset(bsp->rxbuf, 0 sizeof(bsp->rxbuf));
-  bsp->rxlength = 0;
-  bsp->rdindex = 0;
-
-  chMtxUnlock(&bsp->rxlock);
+  chMtxUnlock(&rxbuf->lock);
+  chMtxUnlock(&bsp->readlock);
 
   return length;
 }
- 
-static msg_t put(void *ip, uint8_t b) {
+
+static void txTimerCallback(void *p)
+{
   BluetoothStream_t *bsp = ip;
+}
 
-  chMtxLock(&bsp->txlock);
+static msg_t BLS_put(void *ip, uint8_t b) {
+  BluetoothStream_t *bsp = ip;
+  Buffer_t *txbuf = &bsp->tx;
 
+  chMtxLock(&bsp->writelock);
+  chMtxLock(&txbuf->lock);
 
-  chMtxUnlock(&bsp->txlock);
+  chVTReset(&bsp->txtimer);
+
+  if (txbuf->end <= txbuf->index) {
+    chMtxUnlock(&txbuf->lock);
+    BLT_SendStreamData();
+    
+    chSysLock();
+    msg_t msg = chThdSuspendTimeoutS(&bsp->writer, TIME_INFINITE);
+    bsp->writer = NULL;
+    chSysUnlock();
+
+    chMtxLock(&txbuf->lock);
+  }
+
+  txbuf->data[txbuf->index] = b;
+  ++txbuf->index;
+
+  chVTSet(&bsp->txtimer, TIME_MS2I(20), txTimerCallback, bsp);
+
+  chMtxUnlock(&txbuf->lock);
+  chMtxUnlock(&bsp->writelock);
 
   return MSG_OK;
 }
  
-static msg_t get(void *ip) {
+static msg_t BLS_get(void *ip) {
   BluetoothStream_t *bsp = ip;
+  Buffer_t *rxbuf = &bsp->rx;
 
-  chMtxLock(&bsp->rxlock);
+  chMtxLock(&bsp->readlock);
+  chMtxLock(&rxbuf->lock);
 
-  if (0 == bsp->rxlength) {
+  if (rxbuf->end <= rxbuf->index) {
+    chMtxUnlock(&rxbuf->lock);
+
     chSysLock();
     msg_t msg = chThdSuspendTimeoutS(&bsp->reader, TIME_INFINITE);
     bsp->reader = NULL;
     chSysUnlock();
+
+    chMtxLock(&rxbuf->lock);
   } 
   
-  uint8_t data = bsp->rxbuf[bsp->rdindex];
-  bsp->rdindex++;
+  msg_t result = MSG_RESET;
 
-  if (bsp->rdindex == bsp->rxlength) {
-    // Clear rxbuffer
-    memset(bsp->rxbuf, 0 sizeof(bsp->rxbuf));
-    bsp->rxlength = 0;
-    bsp->rdindex = 0;
+  if (rxbuf->index < rxbuf->length) {
+    result = (msg_t)rxbuf->data[rxbuf->index];
+    ++rxbuf->index;
   }
 
-  chMtxUnlock(&bsp->rxlock);
+  if (rxbuf->end <= rxbuf->index) {
+    BLS_clearBuffer(rxbuf);
+  }
 
-  return MSG_OK;
+  chMtxUnlock(&rxbuf->lock);
+  chMtxUnlock(&bsp->readlock);
+
+  return result;
 }
 
 static const struct BluetoothStreamVMT vmt = {
-    .write = writes,
-    .read = reads,
-    .put = put,
-    .get = get,
+    .write = BLS_write,
+    .read = BLS_read,
+    .put = BLS_put,
+    .get = BLS_get,
 };
 
 /*****************************************************************************/
@@ -128,29 +195,52 @@ static const struct BluetoothStreamVMT vmt = {
 void BLS_ObjectInit(BluetoothStream_t *bsp)
 {
     bsp->vmt = &vmt;
-    memset(bsp->rxbuf, 0, sizeof(bsp->rxbuf));
-    memset(bsp->txbuf, 0, sizeof(bsp->txbuf));
-    bsp->ibuf = bsp->rxbuf;
-    bsp->obuf = bsp->txbuf;
-    bsp->rxlength = 0;
-    bsp->txlength = 0;
-    chSemObjectInit(&bsp->rxsync, 0);
-    chSemObjectInit(&bsp->txsync, 0);
-    chMtxObjectInit(&bsp->rxlock);
-    chMtxObjectInit(&bsp->txlock);
+    BLS_initBuffer(&bsp->rx);
+    BLS_initBuffer(&bsp->tx);
+    bsp->udata = NULL;
+    bsp->ulength = 0;
+    chMtxObjectInit(&bsp->readlock);
+    chMtxObjectInit(&bsp->writelock);
     bsp->reader = NULL;
+    bsp->writer = NULL;
+    chVTObjectInit(&bsp->txtimer);    
 }
 
-void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *data, size_t length)
+void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength)
 {
-  uint8_t *buf = bsp->rxbuf + bsp->rxlength;
-  size_t buflength = sizeof(bsp->rxbuf) - bsp->rxlength;
+  Buffer_t *rxbuf = &bsp->rx;
+  chMtxLock(&rxbuf->lock);
 
-  size_t datalength = (length < buflength) ? length : buflength;
+  uint8_t *begin = BLS_getFirstFree(rxbuf);
+  size_t length = BLS_getFreeLength(rxbuf);
 
-  memcpy(buf, data, datalength);
-  bsp->rxlength += datalength;
+  if (rxlength < length)
+    length = rxlength;
 
+  memcpy(begin, rxdata, length);
+  rxbuf->end += length;
+
+  BLS_NotifyReader(bsp);
+
+  chMtxUnlock(&rxbuf->lock);
+}
+
+void BLS_ClearTxBuffer(BluetoothStream_t *bsp)
+{
+  chMtxLock(&bsp->tx.lock);
+  BLS_clearBuffer(&bsp->tx);
+  chMtxUnlock(&bsp->tx.lock);
+}
+
+void BLS_NotifyWriter(BluetoothStream_t *bsp))
+{
+  if (bsp->writer) {
+    chThdResume(&bsp->writer, MSG_OK);
+  }
+}
+
+void BLS_NotifyReader(BluetoothStream_t *bsp))
+{
   if (bsp->reader) {
     chThdResume(&bsp->reader, MSG_OK);
   }

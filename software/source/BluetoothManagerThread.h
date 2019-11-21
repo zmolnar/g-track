@@ -58,6 +58,11 @@ void BLT_ProcessUrc(void);
  */
 void BLT_SendStreamData(void);
 
+/**
+ * 
+ */
+void BLT_SendUserData(void);
+
 #endif /* BLUETOOTH_MANAGER_THREAD_H */
 
     /****************************** END OF FILE **********************************/
