@@ -68,7 +68,7 @@ static size_t BLS_write(void *ip, const uint8_t *bp, size_t n) {
   BLT_SendUserData();
   
   chSysLock();
-  msg_t msg = chThdSuspendTimeoutS(&bsp->writer, TIME_INFINITE);
+  chThdSuspendTimeoutS(&bsp->writer, TIME_INFINITE);
   bsp->writer = NULL;
   chSysUnlock();
 
@@ -89,7 +89,7 @@ static size_t BLS_read(void *ip, uint8_t *bp, size_t n)
     chMtxUnlock(&rxbuf->lock);
 
     chSysLock();
-    msg_t msg = chThdSuspendTimeoutS(&bsp->reader, TIME_INFINITE);
+    chThdSuspendTimeoutS(&bsp->reader, TIME_INFINITE);
     bsp->reader = NULL;
     chSysUnlock();
     
@@ -112,7 +112,10 @@ static size_t BLS_read(void *ip, uint8_t *bp, size_t n)
 
 static void txTimerCallback(void *p)
 {
-  BluetoothStream_t *bsp = ip;
+  (void)p;
+  chSysLockFromISR();
+  BLT_SendStreamDataI();
+  chSysUnlockFromISR();
 }
 
 static msg_t BLS_put(void *ip, uint8_t b) {
@@ -124,12 +127,12 @@ static msg_t BLS_put(void *ip, uint8_t b) {
 
   chVTReset(&bsp->txtimer);
 
-  if (txbuf->end <= txbuf->index) {
+  if (0 == BLS_getFreeLength(txbuf)) {
     chMtxUnlock(&txbuf->lock);
     BLT_SendStreamData();
     
     chSysLock();
-    msg_t msg = chThdSuspendTimeoutS(&bsp->writer, TIME_INFINITE);
+    chThdSuspendTimeoutS(&bsp->writer, TIME_INFINITE);
     bsp->writer = NULL;
     chSysUnlock();
 
@@ -138,6 +141,7 @@ static msg_t BLS_put(void *ip, uint8_t b) {
 
   txbuf->data[txbuf->index] = b;
   ++txbuf->index;
+  ++txbuf->end;
 
   chVTSet(&bsp->txtimer, TIME_MS2I(20), txTimerCallback, bsp);
 
@@ -154,11 +158,11 @@ static msg_t BLS_get(void *ip) {
   chMtxLock(&bsp->readlock);
   chMtxLock(&rxbuf->lock);
 
-  if (rxbuf->end <= rxbuf->index) {
+  if (0 == rxbuf->end) {
     chMtxUnlock(&rxbuf->lock);
 
     chSysLock();
-    msg_t msg = chThdSuspendTimeoutS(&bsp->reader, TIME_INFINITE);
+    chThdSuspendTimeoutS(&bsp->reader, TIME_INFINITE);
     bsp->reader = NULL;
     chSysUnlock();
 
@@ -167,7 +171,7 @@ static msg_t BLS_get(void *ip) {
   
   msg_t result = MSG_RESET;
 
-  if (rxbuf->index < rxbuf->length) {
+  if (rxbuf->index < rxbuf->end) {
     result = (msg_t)rxbuf->data[rxbuf->index];
     ++rxbuf->index;
   }
@@ -232,14 +236,14 @@ void BLS_ClearTxBuffer(BluetoothStream_t *bsp)
   chMtxUnlock(&bsp->tx.lock);
 }
 
-void BLS_NotifyWriter(BluetoothStream_t *bsp))
+void BLS_NotifyWriter(BluetoothStream_t *bsp)
 {
   if (bsp->writer) {
     chThdResume(&bsp->writer, MSG_OK);
   }
 }
 
-void BLS_NotifyReader(BluetoothStream_t *bsp))
+void BLS_NotifyReader(BluetoothStream_t *bsp)
 {
   if (bsp->reader) {
     chThdResume(&bsp->reader, MSG_OK);

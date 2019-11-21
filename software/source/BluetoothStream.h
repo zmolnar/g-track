@@ -19,7 +19,7 @@ typedef struct Buffer_s {
   uint8_t data[128];
   size_t end;
   size_t index;
-  mutext_t lock;
+  mutex_t lock;
 } Buffer_t;
 
 #define _bluetooth_stream_data                                                \
@@ -60,8 +60,8 @@ typedef struct BluetoothStream_s {
 void BLS_ObjectInit(BluetoothStream_t *bsp);
 void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength);
 void BLS_ClearTxBuffer(BluetoothStream_t *bsp);
-void BLS_NotifyWriter(BluetoothStream_t *bsp));
-void BLS_NotifyReader(BluetoothStream_t *bsp));
+void BLS_NotifyWriter(BluetoothStream_t *bsp);
+void BLS_NotifyReader(BluetoothStream_t *bsp);
 
 #endif /* BLUETOOTH_STREAM_H */
 

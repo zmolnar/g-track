@@ -56,6 +56,11 @@ void BLT_ProcessUrc(void);
 /**
  * 
  */
+void BLT_SendStreamDataI(void);
+
+/**
+ * 
+ */
 void BLT_SendStreamData(void);
 
 /**
