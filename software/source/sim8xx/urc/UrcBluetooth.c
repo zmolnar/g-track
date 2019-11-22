@@ -49,7 +49,7 @@ bool URC_IsBtUrc(const char str[])
 
 bool URC_IsBtConnect(const char str[])
 {
-  return UTL_BeginsWith(str, "+BTCONNECT:");
+  return UTL_BeginsWith(str, "\r\n+BTCONNECT:");
 }
 
 bool URC_BtConnectParse(char str[], URC_BtConnect_t *urc)
@@ -101,7 +101,7 @@ bool URC_BtConnectParse(char str[], URC_BtConnect_t *urc)
 
 bool URC_IsBtDisconnect(const char str[])
 {
-  return UTL_BeginsWith(str, "+BTDISCONN:");
+  return UTL_BeginsWith(str, "\r\n+BTDISCONN:");
 }
 
 bool URC_BtDisconnectParse(char str[], URC_BtDisconnect_t *urc)
@@ -148,7 +148,7 @@ bool URC_BtDisconnectParse(char str[], URC_BtDisconnect_t *urc)
 
 bool URC_IsBtConnecting(const char str[])
 {
-  return UTL_BeginsWith(str, "+BTCONNECTING:");
+  return UTL_BeginsWith(str, "\r\n+BTCONNECTING:");
 }
 
 bool URC_BtConnectingParse(char str[], URC_BtConnecting_t *urc)
@@ -185,7 +185,7 @@ bool URC_BtConnectingParse(char str[], URC_BtConnecting_t *urc)
 
 bool URC_IsBtSppData(const char str[])
 {
-  return UTL_BeginsWith(str, "+BTSPPDATA:");
+  return UTL_BeginsWith(str, "\r\n+BTSPPDATA:");
 }
 
 bool URC_BtSppDataParse(char str[], URC_BtSppData_t *urc)
@@ -214,7 +214,7 @@ bool URC_BtSppDataParse(char str[], URC_BtSppData_t *urc)
   }
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->data, sizeof(urc->data), '\n'))
+    if (!UTL_GetNextString(&start, urc->data, sizeof(urc->data), '\r'))
       return false;
   }
 

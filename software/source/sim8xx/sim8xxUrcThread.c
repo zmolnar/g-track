@@ -62,8 +62,9 @@ static bool SIM_notifyUrcListener(char urc[])
 
 static void SIM_waitForClear(Sim8xxDriver *simp)
 {
-  chSemWait(&simp->urcsema);
+  chSemWait(&simp->urcClear);
 }
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -71,8 +72,7 @@ THD_FUNCTION(SIM_UrcThread, arg) {
   Sim8xxDriver *simp = (Sim8xxDriver *)arg;
 
   while(true) {
-    memset(simp->urcbuf, 0, simp->urclength);
-    simp->urclength = 0;
+    memset(simp->urcbuf, 0, sizeof(simp->urcbuf));
     
     chSysLock();
     msg_t msg = chThdSuspendS(&simp->urcprocessor);
@@ -81,12 +81,13 @@ THD_FUNCTION(SIM_UrcThread, arg) {
 
     if (MSG_OK == msg) {
       chMtxLock(&simp->rxlock);
-      memcpy(simp->urcbuf, simp->urc, strlen(simp->urc));
-      simp->urclength = strlen(simp->urcbuf);
+      if (sizeof(simp->urcbuf) - 1< simp->urclength)
+        simp->urclength = sizeof(simp->urcbuf) - 1;
+      memcpy(simp->urcbuf, simp->urc, simp->urclength;
       chMtxUnlock(&simp->rxlock);
       chSemSignal(&simp->urcSync);
 
-      if (SIM_notifyUrcListener(simp->urcbuf))
+      if (SIM_notifyUrcListener(simp->urcbuf)) 
         SIM_waitForClear(simp);
     } else {
       // TODO something....

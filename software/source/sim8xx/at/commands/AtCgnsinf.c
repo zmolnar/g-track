@@ -155,7 +155,7 @@ bool AT_CgnsinfParse(CGNSINF_Response_t *pdata, char str[])
   }
 
   if (start < strEnd) {
-    if (!UTL_GetNextDouble(&start, &pdata->vpa, '\n'))
+    if (!UTL_GetNextDouble(&start, &pdata->vpa, '\r'))
       return false;
   }
 

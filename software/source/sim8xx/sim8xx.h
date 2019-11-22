@@ -17,6 +17,7 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+#define CRLF    "\r\n"
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -49,14 +50,15 @@ typedef struct Sim8xxDriver {
   semaphore_t guardSync;
   semaphore_t atSync;
   semaphore_t urcSync;
+  semaphore_t urcClear;
   char rxbuf[512];
   size_t rxlength;
   char urcbuf[512];
-  size_t urclength;
-  char *atmsg;
+  char *at;
+  size_t atlength;
   char *urc;
-  size_t next;
-  semaphore_t urcsema;
+  size_t urclength;
+  size_t processend;
 } Sim8xxDriver;
 
 typedef enum {
