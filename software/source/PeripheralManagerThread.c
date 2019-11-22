@@ -66,8 +66,8 @@ static PeripheralManager_t manager;
 /*****************************************************************************/
 static void PRP_writeSysInfo(void)
 {
-  char line[128]             = {0};
-  char sysinfo[8 * sizeof(line)] = {0};
+  uint8_t line[128]             = {0};
+  uint8_t sysinfo[8 * sizeof(line)] = {0};
 
   chsnprintf(line, sizeof(line), "Kernel:       %s\n", CH_KERNEL_VERSION);
   strncpy(sysinfo, line, sizeof(sysinfo));

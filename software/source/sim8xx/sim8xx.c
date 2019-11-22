@@ -167,7 +167,7 @@ size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length)
   return n;
 }
 
-Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
+Sim8xxCommandStatus_t SIM_GetCommandStatus(uint8_t *data)
 {
   size_t length = strlen(data);
 
@@ -178,11 +178,11 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
     return SIM8XX_WAITING_FOR_INPUT;
 
   // Remove last CRLF
-  char *needle = strrstr(data, CRLF);
+  uint8_t *needle = strrstr(data, CRLF);
   if (!needle)
     return SIM8XX_INVALID_STATUS;
 
-  char *end = needle;
+  uint8_t *end = needle;
   *end = '\0';
 
   // Search CRLF before the status

@@ -37,7 +37,7 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool AT_CpinCreate(char buf[], size_t length, const char pin[])
+bool AT_CpinCreate(uint8_t buf[], size_t length, const uint8_t pin[])
 {
     chsnprintf(buf, length, "AT+CPIN=%s", pin);
     return true;

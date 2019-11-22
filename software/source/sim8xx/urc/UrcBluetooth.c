@@ -37,7 +37,7 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool URC_IsBtUrc(const char str[])
+bool URC_IsBtUrc(const uint8_t str[])
 {
     bool result = (URC_IsBtConnect(str) ||
                    URC_IsBtConnecting(str) || 
@@ -47,127 +47,121 @@ bool URC_IsBtUrc(const char str[])
     return result;
 }
 
-bool URC_IsBtConnect(const char str[])
+bool URC_IsBtConnect(const uint8_t str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTCONNECT:");
 }
 
-bool URC_BtConnectParse(char str[], URC_BtConnect_t *urc)
+bool URC_BtConnectParse(uint8_t str[], URC_BtConnect_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtConnect(str))
     return false;
 
-  const char *end = str + strlen(str);
+  const uint8_t *end = str + strlen(str);
 
-  char *start = strchr(str, ' ');
+  uint8_t *start = strchr(str, ' ');
   if (!start)
     return false;
 
-  ++start;
+  start += strlen(" ");
 
   if (start < end) {
     if (!UTL_GetNextInt(&start, &urc->id, ','))
       return false;
   }
 
-  // Skip '"' before the string
-  ++start;
+  start += strlen("\"");
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->name, sizeof(urc->name), '"'))
+    if (!UTL_GetNextString(&start, &urc->name, '"'))
       return false;
   }
 
-  // Skip ',' after the string ending '"' character.
-  ++start;
+  start += strlen(",");
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->address, sizeof(urc->address), ','))
+    if (!UTL_GetNextString(&start, &urc->address, ','))
       return false;
   }
 
-  // Skip '"' before the string
-  ++start;
+  start += strlen("\"");
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->profile, sizeof(urc->profile), '"'))
+    if (!UTL_GetNextString(&start, &urc->profile, '"'))
       return false;
   }
 
   return true;
 }
 
-bool URC_IsBtDisconnect(const char str[])
+bool URC_IsBtDisconnect(const uint8_t str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTDISCONN:");
 }
 
-bool URC_BtDisconnectParse(char str[], URC_BtDisconnect_t *urc)
+bool URC_BtDisconnectParse(uint8_t str[], URC_BtDisconnect_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtDisconnect(str))
     return false;
 
-  const char *end = str + strlen(str);
+  const uint8_t *end = str + strlen(str);
 
-  char *start = strchr(str, ' ');
+  uint8_t *start = strchr(str, ' ');
   if (!start)
     return false;
 
-  ++start;
+  start += strlen(" ");
 
-  // Skip '"' before the string
-  ++start;
+  start += strlen("\"");
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->name, sizeof(urc->name), '"'))
+    if (!UTL_GetNextString(&start, &urc->name, '"'))
       return false;
   }
 
-  // Skip ',' after the string ending '"' character.
-  ++start;
+  start += strlen(",");
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->address, sizeof(urc->address), ','))
+    if (!UTL_GetNextString(&start, &urc->address, ','))
       return false;
   }
 
-  // Skip '"' before the string
-  ++start;
+  start += strlen("\"");
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->profile, sizeof(urc->profile), '"'))
+    if (!UTL_GetNextString(&start, &urc->profile, '"'))
       return false;
   }
 
   return true;
 }
 
-bool URC_IsBtConnecting(const char str[])
+bool URC_IsBtConnecting(const uint8_t str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTCONNECTING:");
 }
 
-bool URC_BtConnectingParse(char str[], URC_BtConnecting_t *urc)
+bool URC_BtConnectingParse(uint8_t str[], URC_BtConnecting_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtConnecting(str))
     return false;
 
-  const char *end = str + strlen(str);
+  const uint8_t *end = str + strlen(str);
 
-  char *start = strchr(str, '"');
+  uint8_t *start = strchr(str, '"');
   if (!start)
     return false;
 
-  ++start;
+  start += strlen("\"");
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->address, sizeof(urc->address), '"'))
+    if (!UTL_GetNextString(&start, &urc->address, '"'))
       return false;
   }
 
@@ -175,33 +169,35 @@ bool URC_BtConnectingParse(char str[], URC_BtConnecting_t *urc)
   if (!start)
     return false;
 
+  start += strlen("\"");
+
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->profile, sizeof(urc->profile), '"'))
+    if (!UTL_GetNextString(&start, &urc->profile, '"'))
       return false;
   }
 
   return true;
 }
 
-bool URC_IsBtSppData(const char str[])
+bool URC_IsBtSppData(const uint8_t str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTSPPDATA:");
 }
 
-bool URC_BtSppDataParse(char str[], URC_BtSppData_t *urc)
+bool URC_BtSppDataParse(uint8_t str[], URC_BtSppData_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtSppData(str))
     return false;
 
-  const char *end = str + strlen(str);
+  const uint8_t *end = str + strlen(str);
 
-  char *start = strchr(str, ' ');
+  uint8_t *start = strchr(str, ' ');
   if (!start)
     return false;
 
-  ++start;
+  start += strlen(" ");
 
   if (start < end) {
     if (!UTL_GetNextInt(&start, &urc->id, ','))
@@ -214,7 +210,7 @@ bool URC_BtSppDataParse(char str[], URC_BtSppData_t *urc)
   }
 
   if (start < end) {
-    if (!UTL_GetNextString(&start, urc->data, sizeof(urc->data), '\r'))
+    if (!UTL_GetNextString(&start, &urc->data, '\r'))
       return false;
   }
 

@@ -107,11 +107,11 @@ bool cpinReady = false;
 bool callReady = false;
 bool smsReady = false;
 #endif
-char urcbuf[512] = {0};
+uint8_t urcbuf[512] = {0};
 
 static void CLL_processUrc(void)
 {
-  const char *urc = SIM_GetUrcMessage(&SIM8D1);
+  const uint8_t *urc = SIM_GetUrcMessage(&SIM8D1);
   if (!urc) return;
 
   memset(urcbuf, 0, sizeof(urcbuf));

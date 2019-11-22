@@ -81,23 +81,23 @@ static GPS_Reader_t gps;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS */
 /*****************************************************************************/
-static void GPS_hijackChar(char *c, char *tmp)
+static void GPS_hijackChar(uint8_t *c, uint8_t *tmp)
 {
   *tmp = *c;
   *c   = '\0';
 }
 
-static void GPS_restoreChar(char *c, char *tmp)
+static void GPS_restoreChar(uint8_t *c, uint8_t *tmp)
 {
   *c = *tmp;
 }
 
-static bool GPS_convertRawDateToDateTime(DSB_DateTime_t *dt, char *raw)
+static bool GPS_convertRawDateToDateTime(DSB_DateTime_t *dt, uint8_t *raw)
 {
   if (18 != strlen(raw))
     return false;
 
-  char tmp;
+  uint8_t tmp;
   GPS_hijackChar(raw + 4, &tmp);
   dt->year = atoi(raw);
   GPS_restoreChar(raw + 4, &tmp);
@@ -129,7 +129,7 @@ static bool GPS_convertRawDateToDateTime(DSB_DateTime_t *dt, char *raw)
 
 static void GPS_savePositionInLogfile(CGNSINF_Response_t *pdata)
 {
-  char entry[150] = {0};
+  uint8_t entry[150] = {0};
   chsnprintf(entry, sizeof(entry),
              "%s %f %f %f %f %d %d %d %d",
              pdata->date,
@@ -189,7 +189,7 @@ static bool GPS_isClockUpdateNeeded(DSB_DateTime_t *gpsTime)
   return result;
 }
 
-static void GPS_updateClockInDashboard(char *rawDateTime)
+static void GPS_updateClockInDashboard(uint8_t *rawDateTime)
 {
   DSB_DateTime_t gpsDateTime = {0};
   GPS_convertRawDateToDateTime(&gpsDateTime, rawDateTime);
@@ -283,9 +283,9 @@ static void GPS_stopTimer(void)
   chSysUnlock();
 }
 
-static const char *GPS_getStateString(GPS_State_t state)
+static const uint8_t *GPS_getStateString(GPS_State_t state)
 {
-  static const char *stateStrs[] = {
+  static const uint8_t *stateStrs[] = {
       [GPS_INIT]     = "INIT",
       [GPS_ENABLED]  = "ENABLED",
       [GPS_DISABLED] = "DISABLED",
@@ -297,7 +297,7 @@ static const char *GPS_getStateString(GPS_State_t state)
 
 static void GPS_logStateChange(GPS_State_t from, GPS_State_t to)
 {
-  char entry[32] = {0};
+  uint8_t entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s",
              GPS_getStateString(from), GPS_getStateString(to));
   LOG_Write(GPS_LOGFILE, entry);
@@ -493,14 +493,14 @@ GpsLockState_t GPS_GetLockState(void)
   return gps.lockState;
 }
 
-const char *GPS_GetStateString(void)
+const uint8_t *GPS_GetStateString(void)
 {
   return GPS_getStateString(gps.state);
 }
 
-const char *GPS_GetErrorString(void)
+const uint8_t *GPS_GetErrorString(void)
 {
-  static const char *errorStr[] = {
+  static const uint8_t *errorStr[] = {
       [GPS_ERR_NO_ERROR]    = "NO_ERROR",
       [GPS_ERR_POWER_ON]    = "START FAIL",
       [GPS_ERR_POWER_OFF]   = "STOP FAIL",

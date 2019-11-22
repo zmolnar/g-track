@@ -77,9 +77,9 @@ static const ShellConfig BluetoothShellConfig = {
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static const char *BLT_getStateString(BLT_State_t state)
+static const uint8_t *BLT_getStateString(BLT_State_t state)
 {
-  static const char *const stateStrs[] = {
+  static const uint8_t *const stateStrs[] = {
       [BLT_STATE_INIT]         = "INIT",
       [BLT_STATE_DISABLED]     = "DISABLED",
       [BLT_STATE_CONNECTED]    = "CONNECTED",
@@ -92,7 +92,7 @@ static const char *BLT_getStateString(BLT_State_t state)
 
 static void BLT_logStateChange(BLT_State_t from, BLT_State_t to)
 {
-  char entry[32] = {0};
+  uint8_t entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s", BLT_getStateString(from), BLT_getStateString(to));
   LOG_Write(BLT_LOGFILE, entry);
 }
@@ -115,7 +115,7 @@ static bool BLT_powerOffDevice(void)
   return (SIM8XX_OK == bluetooth.cmd.status);
 }
 
-static bool BLT_setHost(const char *host)
+static bool BLT_setHost(const uint8_t *host)
 {
   SIM_CommandInit(&bluetooth.cmd);
   chsnprintf(bluetooth.cmd.request, sizeof(bluetooth.cmd.request),
@@ -125,7 +125,7 @@ static bool BLT_setHost(const char *host)
   return (SIM8XX_OK == bluetooth.cmd.status);
 }
 
-static bool BLT_setPin(const char *pin)
+static bool BLT_setPin(const uint8_t *pin)
 {
   SIM_CommandInit(&bluetooth.cmd);
   chsnprintf(bluetooth.cmd.request, sizeof(bluetooth.cmd.request),
@@ -239,7 +239,7 @@ static BLT_State_t BLT_procesUrcInDisconnectedState(void)
 {
   BLT_State_t state = BLT_STATE_DISCONNECTED;
 
-  char urc[512] = {0};
+  uint8_t urc[512] = {0};
   SIM_GetAndClearUrc(&SIM8D1, urc, sizeof(urc));
 
   if (URC_IsBtConnect(urc)) {
@@ -300,7 +300,7 @@ static BLT_State_t BLT_procesUrcInConnectedState(void)
 {
   BLT_State_t state = BLT_STATE_CONNECTED;
 
-  char urc[512] = {0};
+  uint8_t urc[512] = {0};
   SIM_GetAndClearUrc(&SIM8D1, urc, sizeof(urc));
 
   if (URC_IsBtSppData(urc)) {

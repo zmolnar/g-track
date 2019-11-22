@@ -50,7 +50,7 @@ static void SIM_clearRxBuffer(Sim8xxDriver *simp)
   simp->processend = simp->rxbuf;
 }
 
-static bool SIM_isValidResponseStatus(char *msg)
+static bool SIM_isValidResponseStatus(uint8_t *msg)
 {
   return !(SIM8XX_INVALID_STATUS == SIM_GetCommandStatus(msg));
 }
@@ -58,12 +58,12 @@ static bool SIM_isValidResponseStatus(char *msg)
 static size_t SIM_checkEmbeddedAtResponse(Sim8xxDriver *simp)
 {
   size_t end = 0;
-  char *bufEnd = simp->rxbuf + simp->rxlength;
+  uint8_t *bufEnd = simp->rxbuf + simp->rxlength;
 
   bool found = false;
-  char *crlf = strstr(simp->atmsg, CRLF);
+  uint8_t *crlf = strstr(simp->atmsg, CRLF);
   while (!found && crlf && (crlf + strlen(CRLF) <= bufEnd)) {
-    char *e = crlf + strlen(CRLF);
+    uint8_t *e = crlf + strlen(CRLF);
     *e = '\0';
 
     if (SIM_isValidResponseStatus(simp->atmsg)) {
@@ -78,7 +78,7 @@ static size_t SIM_checkEmbeddedAtResponse(Sim8xxDriver *simp)
   return end;
 }
 
-static bool SIM_beginsWithAT(const char *str)
+static bool SIM_beginsWithAT(const uint8_t *str)
 {
   bool result = false;
   if (strlen("AT") < strlen(str)) {
@@ -118,7 +118,7 @@ static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
   return result;
 }
 
-static bool SIM_beginsAndEndsWithCRLF(const char *msg)
+static bool SIM_beginsAndEndsWithCRLF(const uint8_t *msg)
 {
   bool result = false;
 
@@ -136,7 +136,7 @@ static bool SIM_beginsAndEndsWithCRLF(const char *msg)
   return result;
 }
 
-static bool SIM_notifyUrcListener(char urc[])
+static bool SIM_notifyUrcListener(uint8_t urc[])
 {
   bool result = false;
 #if 0
@@ -205,7 +205,7 @@ THD_FUNCTION(SIM_ReaderThread, arg)
         do {
           c = chnGetTimeout(simp->config->sdp, TIME_MS2I(5));
           if (c != STM_TIMEOUT)
-            simp->rxbuf[simp->rxlength++] = (char)c;
+            simp->rxbuf[simp->rxlength++] = (uint8_t)c;
         } while ((c != STM_TIMEOUT) && (simp->rxlength < sizeof(simp->rxbuf)));
       }
     }

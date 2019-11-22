@@ -42,8 +42,8 @@ void GPS_Start(void);
 void GPS_Stop(void);
 GpsLockState_t GPS_GetLockState(void);
 
-const char *GPS_GetStateString(void);
-const char *GPS_GetErrorString(void);
+const uint8_t *GPS_GetStateString(void);
+const uint8_t *GPS_GetErrorString(void);
 
 #endif /* GPS_READER_THREAD_H */
 

@@ -33,12 +33,12 @@
 /**
  * 
  */
-bool AT_BtpowerCreateOn(char buf[], size_t length);
+bool AT_BtpowerCreateOn(uint8_t buf[], size_t length);
 
 /**
  *
  */
-bool AT_BtpowerCreateOff(char buf[], size_t length);
+bool AT_BtpowerCreateOff(uint8_t buf[], size_t length);
 
 #endif /* AT_BTPOWER_H */
 

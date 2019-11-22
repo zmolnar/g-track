@@ -58,7 +58,7 @@ typedef struct BluetoothStream_s {
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
 void BLS_ObjectInit(BluetoothStream_t *bsp);
-void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength);
+void BLS_ProcessRxData(BluetoothStream_t *bsp, const uint8_t *rxdata, size_t rxlength);
 void BLS_ClearTxBuffer(BluetoothStream_t *bsp);
 void BLS_NotifyWriter(BluetoothStream_t *bsp);
 void BLS_NotifyReader(BluetoothStream_t *bsp);

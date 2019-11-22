@@ -49,11 +49,11 @@ typedef struct Sim8xxDriver {
   semaphore_t guardSync;
   semaphore_t atSync;
   semaphore_t urcSync;
-  char rxbuf[512];
+  uint8_t rxbuf[512];
   size_t rxlength;
-  char *at;
+  uint8_t *at;
   size_t atlength;
-  char *urc;
+  uint8_t *urc;
   size_t urclength;
   size_t processend;
 } Sim8xxDriver;
@@ -76,9 +76,9 @@ typedef enum {
 } Sim8xxCommandStatus_t;
 
 typedef struct Sim8xxCommand {
-  char request[128];
-  char data[128];
-  char response[512];
+  uint8_t request[128];
+  uint8_t data[128];
+  uint8_t response[512];
   Sim8xxCommandStatus_t status;
 } Sim8xxCommand;
 
@@ -128,7 +128,7 @@ void SIM_TogglePower(Sim8xxDriver *simp);
 /**
  * 
  */
-Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data);
+Sim8xxCommandStatus_t SIM_GetCommandStatus(uint8_t *data);
 
 #endif
 

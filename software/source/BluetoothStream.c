@@ -210,7 +210,7 @@ void BLS_ObjectInit(BluetoothStream_t *bsp)
     chVTObjectInit(&bsp->txtimer);    
 }
 
-void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength)
+void BLS_ProcessRxData(BluetoothStream_t *bsp, const uint8_t *rxdata, size_t rxlength)
 {
   Buffer_t *rxbuf = &bsp->rx;
   chMtxLock(&rxbuf->lock);

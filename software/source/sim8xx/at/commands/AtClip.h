@@ -33,12 +33,12 @@
 /**
  * 
  */
-bool AT_ClipCreateOn(char buf[], size_t length);
+bool AT_ClipCreateOn(uint8_t buf[], size_t length);
 
 /**
  *
  */
-bool AT_ClipCreateOff(char buf[], size_t length);
+bool AT_ClipCreateOff(uint8_t buf[], size_t length);
 
 #endif /* AT_CLIP_H */
 

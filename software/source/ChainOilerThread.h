@@ -106,12 +106,12 @@ void COT_OneShot(void);
 /**
  * @brief Get the string describing the state of the chain oiler module.
  */
-const char *COT_GetStateString(void);
+const uint8_t *COT_GetStateString(void);
 
 /**
  * @brief Get the error descriptor string of the chain oiler module.
  */
-const char *COT_GetErrorString(void);
+const uint8_t *COT_GetErrorString(void);
 
 #endif /* CHAIN_OILER_THREAD_H */
 

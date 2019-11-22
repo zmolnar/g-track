@@ -39,24 +39,23 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool UTL_BeginsWith(const char str[], const char pre[])
+bool UTL_BeginsWith(const uint8_t str[], const uint8_t pre[])
 {
   return strncasecmp(pre, str, strlen(pre)) == 0;
 }
 
-bool UTL_GetNextInt(char **start, int *value, char delim)
+bool UTL_GetNextInt(uint8_t **start, int *value, uint8_t delim)
 {
-  char *end = strchr(*start, delim);
+  uint8_t *end = strchr(*start, delim);
   if (!end)
     return false;
   *end   = '\0';
   *value = atoi(*start);
-  *end   = delim;
   *start = end + 1;
   return true;
 }
 
-double UTL_AsciiToDouble(char str[])
+double UTL_AsciiToDouble(uint8_t str[])
 {
   size_t len = strlen(str);
   if (0 == len)
@@ -81,36 +80,35 @@ double UTL_AsciiToDouble(char str[])
   return val;
 }
 
-bool UTL_GetNextDouble(char **start, double *value, char delim)
+bool UTL_GetNextDouble(uint8_t **start, double *value, uint8_t delim)
 {
-  char *end = strchr(*start, delim);
+  uint8_t *end = strchr(*start, delim);
   if (!end)
     return false;
   *end   = '\0';
   *value = UTL_AsciiToDouble(*start);
-  *end   = delim;
   *start = end + 1;
   return true;
 }
 
-bool UTL_GetNextString(char **start, char *buf, size_t length, char delim)
+bool UTL_GetNextString(uint8_t **start, uint8_t **buf, uint8_t delim)
 {
-  char *end = strchr(*start, delim);
+  uint8_t *end = strchr(*start, delim);
   if (!end)
     return false;
   *end = '\0';
-  strncpy(buf, *start, length);
-  *end   = delim;
+  *buf = *start;
   *start = end + 1;
   return true;
 }
 
-bool UTL_SkipReserved(char **start, size_t num, char delim)
+bool UTL_SkipReserved(uint8_t **start, size_t num, uint8_t delim)
 {
   while (num--) {
-    char *end = strchr(*start, delim);
+    uint8_t *end = strchr(*start, delim);
     if (!end)
       return false;
+    *end = '\0';
     *start = end + 1;
   }
   return true;

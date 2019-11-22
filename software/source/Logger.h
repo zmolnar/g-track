@@ -32,12 +32,12 @@
 /**
  * @brief Append content to the end of the given file.
  */
-void LOG_Write(const char *file, const char *entry);
+void LOG_Write(const uint8_t *file, const uint8_t *entry);
 
 /**
  * @brief Overwrite the given file with the new content.
  */
-void LOG_Overwrite(const char *file, const char *entry);
+void LOG_Overwrite(const uint8_t *file, const uint8_t *entry);
 
 #endif /* LOGGER_H */
 
