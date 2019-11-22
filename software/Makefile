@@ -146,7 +146,6 @@ CSRC = $(ALLCSRC) \
        $(ATLIB)/commands/AtCpin.c \
        $(URCLIB)/UrcBluetooth.c \
        $(SIM8XX)/sim8xxReaderThread.c \
-       $(SIM8XX)/sim8xxUrcThread.c \
        $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

@@ -43,17 +43,14 @@ typedef struct Sim8xxDriver {
   const Sim8xxConfig *config;
   thread_reference_t writer;
   thread_reference_t reader;
-  thread_reference_t urcprocessor;
   mutex_t lock;
   mutex_t rxlock;
   virtual_timer_t guardTimer;
   semaphore_t guardSync;
   semaphore_t atSync;
   semaphore_t urcSync;
-  semaphore_t urcClear;
   char rxbuf[512];
   size_t rxlength;
-  char urcbuf[512];
   char *at;
   size_t atlength;
   char *urc;
@@ -116,12 +113,7 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp);
 /**
  *
  */
-char *SIM_GetUrcMessage(Sim8xxDriver *simp);
-
-/**
- *
- */
-void SIM_ClearUrcMessage(Sim8xxDriver *simp);
+size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length);
 
 /**
  * 

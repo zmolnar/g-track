@@ -87,7 +87,7 @@ static bool SIM_beginsWithAT(const char *str)
   return result;
 }
 
-static bool SIM_checkAndSetAtResponse(Sim8xxDriver *simp)
+static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
 {
   simp->at = simp->rxbuf;
   simp->atlength = 0;
@@ -136,7 +136,29 @@ static bool SIM_beginsAndEndsWithCRLF(const char *msg)
   return result;
 }
 
-static bool SIM_checkAndSetUrc(Sim8xxDriver *simp)
+static bool SIM_notifyUrcListener(char urc[])
+{
+  bool result = false;
+#if 0
+  if (SIM_beginsWith(urc, "\r\n+cpin:") || 
+      SIM_beginsWith(urc, "\r\ncall") ||
+      SIM_beginsWith(urc, "\r\nsms")) {
+    CLL_UrcReceived();
+    result = true;
+  } else {
+    result = false;
+  }
+#endif
+
+  if (URC_IsBtUrc(urc)) {
+    BLT_ProcessUrc();
+    result = true;
+  }
+
+  return result;
+}
+
+static bool SIM_checkAndProcessUrc(Sim8xxDriver *simp)
 {
   simp->urc = simp->rxbuf + simp->processend;
   simp->urclength = 0;
@@ -145,13 +167,11 @@ static bool SIM_checkAndSetUrc(Sim8xxDriver *simp)
 
   if (SIM_beginsAndEndsWithCRLF(simp->urc)) {
     simp->urclength = simp->rxlength - simp->processend;
-    if (simp->urcprocessor) {
-      chThdResume(&simp->urcprocessor, MSG_OK);
+    if (SIM_notifyUrcListener(simp->urc))  {
+      result = true;
     } else {
-      LOG_Write(SIM_READER_LOGFILE, "URC, but processor thread is busy!");
+      LOG_Write(SIM_READER_LOGFILE, "URC, but not expected!");
     }
-
-    result = true;
   }
 
   return result;
@@ -192,8 +212,8 @@ THD_FUNCTION(SIM_ReaderThread, arg)
 
     chMtxUnlock(&simp->rxlock);
 
-    bool isAt = SIM_checkAndSetAtResponse(simp);
-    bool isUrc = SIM_checkAndSetUrc(simp);
+    bool isAt = SIM_checkAndProcessAtResponse(simp);
+    bool isUrc = SIM_checkAndProcessUrc(simp);
 
     //LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
 

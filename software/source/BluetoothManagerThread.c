@@ -240,9 +240,7 @@ static BLT_State_t BLT_procesUrcInDisconnectedState(void)
   BLT_State_t state = BLT_STATE_DISCONNECTED;
 
   char urc[512] = {0};
-  char *urctext = SIM_GetUrcMessage(&SIM8D1);
-  strncpy(urc, urctext, strlen(urctext));
-  SIM_ClearUrcMessage(&SIM8D1);
+  SIM_GetAndClearUrc(&SIM8D1, urc, sizeof(urc));
 
   if (URC_IsBtConnect(urc)) {
     URC_BtConnect_t connect = {0};
@@ -303,9 +301,7 @@ static BLT_State_t BLT_procesUrcInConnectedState(void)
   BLT_State_t state = BLT_STATE_CONNECTED;
 
   char urc[512] = {0};
-  char *urctext = SIM_GetUrcMessage(&SIM8D1);
-  strncpy(urc, urctext, strlen(urctext));
-  SIM_ClearUrcMessage(&SIM8D1);
+  SIM_GetAndClearUrc(&SIM8D1, urc, sizeof(urc));
 
   if (URC_IsBtSppData(urc)) {
     URC_BtSppData_t spp = {0};

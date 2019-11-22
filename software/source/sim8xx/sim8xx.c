@@ -11,7 +11,6 @@
 
 #include "chprintf.h"
 #include "sim8xxReaderThread.h"
-#include "sim8xxUrcThread.h"
 
 #include <string.h>
 
@@ -66,16 +65,13 @@ void SIM_Init(Sim8xxDriver *simp)
   simp->config = NULL;
   simp->writer = NULL;
   simp->reader = NULL;
-  simp->urcprocessor = NULL;
   chMtxObjectInit(&simp->lock);
   chMtxObjectInit(&simp->rxlock);
   chSemObjectInit(&simp->guardSync, 0);
   chSemObjectInit(&simp->atSync, 0);
   chSemObjectInit(&simp->urcSync, 0);
-  chSemObjectInit(&simp->urcClear, 0);
   memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
   simp->rxlength = 0;
-  memset(simp->urcbuf, 0, sizeof(simp->urcbuf));
   simp->at = simp->rxbuf;
   simp->atlength = 0;
   simp->urc = simp->rxbuf;
@@ -94,13 +90,6 @@ void SIM_Start(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
                       "sim8xx",
                       NORMALPRIO + 1,
                       SIM_ReaderThread,
-                      (void *)simp);
-  simp->urcprocessor = NULL;
-  chThdCreateFromHeap(NULL, 
-                      URCPROCESSOR_WA_SIZE, 
-                      "sim8xx-urc", 
-                      NORMALPRIO + 1, 
-                      SIM_UrcThread, 
                       (void *)simp);
   simp->state = SIM8XX_READY;
   chSemSignal(&simp->guardSync);
@@ -165,14 +154,17 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
   chMtxUnlock(&simp->lock);
 }
 
-char *SIM_GetUrcMessage(Sim8xxDriver *simp)
+size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length)
 {
-  return simp->urcbuf;
-}
+  size_t n = simp->urclength;
+  if ((length - 1) < n)
+    n = length;
 
-void SIM_ClearUrcMessage(Sim8xxDriver *simp)
-{
-  chSemSignal(&simp->urcClear);
+  memcpy(urc, simp->urc, n);
+
+  chSemSignal(&simp->urcSync);
+
+  return n;
 }
 
 Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
