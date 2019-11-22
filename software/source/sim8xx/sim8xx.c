@@ -116,10 +116,12 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
 
   if (MSG_OK == msg) {
     chMtxLock(&simp->rxlock);
+
     size_t length = simp->atlength;
     if (sizeof(cmdp->response) <= length)
       length = sizeof(cmdp->response) - 1;
     memcpy(cmdp->response, simp->at, length);
+    
     chMtxUnlock(&simp->rxlock);
     chSemSignal(&simp->atSync);
     cmdp->status = SIM_GetCommandStatus(cmdp->response);
@@ -136,15 +138,22 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
     chSysUnlock();
 
     if (MSG_OK == msg) {
-      chMtxLock(&simp->rxlock);
-      size_t length = simp->atlength;
       size_t buflength = sizeof(cmdp->response) - strlen(cmdp->response);
-      if (buflength <= length)
-        length = buflength - 1;
-      memcpy(cmdp->response + strlen(cmdp->response), simp->at, length);
-      chMtxUnlock(&simp->rxlock);
-      chSemSignal(&simp->atSync);
-      cmdp->status = SIM_GetCommandStatus(cmdp->response);
+      if (buflength) {
+        chMtxLock(&simp->rxlock);
+        
+        size_t length = simp->atlength;
+        if (buflength <= length)
+          length = buflength - 1;
+        uint8_t *buf = cmdp->response + strlen(cmdp->response);
+        memcpy(buf, simp->at, length);
+
+        chMtxUnlock(&simp->rxlock);
+        chSemSignal(&simp->atSync);
+        cmdp->status = SIM_GetCommandStatus(cmdp->response);
+      } else {
+        cmdp->status = SIM8XX_BUFFER_OVERFLOW;
+      }
     } else {
       cmdp->status = SIM8XX_TIMEOUT;
     }
@@ -156,12 +165,15 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
 
 size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length)
 {
+  chMtxLock(&simp->rxlock);
+
   size_t n = simp->urclength;
-  if ((length - 1) < n)
-    n = length;
+  if (length <= n)
+    n = length - 1;
 
   memcpy(urc, simp->urc, n);
 
+  chMtxUnlock(&simp->rxlock);
   chSemSignal(&simp->urcSync);
 
   return n;
@@ -182,13 +194,15 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(uint8_t *data)
   if (!needle)
     return SIM8XX_INVALID_STATUS;
 
-  uint8_t *end = needle;
-  *end = '\0';
+  uint8_t *cr = needle;
+  *cr = '\0';
 
   // Search CRLF before the status
   needle = strrstr(data, CRLF);
-  if (!needle)
+  if (!needle) {
+    *cr = '\r';
     return SIM8XX_INVALID_STATUS;
+  }
 
   needle += strlen(CRLF);
 
@@ -219,7 +233,7 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(uint8_t *data)
   else
     status = SIM8XX_INVALID_STATUS;
 
-  *end = '\0';
+  *cr = '\r';
 
   return status;
 }

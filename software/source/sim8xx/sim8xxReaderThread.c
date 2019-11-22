@@ -101,13 +101,13 @@ static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
   if (SIM_isValidResponseStatus(simp->atmsg)) {
     result = true;
     simp->atlength = strlen(simp->atmsg);
-    simp->processend = simp->atlength + strlen(CRLF);
+    simp->processend = simp->atlength + 1;
   } else {
     size_t length = SIM_checkEmbeddedAtResponse(simp);
     if (0 < length) {
       result = true;
       simp->atlength = length;
-      simp->processend = simp->atlength + strlen(CRLF);
+      simp->processend = simp->atlength + 1;
     }
   }
 
@@ -210,10 +210,10 @@ THD_FUNCTION(SIM_ReaderThread, arg)
       }
     }
 
-    chMtxUnlock(&simp->rxlock);
-
     bool isAt = SIM_checkAndProcessAtResponse(simp);
     bool isUrc = SIM_checkAndProcessUrc(simp);
+
+    chMtxUnlock(&simp->rxlock);
 
     //LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
 
