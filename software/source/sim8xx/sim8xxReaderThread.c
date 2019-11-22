@@ -47,7 +47,15 @@ static void SIM_clearRxBuffer(Sim8xxDriver *simp)
   simp->atlength = 0;
   simp->urc = simp->rxbuf;
   simp->urclength = 0;
-  simp->processend = simp->rxbuf;
+}
+
+static bool SIM_beginsWithAT(const uint8_t *str)
+{
+  bool result = false;
+  if (strlen("AT") < strlen(str))
+    result = (0 == strncasecmp("AT", str, strlen("AT")));
+
+  return result;
 }
 
 static bool SIM_isValidResponseStatus(uint8_t *msg)
@@ -57,41 +65,32 @@ static bool SIM_isValidResponseStatus(uint8_t *msg)
 
 static size_t SIM_checkEmbeddedAtResponse(Sim8xxDriver *simp)
 {
-  size_t end = 0;
+  size_t length = 0;
   uint8_t *bufEnd = simp->rxbuf + simp->rxlength;
 
   bool found = false;
   uint8_t *crlf = strstr(simp->atmsg, CRLF);
-  while (!found && crlf && (crlf + strlen(CRLF) <= bufEnd)) {
+  while (!found && crlf && (crlf + strlen(CRLF) < bufEnd)) {
     uint8_t *e = crlf + strlen(CRLF);
-    *e = '\0';
+    uint8_t c = *e;
+    *e = c;
 
     if (SIM_isValidResponseStatus(simp->atmsg)) {
-      end = strlen(simp->atmsg);
+      length = strlen(simp->atmsg);
       found = true;
     }
     
-    *e = '\r';
+    *e = c;
     crlf = strstr(crlf + strlen(CRLF), CRLF);
   }
 
-  return end;
-}
-
-static bool SIM_beginsWithAT(const uint8_t *str)
-{
-  bool result = false;
-  if (strlen("AT") < strlen(str)) {
-    result = (0 == strncasecmp("AT", str, strlen("AT")));
-
-  return result;
+  return length;
 }
 
 static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
 {
   simp->at = simp->rxbuf;
   simp->atlength = 0;
-  simp->processend = 0;
 
   if (!SIM_beginsWithAT(simp->at))
     return false;
@@ -101,13 +100,11 @@ static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
   if (SIM_isValidResponseStatus(simp->atmsg)) {
     result = true;
     simp->atlength = strlen(simp->atmsg);
-    simp->processend = simp->atlength + 1;
   } else {
     size_t length = SIM_checkEmbeddedAtResponse(simp);
     if (0 < length) {
       result = true;
       simp->atlength = length;
-      simp->processend = simp->atlength + 1;
     }
   }
 
@@ -160,13 +157,13 @@ static bool SIM_notifyUrcListener(uint8_t urc[])
 
 static bool SIM_checkAndProcessUrc(Sim8xxDriver *simp)
 {
-  simp->urc = simp->rxbuf + simp->processend;
+  simp->urc = simp->rxbuf + simp->atlength;
   simp->urclength = 0;
 
   bool result = false;
 
   if (SIM_beginsAndEndsWithCRLF(simp->urc)) {
-    simp->urclength = simp->rxlength - simp->processend;
+    simp->urclength = simp->rxlength - simp->atlength;
     if (SIM_notifyUrcListener(simp->urc))  {
       result = true;
     } else {
@@ -205,8 +202,9 @@ THD_FUNCTION(SIM_ReaderThread, arg)
         do {
           c = chnGetTimeout(simp->config->sdp, TIME_MS2I(5));
           if (c != STM_TIMEOUT)
-            simp->rxbuf[simp->rxlength++] = (uint8_t)c;
-        } while ((c != STM_TIMEOUT) && (simp->rxlength < sizeof(simp->rxbuf)));
+            simp->rxbuf[simp->rxlength] = (uint8_t)c;
+            ++simp->rxlength;
+        } while ((c != STM_TIMEOUT) && (simp->rxlength <= sizeof(simp->rxbuf)));
       }
     }
 
@@ -215,7 +213,9 @@ THD_FUNCTION(SIM_ReaderThread, arg)
 
     chMtxUnlock(&simp->rxlock);
 
-    //LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
+#if 0
+    LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
+#endif
 
     if (isAt)
       chSemWait(&simp->atSync);

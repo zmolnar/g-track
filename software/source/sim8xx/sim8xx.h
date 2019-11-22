@@ -55,7 +55,6 @@ typedef struct Sim8xxDriver {
   size_t atlength;
   uint8_t *urc;
   size_t urclength;
-  size_t processend;
 } Sim8xxDriver;
 
 typedef enum {

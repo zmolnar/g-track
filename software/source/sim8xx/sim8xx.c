@@ -76,7 +76,6 @@ void SIM_Init(Sim8xxDriver *simp)
   simp->atlength = 0;
   simp->urc = simp->rxbuf;
   simp->urclength = 0;
-  simp->processend = 0;
 }
 
 void SIM_Start(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
@@ -121,6 +120,7 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
     if (sizeof(cmdp->response) <= length)
       length = sizeof(cmdp->response) - 1;
     memcpy(cmdp->response, simp->at, length);
+    cmdp->response[length] = '\0';
     
     chMtxUnlock(&simp->rxlock);
     chSemSignal(&simp->atSync);
@@ -147,6 +147,7 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
           length = buflength - 1;
         uint8_t *buf = cmdp->response + strlen(cmdp->response);
         memcpy(buf, simp->at, length);
+        buf[length] = '\0';
 
         chMtxUnlock(&simp->rxlock);
         chSemSignal(&simp->atSync);
@@ -172,6 +173,7 @@ size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length)
     n = length - 1;
 
   memcpy(urc, simp->urc, n);
+  urc[n] = '\0';
 
   chMtxUnlock(&simp->rxlock);
   chSemSignal(&simp->urcSync);
