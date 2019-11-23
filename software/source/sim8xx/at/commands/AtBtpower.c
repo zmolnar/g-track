@@ -36,13 +36,13 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool AT_BtpowerCreateOn(uint8_t buf[], size_t length)
+bool AT_BtpowerCreateOn(char buf[], size_t length)
 {
   strncat(buf, "AT+BTPOWER=1", length);
   return true;
 }
 
-bool AT_BtpowerCreateOff(uint8_t buf[], size_t length)
+bool AT_BtpowerCreateOff(char buf[], size_t length)
 {
   strncat(buf, "AT+BTPOWER=0", length);
   return true;

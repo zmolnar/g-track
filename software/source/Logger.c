@@ -38,7 +38,7 @@
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void LOG_createTimeStamp(uint8_t timestamp[], size_t length)
+static void LOG_createTimeStamp(char timestamp[], size_t length)
 {
   DSB_DateTime_t dt = {0};
   DSB_GetTime(&dt);
@@ -57,9 +57,9 @@ static void LOG_createTimeStamp(uint8_t timestamp[], size_t length)
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void LOG_Write(const uint8_t *file, const uint8_t *entry)
+void LOG_Write(const char *file, const char *entry)
 {
-  uint8_t timestamp[25] = {0};
+  char timestamp[25] = {0};
   LOG_createTimeStamp(timestamp, sizeof(timestamp));
 
   SDC_Lock();
@@ -74,7 +74,7 @@ void LOG_Write(const uint8_t *file, const uint8_t *entry)
   SDC_Unlock();
 }
 
-void LOG_Overwrite(const uint8_t *file, const uint8_t *entry)
+void LOG_Overwrite(const char *file, const char *entry)
 {
   SDC_Lock();
   FIL logfile;

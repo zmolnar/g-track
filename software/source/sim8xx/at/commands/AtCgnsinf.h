@@ -25,7 +25,7 @@
 typedef struct {
   int runStatus;
   int fixStatus;
-  uint8_t *date;
+  char *date;
   double latitude;
   double longitude;
   double altitude;
@@ -53,12 +53,12 @@ typedef struct {
 /**
  * 
  */
-bool AT_CgnsinfCreate(uint8_t buf[], size_t length);
+bool AT_CgnsinfCreate(char buf[], size_t length);
 
 /**
  * 
  */
-bool AT_CgnsinfParse(CGNSINF_Response_t *pres, uint8_t str[]);
+bool AT_CgnsinfParse(CGNSINF_Response_t *pres, char str[]);
 
 #endif /* AT_CGNSINF_H */
 

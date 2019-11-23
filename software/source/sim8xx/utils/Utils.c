@@ -39,14 +39,14 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool UTL_BeginsWith(const uint8_t str[], const uint8_t pre[])
+bool UTL_BeginsWith(const char str[], const char pre[])
 {
   return strncasecmp(pre, str, strlen(pre)) == 0;
 }
 
-bool UTL_GetNextInt(uint8_t **start, int *value, uint8_t delim)
+bool UTL_GetNextInt(char **start, int *value, char delim)
 {
-  uint8_t *end = strchr(*start, delim);
+  char *end = strchr(*start, delim);
   if (!end)
     return false;
   *end   = '\0';
@@ -55,7 +55,7 @@ bool UTL_GetNextInt(uint8_t **start, int *value, uint8_t delim)
   return true;
 }
 
-double UTL_AsciiToDouble(uint8_t str[])
+double UTL_AsciiToDouble(char str[])
 {
   size_t len = strlen(str);
   if (0 == len)
@@ -80,9 +80,9 @@ double UTL_AsciiToDouble(uint8_t str[])
   return val;
 }
 
-bool UTL_GetNextDouble(uint8_t **start, double *value, uint8_t delim)
+bool UTL_GetNextDouble(char **start, double *value, char delim)
 {
-  uint8_t *end = strchr(*start, delim);
+  char *end = strchr(*start, delim);
   if (!end)
     return false;
   *end   = '\0';
@@ -91,9 +91,9 @@ bool UTL_GetNextDouble(uint8_t **start, double *value, uint8_t delim)
   return true;
 }
 
-bool UTL_GetNextString(uint8_t **start, uint8_t **buf, uint8_t delim)
+bool UTL_GetNextString(char **start, char **buf, char delim)
 {
-  uint8_t *end = strchr(*start, delim);
+  char *end = strchr(*start, delim);
   if (!end)
     return false;
   *end = '\0';
@@ -102,10 +102,10 @@ bool UTL_GetNextString(uint8_t **start, uint8_t **buf, uint8_t delim)
   return true;
 }
 
-bool UTL_SkipReserved(uint8_t **start, size_t num, uint8_t delim)
+bool UTL_SkipReserved(char **start, size_t num, char delim)
 {
   while (num--) {
-    uint8_t *end = strchr(*start, delim);
+    char *end = strchr(*start, delim);
     if (!end)
       return false;
     *end = '\0';

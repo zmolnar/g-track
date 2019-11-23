@@ -39,19 +39,19 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool AT_CgnsinfCreate(uint8_t buf[], size_t length)
+bool AT_CgnsinfCreate(char buf[], size_t length)
 {
   strncpy(buf, "AT+CGNSINF", length);
   return true;
 }
 
-bool AT_CgnsinfParse(CGNSINF_Response_t *pdata, uint8_t str[])
+bool AT_CgnsinfParse(CGNSINF_Response_t *pdata, char str[])
 {
   memset(pdata, 0, sizeof(*pdata));
 
-  const uint8_t *strEnd = str + strlen(str);
+  const char *strEnd = str + strlen(str);
 
-  uint8_t *start = strchr(str, ' ');
+  char *start = strchr(str, ' ');
   if (!start)
     return false;
 

@@ -12,7 +12,6 @@
 /*****************************************************************************/
 #include "ch.h"
 #include "hal.h"
-#include "sim8xxUrcThread.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -49,11 +48,11 @@ typedef struct Sim8xxDriver {
   semaphore_t guardSync;
   semaphore_t atSync;
   semaphore_t urcSync;
-  uint8_t rxbuf[512];
+  char rxbuf[512];
   size_t rxlength;
-  uint8_t *at;
+  char *at;
   size_t atlength;
-  uint8_t *urc;
+  char *urc;
   size_t urclength;
 } Sim8xxDriver;
 
@@ -76,9 +75,9 @@ typedef enum {
 } Sim8xxCommandStatus_t;
 
 typedef struct Sim8xxCommand {
-  uint8_t request[128];
-  uint8_t data[128];
-  uint8_t response[512];
+  char request[128];
+  char data[128];
+  char response[512];
   Sim8xxCommandStatus_t status;
 } Sim8xxCommand;
 
@@ -113,7 +112,7 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp);
 /**
  *
  */
-size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length);
+size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, char *urc, size_t length);
 
 /**
  * 
@@ -128,7 +127,7 @@ void SIM_TogglePower(Sim8xxDriver *simp);
 /**
  * 
  */
-Sim8xxCommandStatus_t SIM_GetCommandStatus(uint8_t *data);
+Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data);
 
 #endif
 

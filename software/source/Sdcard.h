@@ -60,7 +60,7 @@ void SDC_Unmount(void);
 /**
  * @brief Recursively list all files in the filesystem.
  */
-void SDC_Tree(BaseSequentialStream *chp, int argc, uint8_t *argv[]);
+void SDC_Tree(BaseSequentialStream *chp, int argc, char *argv[]);
 
 #endif /* SDCARD_H */
 

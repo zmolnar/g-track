@@ -33,7 +33,7 @@
 /**
  * 
  */
-bool AT_CpinCreate(uint8_t buf[], size_t length, const uint8_t pin[]);
+bool AT_CpinCreate(char buf[], size_t length, const char pin[]);
 
 #endif /* AT_CPIN_H */
 

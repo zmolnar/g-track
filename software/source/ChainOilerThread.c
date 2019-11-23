@@ -202,9 +202,9 @@ void COT_processSpeedAndReloadTimer(void)
   }
 }
 
-const uint8_t *COT_getStateString(COT_State_t state)
+const char *COT_getStateString(COT_State_t state)
 {
-  const uint8_t *stateStrings[] = {
+  const char *stateStrings[] = {
       [COT_STATE_INIT]     = "INIT",
       [COT_STATE_DISABLED] = "DISABLED",
       [COT_STATE_ENABLED]  = "ENABLED",
@@ -216,7 +216,7 @@ const uint8_t *COT_getStateString(COT_State_t state)
 
 static void COT_logStateChange(COT_State_t from, COT_State_t to)
 {
-  uint8_t entry[32] = {0};
+  char entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s",
              COT_getStateString(from), COT_getStateString(to));
   LOG_Write(COT_LOGFILE, entry);
@@ -224,7 +224,7 @@ static void COT_logStateChange(COT_State_t from, COT_State_t to)
 
 static void COT_logPeriodData(void)
 {
-  uint8_t entry[100] = {0};
+  char entry[100] = {0};
   chsnprintf(entry, sizeof(entry), "%.2f km/h %d sec", 
              chainOiler.period.speed, chainOiler.period.length);
   LOG_Write(COT_LOGFILE, entry);
@@ -477,14 +477,14 @@ void COT_OneShot(void)
   chSysUnlock();
 }
 
-const uint8_t *COT_GetStateString(void)
+const char *COT_GetStateString(void)
 {
   return COT_getStateString(chainOiler.state);
 }
 
-const uint8_t *COT_GetErrorString(void)
+const char *COT_GetErrorString(void)
 {
-  const uint8_t *errorString[] = {
+  const char *errorString[] = {
       [COT_ERR_NO_ERROR] = "NO_ERROR",
   };
 

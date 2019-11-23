@@ -10,8 +10,10 @@
 #include "sim8xxReaderThread.h"
 
 #include "sim8xx.h"
+#include "urc.h"
 #include "source/Sdcard.h"
 #include "source/Logger.h"
+#include "source/BluetoothManagerThread.h"
 
 #include <string.h>
 
@@ -49,7 +51,7 @@ static void SIM_clearRxBuffer(Sim8xxDriver *simp)
   simp->urclength = 0;
 }
 
-static bool SIM_beginsWithAT(const uint8_t *str)
+static bool SIM_beginsWithAT(const char *str)
 {
   bool result = false;
   if (strlen("AT") < strlen(str))
@@ -58,25 +60,25 @@ static bool SIM_beginsWithAT(const uint8_t *str)
   return result;
 }
 
-static bool SIM_isValidResponseStatus(uint8_t *msg)
+static bool SIM_isValidResponseStatus(char *msg)
 {
   return !(SIM8XX_INVALID_STATUS == SIM_GetCommandStatus(msg));
 }
 
-static size_t SIM_checkEmbeddedAtResponse(Sim8xxDriver *simp)
+static size_t SIM_checkEmbeddedAtResponse(char *str)
 {
   size_t length = 0;
-  uint8_t *bufEnd = simp->rxbuf + simp->rxlength;
+  char *bufEnd = str + strlen(str);
 
   bool found = false;
-  uint8_t *crlf = strstr(simp->atmsg, CRLF);
+  char *crlf = strstr(str, CRLF);
   while (!found && crlf && (crlf + strlen(CRLF) < bufEnd)) {
-    uint8_t *e = crlf + strlen(CRLF);
-    uint8_t c = *e;
-    *e = c;
+    char *e = crlf + strlen(CRLF);
+    char c = *e;
+    *e = '\0';
 
-    if (SIM_isValidResponseStatus(simp->atmsg)) {
-      length = strlen(simp->atmsg);
+    if (SIM_isValidResponseStatus(str)) {
+      length = strlen(str);
       found = true;
     }
     
@@ -89,7 +91,13 @@ static size_t SIM_checkEmbeddedAtResponse(Sim8xxDriver *simp)
 
 static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
 {
+#if 0
   simp->at = simp->rxbuf;
+#endif
+  simp->at = strcasestr(simp->rxbuf, "AT");
+  if (!simp->at)
+    return false;
+
   simp->atlength = 0;
 
   if (!SIM_beginsWithAT(simp->at))
@@ -97,11 +105,11 @@ static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
 
   bool result = false;
 
-  if (SIM_isValidResponseStatus(simp->atmsg)) {
+  if (SIM_isValidResponseStatus(simp->at)) {
     result = true;
-    simp->atlength = strlen(simp->atmsg);
+    simp->atlength = strlen(simp->at);
   } else {
-    size_t length = SIM_checkEmbeddedAtResponse(simp);
+    size_t length = SIM_checkEmbeddedAtResponse(simp->rxbuf);
     if (0 < length) {
       result = true;
       simp->atlength = length;
@@ -115,7 +123,7 @@ static bool SIM_checkAndProcessAtResponse(Sim8xxDriver *simp)
   return result;
 }
 
-static bool SIM_beginsAndEndsWithCRLF(const uint8_t *msg)
+static bool SIM_beginsAndEndsWithCRLF(const char *msg)
 {
   bool result = false;
 
@@ -123,7 +131,7 @@ static bool SIM_beginsAndEndsWithCRLF(const uint8_t *msg)
   if (length < 2*strlen(CRLF))
     return false;
 
-  if (('r' == msg[0]) && 
+  if (('\r' == msg[0]) && 
       ('\n' == msg[1]) &&
       ('\r' == msg[length - 2]) && 
       ('\n' == msg[length - 1])) {
@@ -133,7 +141,7 @@ static bool SIM_beginsAndEndsWithCRLF(const uint8_t *msg)
   return result;
 }
 
-static bool SIM_notifyUrcListener(uint8_t urc[])
+static bool SIM_notifyUrcListener(char urc[])
 {
   bool result = false;
 #if 0
@@ -157,13 +165,27 @@ static bool SIM_notifyUrcListener(uint8_t urc[])
 
 static bool SIM_checkAndProcessUrc(Sim8xxDriver *simp)
 {
+#if 0
   simp->urc = simp->rxbuf + simp->atlength;
   simp->urclength = 0;
+#endif
+  char *start = simp->rxbuf + simp->atlength;
+  simp->urc = strstr(start, CRLF);
+  if (!simp->urc)
+    return false;
+
+  char *end = strstr(simp->urc + strlen(CRLF), CRLF);  
+  if (!end)
+    return false;
+
+  end += strlen(CRLF);
+  char c = *end;
+  *end = '\0';
 
   bool result = false;
 
   if (SIM_beginsAndEndsWithCRLF(simp->urc)) {
-    simp->urclength = simp->rxlength - simp->atlength;
+    simp->urclength = strlen(simp->urc);
     if (SIM_notifyUrcListener(simp->urc))  {
       result = true;
     } else {
@@ -171,10 +193,10 @@ static bool SIM_checkAndProcessUrc(Sim8xxDriver *simp)
     }
   }
 
+  *end = c;
+
   return result;
 }
-
-
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
@@ -193,23 +215,29 @@ THD_FUNCTION(SIM_ReaderThread, arg)
     chMtxLock(&simp->rxlock);
     SIM_clearRxBuffer(simp);
 
-    eventmask_t evt = chEvtWaitAny(EVENT_MASK(7));
 
-    if (evt && EVENT_MASK(7)) {
-      eventflags_t flags = chEvtGetAndClearFlags(&serialListener);
-      if (flags & CHN_INPUT_AVAILABLE) {
-        msg_t c;
-        do {
-          c = chnGetTimeout(simp->config->sdp, TIME_MS2I(5));
-          if (c != STM_TIMEOUT)
-            simp->rxbuf[simp->rxlength] = (uint8_t)c;
-            ++simp->rxlength;
-        } while ((c != STM_TIMEOUT) && (simp->rxlength <= sizeof(simp->rxbuf)));
+    bool isAt = false;
+    bool isUrc = false;
+
+    while(!isAt && !isUrc) {
+      eventmask_t evt = chEvtWaitAny(EVENT_MASK(7));
+      if (evt && EVENT_MASK(7)) {
+        eventflags_t flags = chEvtGetAndClearFlags(&serialListener);
+        if (flags & CHN_INPUT_AVAILABLE) {
+          msg_t c;
+          do {
+            c = chnGetTimeout(simp->config->sdp, TIME_MS2I(20));
+            if (c != STM_TIMEOUT) {
+              simp->rxbuf[simp->rxlength] = (char)c;
+              ++simp->rxlength;
+            }
+          } while ((c != STM_TIMEOUT) && (simp->rxlength <= sizeof(simp->rxbuf)));
+        }
       }
-    }
 
-    bool isAt = SIM_checkAndProcessAtResponse(simp);
-    bool isUrc = SIM_checkAndProcessUrc(simp);
+      isAt = SIM_checkAndProcessAtResponse(simp);
+      isUrc = SIM_checkAndProcessUrc(simp);
+    }
 
     chMtxUnlock(&simp->rxlock);
 

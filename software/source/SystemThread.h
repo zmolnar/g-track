@@ -54,12 +54,12 @@ void SYS_IgnitionOff(void);
 /**
  * @brief Get the text representation of system modules actual state.
  */
-const uint8_t *SYS_GetStateString(void);
+const char *SYS_GetStateString(void);
 
 /**
  * @brief Get the text representation of the actual system module error code.
  */
-const uint8_t *SYS_GetErrorString(void);
+const char *SYS_GetErrorString(void);
 
 #endif /* SYSTEM_THREAD_H */
 

@@ -92,9 +92,9 @@ static bool SYS_disconnectModem(void)
   return (i <= MAX_TRIES);
 }
 
-static const uint8_t *SYS_getStateString(SYS_State_t state)
+static const char *SYS_getStateString(SYS_State_t state)
 {
-  static const uint8_t *const stateStrs[] = {
+  static const char *const stateStrs[] = {
       [SYS_STATE_INIT]     = "INIT",
       [SYS_STATE_PARKING]  = "PARKING",
       [SYS_STATE_RIDING]   = "RIDING",
@@ -107,7 +107,7 @@ static const uint8_t *SYS_getStateString(SYS_State_t state)
 
 static void SYS_logStateChange(SYS_State_t from, SYS_State_t to)
 {
-  uint8_t entry[32] = {0};
+  char entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s",
              SYS_getStateString(from), SYS_getStateString(to));
   LOG_Write(SYS_LOGFILE, entry);
@@ -302,14 +302,14 @@ void SYS_IgnitionOff(void)
   chSysUnlock();
 }
 
-const uint8_t *SYS_GetStateString(void)
+const char *SYS_GetStateString(void)
 {
   return SYS_getStateString(system.state);
 }
 
-const uint8_t *SYS_GetErrorString(void)
+const char *SYS_GetErrorString(void)
 {
-  static const uint8_t *const errorStrs[] = {
+  static const char *const errorStrs[] = {
       [SYS_ERR_NO_ERROR]        = "NO_ERROR",
       [SYS_ERR_MODEM_POWER_ON]  = "MODEM POWER ON",
       [SYS_ERR_MODEM_POWER_OFF] = "MODEM POWER OFF",

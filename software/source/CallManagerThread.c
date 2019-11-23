@@ -107,11 +107,12 @@ bool cpinReady = false;
 bool callReady = false;
 bool smsReady = false;
 #endif
-uint8_t urcbuf[512] = {0};
+char urcbuf[512] = {0};
 
 static void CLL_processUrc(void)
 {
-  const uint8_t *urc = SIM_GetUrcMessage(&SIM8D1);
+#if 0
+  const char *urc = SIM_GetUrcMessage(&SIM8D1);
   if (!urc) return;
 
   memset(urcbuf, 0, sizeof(urcbuf));
@@ -120,7 +121,6 @@ static void CLL_processUrc(void)
   SIM_ClearUrcMessage(&SIM8D1);
 
   LOG_Write("/urc.log", urcbuf);
-#if 0
   if (0 == strcasecmp(urcbuf, "\r\n+CPIN: READY\r\n"))
     cpinReady = true;
   else if (0 == strcasecmp(urcbuf, "\r\nCall Ready\r\n"))

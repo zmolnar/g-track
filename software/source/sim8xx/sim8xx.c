@@ -129,6 +129,10 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
     cmdp->status = SIM8XX_TIMEOUT;
   }
 
+  if (simp->atlength < strlen(simp->rxbuf)) {
+    volatile uint32_t i = 0;
+  }
+
   if (SIM8XX_WAITING_FOR_INPUT == cmdp->status) {
     chprintf((BaseSequentialStream *)simp->config->sdp, "%s\x1A", cmdp->data);
 
@@ -145,7 +149,7 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
         size_t length = simp->atlength;
         if (buflength <= length)
           length = buflength - 1;
-        uint8_t *buf = cmdp->response + strlen(cmdp->response);
+        char *buf = cmdp->response + strlen(cmdp->response);
         memcpy(buf, simp->at, length);
         buf[length] = '\0';
 
@@ -164,7 +168,7 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
   chMtxUnlock(&simp->lock);
 }
 
-size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length)
+size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, char *urc, size_t length)
 {
   chMtxLock(&simp->rxlock);
 
@@ -181,7 +185,20 @@ size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, uint8_t *urc, size_t length)
   return n;
 }
 
-Sim8xxCommandStatus_t SIM_GetCommandStatus(uint8_t *data)
+static char *strrstr(const char *str, const char *needle)
+{
+  char *prev = NULL;
+  char *next = strstr(str, needle);
+  
+  while(next) {
+    prev = next;
+    next = strstr(next + strlen(needle), needle);
+  }
+
+  return prev;
+}
+
+Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
 {
   size_t length = strlen(data);
 
@@ -192,11 +209,11 @@ Sim8xxCommandStatus_t SIM_GetCommandStatus(uint8_t *data)
     return SIM8XX_WAITING_FOR_INPUT;
 
   // Remove last CRLF
-  uint8_t *needle = strrstr(data, CRLF);
+  char *needle = strrstr(data, CRLF);
   if (!needle)
     return SIM8XX_INVALID_STATUS;
 
-  uint8_t *cr = needle;
+  char *cr = needle;
   *cr = '\0';
 
   // Search CRLF before the status

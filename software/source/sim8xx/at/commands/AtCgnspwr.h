@@ -33,12 +33,12 @@
 /**
  * 
  */
-bool AT_CgnspwrCreateOn(uint8_t buf[], size_t length);
+bool AT_CgnspwrCreateOn(char buf[], size_t length);
 
 /**
  * 
  */
-bool AT_CgnspwrCreateOff(uint8_t buf[], size_t length);
+bool AT_CgnspwrCreateOff(char buf[], size_t length);
 
 #endif /* AT_CGNSPWR_H */
 

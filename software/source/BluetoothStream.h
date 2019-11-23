@@ -16,7 +16,7 @@
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
 typedef struct Buffer_s {
-  uint8_t data[128];
+  char data[128];
   size_t end;
   size_t index;
   mutex_t lock;
@@ -26,7 +26,7 @@ typedef struct Buffer_s {
   _base_sequential_stream_data                                                \
   Buffer_t rx;                                                                \
   Buffer_t tx;                                                                \
-  const uint8_t *udata;                                                       \
+  const char *udata;                                                       \
   size_t ulength;                                                             \
   mutex_t readlock;                                                           \
   mutex_t writelock;                                                          \
@@ -58,7 +58,7 @@ typedef struct BluetoothStream_s {
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
 void BLS_ObjectInit(BluetoothStream_t *bsp);
-void BLS_ProcessRxData(BluetoothStream_t *bsp, const uint8_t *rxdata, size_t rxlength);
+void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength);
 void BLS_ClearTxBuffer(BluetoothStream_t *bsp);
 void BLS_NotifyWriter(BluetoothStream_t *bsp);
 void BLS_NotifyReader(BluetoothStream_t *bsp);

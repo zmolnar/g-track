@@ -77,9 +77,9 @@ static const ShellConfig BluetoothShellConfig = {
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static const uint8_t *BLT_getStateString(BLT_State_t state)
+static const char *BLT_getStateString(BLT_State_t state)
 {
-  static const uint8_t *const stateStrs[] = {
+  static const char *const stateStrs[] = {
       [BLT_STATE_INIT]         = "INIT",
       [BLT_STATE_DISABLED]     = "DISABLED",
       [BLT_STATE_CONNECTED]    = "CONNECTED",
@@ -92,7 +92,7 @@ static const uint8_t *BLT_getStateString(BLT_State_t state)
 
 static void BLT_logStateChange(BLT_State_t from, BLT_State_t to)
 {
-  uint8_t entry[32] = {0};
+  char entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s", BLT_getStateString(from), BLT_getStateString(to));
   LOG_Write(BLT_LOGFILE, entry);
 }
@@ -115,7 +115,7 @@ static bool BLT_powerOffDevice(void)
   return (SIM8XX_OK == bluetooth.cmd.status);
 }
 
-static bool BLT_setHost(const uint8_t *host)
+static bool BLT_setHost(const char *host)
 {
   SIM_CommandInit(&bluetooth.cmd);
   chsnprintf(bluetooth.cmd.request, sizeof(bluetooth.cmd.request),
@@ -125,7 +125,7 @@ static bool BLT_setHost(const uint8_t *host)
   return (SIM8XX_OK == bluetooth.cmd.status);
 }
 
-static bool BLT_setPin(const uint8_t *pin)
+static bool BLT_setPin(const char *pin)
 {
   SIM_CommandInit(&bluetooth.cmd);
   chsnprintf(bluetooth.cmd.request, sizeof(bluetooth.cmd.request),
@@ -141,16 +141,8 @@ static bool BLT_setupAndStart(void)
 
   if (BLT_setHost("gtrack")) {
     if (BLT_setPin("2019")) {
-      if (BLT_powerOnDevice()) {
-        result = true;
-      } else {
-        result = false;
-      }
-    } else {
-      result = false;
+      result = BLT_powerOnDevice();
     }
-  } else {
-    result = false;
   }
 
   return result;
@@ -239,7 +231,7 @@ static BLT_State_t BLT_procesUrcInDisconnectedState(void)
 {
   BLT_State_t state = BLT_STATE_DISCONNECTED;
 
-  uint8_t urc[512] = {0};
+  char urc[512] = {0};
   SIM_GetAndClearUrc(&SIM8D1, urc, sizeof(urc));
 
   if (URC_IsBtConnect(urc)) {
@@ -300,7 +292,7 @@ static BLT_State_t BLT_procesUrcInConnectedState(void)
 {
   BLT_State_t state = BLT_STATE_CONNECTED;
 
-  uint8_t urc[512] = {0};
+  char urc[512] = {0};
   SIM_GetAndClearUrc(&SIM8D1, urc, sizeof(urc));
 
   if (URC_IsBtSppData(urc)) {
@@ -320,7 +312,7 @@ static BLT_State_t BLT_procesUrcInConnectedState(void)
   return state;
 }
 
-static bool BLT_sendSppData(const uint8_t *data, size_t length)
+static bool BLT_sendSppData(const char *data, size_t length)
 {
   Sim8xxCommand *pcmd = &bluetooth.cmd;
   SIM_CommandInit(pcmd);
@@ -351,7 +343,7 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
       break;
     }
     case BLT_CMD_SEND_STREAM_DATA: {
-      uint8_t *data = bluetooth.stream.tx.data;
+      char *data = bluetooth.stream.tx.data;
       size_t length = bluetooth.stream.tx.end;
       if (BLT_sendSppData(data, length)) {
         BLS_ClearTxBuffer(&bluetooth.stream);
@@ -362,7 +354,7 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
       break;
     }
     case BLT_CMD_SEND_USER_DATA: {
-      const uint8_t *data = bluetooth.stream.udata;
+      const char *data = bluetooth.stream.udata;
       size_t length = bluetooth.stream.ulength;
       if (BLT_sendSppData(data, length)) {
         BLS_NotifyWriter(&bluetooth.stream);

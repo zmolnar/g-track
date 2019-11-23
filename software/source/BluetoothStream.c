@@ -46,7 +46,7 @@ static void BLS_initBuffer(Buffer_t *bp)
   chMtxObjectInit(&bp->lock);
 }
 
-static uint8_t *BLS_getFirstFree(Buffer_t *bp)
+static char *BLS_getFirstFree(Buffer_t *bp)
 {
   return bp->data + bp->end;
 }
@@ -62,7 +62,7 @@ static size_t BLS_write(void *ip, const uint8_t *bp, size_t n) {
 
   chMtxLock(&bsp->writelock);
 
-  bsp->udata = bp;
+  bsp->udata = (const char *)bp;
   bsp->ulength = n;
 
   BLT_SendUserData();
@@ -210,12 +210,12 @@ void BLS_ObjectInit(BluetoothStream_t *bsp)
     chVTObjectInit(&bsp->txtimer);    
 }
 
-void BLS_ProcessRxData(BluetoothStream_t *bsp, const uint8_t *rxdata, size_t rxlength)
+void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength)
 {
   Buffer_t *rxbuf = &bsp->rx;
   chMtxLock(&rxbuf->lock);
 
-  uint8_t *begin = BLS_getFirstFree(rxbuf);
+  char *begin = BLS_getFirstFree(rxbuf);
   size_t length = BLS_getFreeLength(rxbuf);
 
   if (rxlength < length)

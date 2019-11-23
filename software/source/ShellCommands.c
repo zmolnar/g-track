@@ -42,7 +42,7 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void SHC_GetSystemStatus(BaseSequentialStream *chp, int argc, uint8_t *argv[])
+void SHC_GetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[])
 {
   (void)argc;
   (void)argv;

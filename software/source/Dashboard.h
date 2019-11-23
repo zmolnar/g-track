@@ -24,7 +24,7 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef struct {
-  uint8_t date[18 + 1];
+  char date[18 + 1];
   double latitude;
   double longitude;
   double altitude;

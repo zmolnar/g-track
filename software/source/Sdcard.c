@@ -61,7 +61,7 @@ static MMCConfig mmccfg = {
 };
 
 /* Generic large buffer.*/
-static uint8_t fbuff[1024];
+static char fbuff[1024];
 
 MMCDriver MMCD1;
 
@@ -74,13 +74,13 @@ static mutex_t sdcardMutex;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static FRESULT SDC_scanFiles(BaseSequentialStream *chp, uint8_t *path)
+static FRESULT SDC_scanFiles(BaseSequentialStream *chp, char *path)
 {
   static FILINFO fno;
   FRESULT res;
   DIR dir;
   size_t i;
-  uint8_t *fn;
+  char *fn;
 
   res = f_opendir(&dir, path);
   if (res == FR_OK) {
@@ -160,7 +160,7 @@ void SDC_Unmount(void)
   SDC_Unlock();
 }
 
-void SDC_Tree(BaseSequentialStream *chp, int argc, uint8_t *argv[])
+void SDC_Tree(BaseSequentialStream *chp, int argc, char *argv[])
 {
   SDC_Lock();
   FRESULT err;
@@ -191,7 +191,7 @@ void SDC_Tree(BaseSequentialStream *chp, int argc, uint8_t *argv[])
            (uint32_t)SDC_FS.csize,
            clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE);
   fbuff[0] = 0;
-  SDC_scanFiles(chp, (uint8_t *)fbuff);
+  SDC_scanFiles(chp, (char *)fbuff);
   SDC_Unlock();
 }
 

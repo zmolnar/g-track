@@ -37,7 +37,7 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-bool URC_IsBtUrc(const uint8_t str[])
+bool URC_IsBtUrc(const char str[])
 {
     bool result = (URC_IsBtConnect(str) ||
                    URC_IsBtConnecting(str) || 
@@ -47,21 +47,21 @@ bool URC_IsBtUrc(const uint8_t str[])
     return result;
 }
 
-bool URC_IsBtConnect(const uint8_t str[])
+bool URC_IsBtConnect(const char str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTCONNECT:");
 }
 
-bool URC_BtConnectParse(uint8_t str[], URC_BtConnect_t *urc)
+bool URC_BtConnectParse(char str[], URC_BtConnect_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtConnect(str))
     return false;
 
-  const uint8_t *end = str + strlen(str);
+  const char *end = str + strlen(str);
 
-  uint8_t *start = strchr(str, ' ');
+  char *start = strchr(str, ' ');
   if (!start)
     return false;
 
@@ -96,21 +96,21 @@ bool URC_BtConnectParse(uint8_t str[], URC_BtConnect_t *urc)
   return true;
 }
 
-bool URC_IsBtDisconnect(const uint8_t str[])
+bool URC_IsBtDisconnect(const char str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTDISCONN:");
 }
 
-bool URC_BtDisconnectParse(uint8_t str[], URC_BtDisconnect_t *urc)
+bool URC_BtDisconnectParse(char str[], URC_BtDisconnect_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtDisconnect(str))
     return false;
 
-  const uint8_t *end = str + strlen(str);
+  const char *end = str + strlen(str);
 
-  uint8_t *start = strchr(str, ' ');
+  char *start = strchr(str, ' ');
   if (!start)
     return false;
 
@@ -140,21 +140,21 @@ bool URC_BtDisconnectParse(uint8_t str[], URC_BtDisconnect_t *urc)
   return true;
 }
 
-bool URC_IsBtConnecting(const uint8_t str[])
+bool URC_IsBtConnecting(const char str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTCONNECTING:");
 }
 
-bool URC_BtConnectingParse(uint8_t str[], URC_BtConnecting_t *urc)
+bool URC_BtConnectingParse(char str[], URC_BtConnecting_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtConnecting(str))
     return false;
 
-  const uint8_t *end = str + strlen(str);
+  const char *end = str + strlen(str);
 
-  uint8_t *start = strchr(str, '"');
+  char *start = strchr(str, '"');
   if (!start)
     return false;
 
@@ -179,21 +179,21 @@ bool URC_BtConnectingParse(uint8_t str[], URC_BtConnecting_t *urc)
   return true;
 }
 
-bool URC_IsBtSppData(const uint8_t str[])
+bool URC_IsBtSppData(const char str[])
 {
   return UTL_BeginsWith(str, "\r\n+BTSPPDATA:");
 }
 
-bool URC_BtSppDataParse(uint8_t str[], URC_BtSppData_t *urc)
+bool URC_BtSppDataParse(char str[], URC_BtSppData_t *urc)
 {
   memset(urc, 0, sizeof(*urc));
 
   if (!URC_IsBtSppData(str))
     return false;
 
-  const uint8_t *end = str + strlen(str);
+  const char *end = str + strlen(str);
 
-  uint8_t *start = strchr(str, ' ');
+  char *start = strchr(str, ' ');
   if (!start)
     return false;
 
