@@ -70,54 +70,55 @@ THD_FUNCTION(SIM_ReaderThread, arg)
 
   while (true) {
     chMtxLock(&simp->rxlock);
-    
+
     memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
     simp->rxlength = 0;
 
     SIM_ParserReset(&simp->parser);
 
-    eventmask_t evt = chEvtWaitAny(EVENT_MASK(7));
-
-    if (evt && EVENT_MASK(7)) {
-      eventflags_t flags = chEvtGetAndClearFlags(&serialListener);
-      if (flags & CHN_INPUT_AVAILABLE) {
-        msg_t c;
-        do {
-          c = chnGetTimeout(simp->config->sdp, TIME_MS2I(20));
-          if (c != STM_TIMEOUT) {
-            simp->rxbuf[simp->rxlength] = (char)c;
-            ++simp->rxlength;
-          }
-        } while ((c != STM_TIMEOUT) && (simp->rxlength <= sizeof(simp->rxbuf)));
-      }
-
-      SIM_ParserProcessInput(&simp->parser, simp->rxbuf);
-
-      bool isAt = false;
-      if (SIM_ParserIsAtMessage(&simp->parser)) {
-        if (simp->writer) {
-          chThdResume(&simp->writer, MSG_OK);
-          isAt = true;
+    bool isAt  = false;
+    bool isUrc = false;
+    while (!isAt && !isUrc) {
+      eventmask_t evt = chEvtWaitAny(EVENT_MASK(7));
+      if (evt && EVENT_MASK(7)) {
+        eventflags_t flags = chEvtGetAndClearFlags(&serialListener);
+        if (flags & CHN_INPUT_AVAILABLE) {
+          msg_t c;
+          do {
+            c = chnGetTimeout(simp->config->sdp, TIME_MS2I(5));
+            if (c != STM_TIMEOUT) {
+              simp->rxbuf[simp->rxlength] = (char)c;
+              ++simp->rxlength;
+            }
+          } while ((c != STM_TIMEOUT) && (simp->rxlength <= sizeof(simp->rxbuf)));
         }
+
+        SIM_ParserProcessInput(&simp->parser, simp->rxbuf);
+
+        isAt  = SIM_ParserIsAtMessage(&simp->parser);
+        isUrc = SIM_ParserIsUrc(&simp->parser);
       }
+    }
 
-      bool isUrc = false;
-      if (SIM_ParserIsUrc(&simp->parser)) {
-        isUrc = SIM_notifyUrcHanler(&simp->parser);
-      }
+    if (isAt && simp->writer) {
+      chThdResume(&simp->writer, MSG_OK);
+    }
 
-      chMtxUnlock(&simp->rxlock);
+    if (isUrc) {
+      SIM_notifyUrcHanler(&simp->parser);
+    }
 
-#if 0
+    chMtxUnlock(&simp->rxlock);
+
+#if 1
     LOG_Write(SIM_READER_LOGFILE, simp->rxbuf);
 #endif
 
-      if (isAt)
-        chSemWait(&simp->atSync);
+    if (isAt)
+      chSemWait(&simp->atSync);
 
-      if (isUrc)
-        chSemWait(&simp->urcSync);
-    }
+    if (isUrc)
+      chSemWait(&simp->urcSync);
   }
 }
 

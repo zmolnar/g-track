@@ -215,15 +215,6 @@ void test_aturcparser_TestStatusPROCEEDING(void)
 
 void test_aturcparser_TestStatusWAIT_USER_DATA(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r> ";
-    
-    SIM_ParserProcessInput(&parser, input);
-    
-    TEST_ASSERT_EQUAL(SIM8XX_WAITING_FOR_INPUT, SIM_ParserGetStatus(&parser));
-}
-
-void test_aturcparser_TestStatusWAIT_USER_DATA2(void)
-{
     char input[] = "AT+BTSPPSEND\r> ";
     
     SIM_ParserProcessInput(&parser, input);
