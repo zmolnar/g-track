@@ -215,7 +215,7 @@ void test_aturcparser_TestStatusPROCEEDING(void)
 
 void test_aturcparser_TestStatusWAIT_USER_DATA(void)
 {
-    char input[] = "AT+BTSPPSEND\r> ";
+    char input[] = "AT+BTSPPSEND\r\r\n> ";
     
     SIM_ParserProcessInput(&parser, input);
     
