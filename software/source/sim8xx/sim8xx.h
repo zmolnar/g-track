@@ -12,11 +12,11 @@
 /*****************************************************************************/
 #include "ch.h"
 #include "hal.h"
+#include "Parser.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define CRLF    "\r\n"
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -50,29 +50,8 @@ typedef struct Sim8xxDriver {
   semaphore_t urcSync;
   char rxbuf[512];
   size_t rxlength;
-  char *at;
-  size_t atlength;
-  char *urc;
-  size_t urclength;
+  SIM_Parser_t parser;
 } Sim8xxDriver;
-
-typedef enum {
-  SIM8XX_OK,
-  SIM8XX_CONNECT,
-  SIM8XX_RING,
-  SIM8XX_NO_CARRIER,
-  SIM8XX_ERROR,
-  SIM8XX_NO_DIALTONE,
-  SIM8XX_BUSY,
-  SIM8XX_NO_ANSWER,
-  SIM8XX_PROCEEDING,
-  SIM8XX_TIMEOUT,
-  SIM8XX_WAITING_FOR_INPUT,
-  SIM8XX_SEND_OK,
-  SIM8XX_SEND_FAIL,
-  SIM8XX_BUFFER_OVERFLOW,
-  SIM8XX_INVALID_STATUS
-} Sim8xxCommandStatus_t;
 
 typedef struct Sim8xxCommand {
   char request[128];

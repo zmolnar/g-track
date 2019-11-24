@@ -72,10 +72,7 @@ void SIM_Init(Sim8xxDriver *simp)
   chSemObjectInit(&simp->urcSync, 0);
   memset(simp->rxbuf, 0, sizeof(simp->rxbuf));
   simp->rxlength = 0;
-  simp->at = simp->rxbuf;
-  simp->atlength = 0;
-  simp->urc = simp->rxbuf;
-  simp->urclength = 0;
+  SIM_ParserReset(&simp->parser);
 }
 
 void SIM_Start(Sim8xxDriver *simp, Sim8xxConfig *cfgp)
@@ -115,22 +112,12 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
 
   if (MSG_OK == msg) {
     chMtxLock(&simp->rxlock);
-
-    size_t length = simp->atlength;
-    if (sizeof(cmdp->response) <= length)
-      length = sizeof(cmdp->response) - 1;
-    memcpy(cmdp->response, simp->at, length);
-    cmdp->response[length] = '\0';
-    
+    SIM_ParserGetAtMessage(&simp->parser, cmdp->response, sizeof(cmdp->response));  
+    cmdp->status = SIM_ParserGetStatus(&simp->parser);
     chMtxUnlock(&simp->rxlock);
     chSemSignal(&simp->atSync);
-    cmdp->status = SIM_GetCommandStatus(cmdp->response);
   } else {
     cmdp->status = SIM8XX_TIMEOUT;
-  }
-
-  if (simp->atlength < strlen(simp->rxbuf)) {
-    volatile uint32_t i = 0;
   }
 
   if (SIM8XX_WAITING_FOR_INPUT == cmdp->status) {
@@ -145,17 +132,12 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
       size_t buflength = sizeof(cmdp->response) - strlen(cmdp->response);
       if (buflength) {
         chMtxLock(&simp->rxlock);
-        
-        size_t length = simp->atlength;
-        if (buflength <= length)
-          length = buflength - 1;
         char *buf = cmdp->response + strlen(cmdp->response);
-        memcpy(buf, simp->at, length);
-        buf[length] = '\0';
-
+        size_t length = sizeof(cmdp->response) - strlen(cmdp->response);
+        SIM_ParserGetAtMessage(&simp->parser, buf, length);
+        cmdp->status = SIM_ParserGetStatus(&simp->parser);
         chMtxUnlock(&simp->rxlock);
         chSemSignal(&simp->atSync);
-        cmdp->status = SIM_GetCommandStatus(cmdp->response);
       } else {
         cmdp->status = SIM8XX_BUFFER_OVERFLOW;
       }
@@ -171,90 +153,11 @@ void SIM_ExecuteCommand(Sim8xxDriver *simp, Sim8xxCommand *cmdp)
 size_t SIM_GetAndClearUrc(Sim8xxDriver *simp, char *urc, size_t length)
 {
   chMtxLock(&simp->rxlock);
-
-  size_t n = simp->urclength;
-  if (length <= n)
-    n = length - 1;
-
-  memcpy(urc, simp->urc, n);
-  urc[n] = '\0';
-
+  SIM_ParserGetUrc(&simp->parser, urc, length);
   chMtxUnlock(&simp->rxlock);
   chSemSignal(&simp->urcSync);
 
-  return n;
-}
-
-static char *strrstr(const char *str, const char *needle)
-{
-  char *prev = NULL;
-  char *next = strstr(str, needle);
-  
-  while(next) {
-    prev = next;
-    next = strstr(next + strlen(needle), needle);
-  }
-
-  return prev;
-}
-
-Sim8xxCommandStatus_t SIM_GetCommandStatus(char *data)
-{
-  size_t length = strlen(data);
-
-  if (length < strlen(CRLF))
-    return SIM8XX_INVALID_STATUS;
-
-  if (('>' == data[length-2]) && (' ' == data[length-1]))
-    return SIM8XX_WAITING_FOR_INPUT;
-
-  // Remove last CRLF
-  char *needle = strrstr(data, CRLF);
-  if (!needle)
-    return SIM8XX_INVALID_STATUS;
-
-  char *cr = needle;
-  *cr = '\0';
-
-  // Search CRLF before the status
-  needle = strrstr(data, CRLF);
-  if (!needle) {
-    *cr = '\r';
-    return SIM8XX_INVALID_STATUS;
-  }
-
-  needle += strlen(CRLF);
-
-  Sim8xxCommandStatus_t status;
-
-  if (0 == strcmp(needle, "OK"))
-    status = SIM8XX_OK;
-  else if (0 == strcmp(needle, "CONNECT"))
-    status = SIM8XX_CONNECT;
-  else if (0 == strcmp(needle, "SEND OK"))
-    status = SIM8XX_SEND_OK;
-  else if (0 == strcmp(needle, "SEND FAIL"))
-    status = SIM8XX_SEND_FAIL;
-  else if (0 == strcmp(needle, "RING"))
-    status = SIM8XX_RING;
-  else if (0 == strcmp(needle, "NO CARRIER"))
-    status = SIM8XX_NO_CARRIER;
-  else if (0 == strcmp(needle, "ERROR"))
-    status = SIM8XX_ERROR;
-  else if (0 == strcmp(needle, "NO DIALTONE"))
-    status = SIM8XX_NO_DIALTONE;
-  else if (0 == strcmp(needle, "BUSY"))
-    status = SIM8XX_BUSY;
-  else if (0 == strcmp(needle, "NO ANSWER"))
-    status = SIM8XX_NO_ANSWER;
-  else if (0 == strcmp(needle, "PROCEEDING"))
-    status = SIM8XX_PROCEEDING;
-  else
-    status = SIM8XX_INVALID_STATUS;
-
-  *cr = '\r';
-
-  return status;
+  return strlen(urc);
 }
 
 bool SIM_IsConnected(Sim8xxDriver *simp)

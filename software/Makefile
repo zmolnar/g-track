@@ -138,6 +138,7 @@ CSRC = $(ALLCSRC) \
        source/BluetoothShell.c \
        source/BluetoothStream.c \
        $(SIM8XX)/utils/Utils.c \
+       $(SIM8XX)/Parser.c \
        $(SIM8XX)/sim8xx.c \
        $(ATLIB)/commands/AtBtpower.c \
        $(ATLIB)/commands/AtCgnspwr.c \
