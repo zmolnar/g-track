@@ -34,37 +34,6 @@
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-#if defined(TEST)
-static void printParser(SIM_Parser_t *parser)
-{
-    static const char *state[] = {
-      [START]             = "START",   
-      [ENTER_AT]          = "ENTER_AT",      
-      [AT]                = "AT",
-      [ENTER_STATUS]      = "ENTER_STATUS",          
-      [STATUS]            = "STATUS",    
-      [EXIT_STATUS]       = "EXIT_STATUS",         
-      [USER_INPUT]        = "USER_INPUT",        
-      [ENTER_SEND_STATUS] = "ENTER_SEND_STATUS",               
-      [SEND_STATUS]       = "SEND_STATUS",         
-      [EXIT_SEND_STATUS]  = "EXIT_SEND_STATUS",              
-      [ENTER_URC]         = "ENTER_URC",       
-      [URC]               = "URC", 
-      [EXIT_URC]          = "EXIT_URC",      
-      [FINISHED]          = "FINISHED",      
-      [ERROR]             = "ERROR",   
-    };
-    
-    printf("state:   %s\n", state[parser->state]);
-    printf("input:       %s\n", parser->input);
-    printf("atstart:     %d\n", parser->atstart);
-    printf("statusstart: %d\n", parser->statusstart);
-    printf("statusend:   %d\n", parser->statusend);
-    printf("atend:       %d\n", parser->atend);
-    printf("urcstart:    %d\n", parser->urcstart);
-    printf("urcend:      %d\n\n", parser->urcend);
-}
-#endif
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
@@ -82,7 +51,7 @@ void SIM_ParserProcessInput(SIM_Parser_t *parser, const char *input)
   parser->state = START;
 
   size_t i = 0;
-  while ((FINISHED != parser->state) && (ERROR != parser->state)) {
+  while (FINISHED != parser->state) {
     char c = parser->input[i];
 
     switch (parser->state) {
@@ -294,7 +263,7 @@ void SIM_ParserProcessInput(SIM_Parser_t *parser, const char *input)
     }
 
     default: {
-      parser->state = ERROR;
+      parser->state = FINISHED;
       break;
     }
     }

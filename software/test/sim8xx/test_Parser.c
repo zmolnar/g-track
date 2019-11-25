@@ -17,6 +17,25 @@ void tearDown(void)
 
 static void printParser(SIM_Parser_t *parser)
 {
+    static const char *state[] = {
+      [START]             = "START",   
+      [ENTER_AT]          = "ENTER_AT",      
+      [AT]                = "AT",
+      [ENTER_STATUS]      = "ENTER_STATUS",          
+      [STATUS]            = "STATUS",    
+      [EXIT_STATUS]       = "EXIT_STATUS",         
+      [USER_INPUT]        = "USER_INPUT",        
+      [ENTER_SEND_STATUS] = "ENTER_SEND_STATUS",               
+      [SEND_STATUS]       = "SEND_STATUS",         
+      [EXIT_SEND_STATUS]  = "EXIT_SEND_STATUS",              
+      [ENTER_URC]         = "ENTER_URC",       
+      [URC]               = "URC", 
+      [EXIT_URC]          = "EXIT_URC",      
+      [FINISHED]          = "FINISHED",    
+    };
+    
+    printf("state:       %s\n", state[parser->state]);
+    printf("input:       %s\n", parser->input);
     printf("atstart:     %d\n", parser->atstart);
     printf("statusstart: %d\n", parser->statusstart);
     printf("statusend:   %d\n", parser->statusend);
@@ -321,6 +340,27 @@ void test_ParserTestStatusPROCEEDING(void)
     TEST_ASSERT_EQUAL(SIM8XX_PROCEEDING, SIM_ParserGetStatus(&parser));
 }
 
+void test_ParserInvalidStatus(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\r\nNOTASTATUS\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    TEST_ASSERT_EQUAL(SIM8XX_INVALID_STATUS, SIM_ParserGetStatus(&parser));
+}
+
+void test_ParserInvalidStatus_IsAt(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\r\nNOTASTATUS\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    printParser(&parser);
+
+    TEST_ASSERT_FALSE(SIM_ParserIsUrc(&parser));
+    TEST_ASSERT_FALSE(SIM_ParserIsAtMessage(&parser));
+}
+
 void test_ParserTestStatusWAIT_USER_DATA(void)
 {
     char input[] = "AT+BTSPPSEND\r\r\n> ";
@@ -336,8 +376,6 @@ void test_ParserTestStatusWAIT_USER_DATA_isAt(void)
     
     SIM_ParserProcessInput(&parser, input);
     
-    printParser(&parser);
-
     TEST_ASSERT(SIM_ParserIsAtMessage(&parser));
     TEST_ASSERT_FALSE(SIM_ParserIsUrc(&parser));
 }

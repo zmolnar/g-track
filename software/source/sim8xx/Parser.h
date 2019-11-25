@@ -39,7 +39,6 @@ typedef enum {
   URC,
   EXIT_URC,
   FINISHED,
-  ERROR,
 } SIM_ParserState_t;
 
 typedef enum {
