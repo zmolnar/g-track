@@ -15,6 +15,17 @@ void tearDown(void)
 {
 }
 
+static void printParser(SIM_Parser_t *parser)
+{
+    printf("atstart:     %d\n", parser->atstart);
+    printf("statusstart: %d\n", parser->statusstart);
+    printf("statusend:   %d\n", parser->statusend);
+    printf("atend:       %d\n", parser->atend);
+    printf("urcstart:    %d\n", parser->urcstart);
+    printf("urcend:      %d\n\n", parser->urcend);
+}
+
+
 void test_ParserATonly(void)
 {
     char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n";
@@ -325,6 +336,8 @@ void test_ParserTestStatusWAIT_USER_DATA_isAt(void)
     
     SIM_ParserProcessInput(&parser, input);
     
+    printParser(&parser);
+
     TEST_ASSERT(SIM_ParserIsAtMessage(&parser));
     TEST_ASSERT_FALSE(SIM_ParserIsUrc(&parser));
 }

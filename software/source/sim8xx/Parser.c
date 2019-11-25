@@ -9,6 +9,8 @@
 #include "Parser.h"
 #include <string.h>
 
+#include <stdio.h>
+
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
@@ -32,6 +34,37 @@
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
+#if defined(TEST)
+static void printParser(SIM_Parser_t *parser)
+{
+    static const char *state[] = {
+      [START]             = "START",   
+      [ENTER_AT]          = "ENTER_AT",      
+      [AT]                = "AT",
+      [ENTER_STATUS]      = "ENTER_STATUS",          
+      [STATUS]            = "STATUS",    
+      [EXIT_STATUS]       = "EXIT_STATUS",         
+      [USER_INPUT]        = "USER_INPUT",        
+      [ENTER_SEND_STATUS] = "ENTER_SEND_STATUS",               
+      [SEND_STATUS]       = "SEND_STATUS",         
+      [EXIT_SEND_STATUS]  = "EXIT_SEND_STATUS",              
+      [ENTER_URC]         = "ENTER_URC",       
+      [URC]               = "URC", 
+      [EXIT_URC]          = "EXIT_URC",      
+      [FINISHED]          = "FINISHED",      
+      [ERROR]             = "ERROR",   
+    };
+    
+    printf("state:   %s\n", state[parser->state]);
+    printf("input:       %s\n", parser->input);
+    printf("atstart:     %d\n", parser->atstart);
+    printf("statusstart: %d\n", parser->statusstart);
+    printf("statusend:   %d\n", parser->statusend);
+    printf("atend:       %d\n", parser->atend);
+    printf("urcstart:    %d\n", parser->urcstart);
+    printf("urcend:      %d\n\n", parser->urcend);
+}
+#endif
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
@@ -43,167 +76,225 @@ void SIM_ParserReset(SIM_Parser_t *parser)
 
 void SIM_ParserProcessInput(SIM_Parser_t *parser, const char *input)
 {
+  SIM_ParserReset(parser);
+
   parser->input = input;
-  parser->state = SIM_PARSER_BEGIN;
+  parser->state = START;
 
   size_t i = 0;
-  while (SIM_PARSER_FINISHED != parser->state)
-  {
-    char c = input[i];
+  while ((FINISHED != parser->state) && (ERROR != parser->state)) {
+    char c = parser->input[i];
 
-    switch (parser->state)
-    {
+    switch (parser->state) {
 
-    case SIM_PARSER_BEGIN:
-    {
-      switch (c)
-      {
-      case 'A':
-      case 'a':
-      {
-        parser->state = SIM_PARSER_ENTER_AT;
-        break;
-      }
-      case '\r':
-      {
-        parser->state = SIM_PARSER_ENTER_URC;
-        break;
-      }
-      case '\0': {
-        parser->state = SIM_PARSER_FINISHED;
-        break;
-      }
-      default:
-      {
-        parser->state = SIM_PARSER_BEGIN;
-        break;
-      }
+    case START: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        switch(c) {
+          case 'A':
+          case 'a': {
+            parser->state = ENTER_AT;
+            break;
+          }
+          case '\r': {
+            parser->state = ENTER_URC;
+            break;
+          }
+          default: {
+            parser->state = USER_INPUT;
+            parser->atstart = i;
+            break;
+          }
+        }
       }
       break;
     }
 
-    case SIM_PARSER_ENTER_AT: {
-      if (('T' == c) || ('t' == c)) {
-        parser->state = SIM_PARSER_AT;
-        parser->atstart = i - 1;
+    case ENTER_AT: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        switch(c) {
+          case 'T':
+          case 't': {
+            parser->state = AT;
+            parser->atstart = i - 1;
+            break;
+          }
+          default: {
+            parser->state = USER_INPUT;
+            break;
+          }
+        }
+      }
+      break;
+    }
+
+    case AT: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if ('\r' == c) {
+          parser->state = ENTER_STATUS;
+        } else {
+          parser->state = AT;
+        }
+      }
+      break;
+    }
+
+    case ENTER_STATUS: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        switch(c) {
+          case '\n': {
+            parser->state = STATUS;
+            parser->statusstart = i + 1;
+            break;
+          }
+          case '\r': {
+            parser->state = ENTER_STATUS;
+            break;
+          }
+          default: {
+            parser->state = AT;
+            break;
+          }
+        }
+      }
+      break;
+    }
+
+    case STATUS: {
+      if ('\r' == c) {
+        parser->state = EXIT_STATUS;
+        parser->statusend = i;
       } else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
-      }
-      else 
-        parser->state= SIM_PARSER_BEGIN;
-
-      break;
-    }
-
-    case SIM_PARSER_AT: {
-      if ('\r' == c)
-        parser->state= SIM_PARSER_ENTER_STATUS;
-      else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
-      }
-      break;
-    }
-
-    case SIM_PARSER_ENTER_STATUS: {
-      if ('\n' == c) {
-        parser->state = SIM_PARSER_STATUS;
-        parser->statusstart = i + 1;
-      } else if ('>' == c) {
-        parser->state = SIM_PARSER_ENTER_WAIT_USER_INPUT;
-      }else if ('\r' == c) {
-        parser->state = SIM_PARSER_ENTER_STATUS;
-      } else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
-      }
-      else 
-        parser->state = SIM_PARSER_AT;
-
-      break;
-    }
-
-    case SIM_PARSER_STATUS: {
-      if ('\r' == c)
-        parser->state = SIM_PARSER_EXIT_AT;
-      else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
-      }
-      break;
-    }
-
-    case SIM_PARSER_ENTER_WAIT_USER_INPUT: {
-      if (' ' == c)
-        parser->state = SIM_PARSER_USER_INPUT;
-      else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
-      }
-      else 
-        parser->state = SIM_PARSER_AT;
-      break;
-    }
-
-    case SIM_PARSER_USER_INPUT: {
-      if ('\r' == c)
-        parser->state = SIM_PARSER_EXIT_AT;
-      else if ('\0' == c) {
-        parser->statusstart = i - 2;
+        parser->state = FINISHED;
         parser->statusend = i;
         parser->atend = i;
-        parser->state = SIM_PARSER_FINISHED;
+      } else {
+        parser->state = STATUS;
       }
       break;
     }
 
-    case SIM_PARSER_EXIT_AT: {
-      if ('\n' == c) {
-        parser->statusend = i - 1;
-        if (SIM_ParserIsValidStatus(parser)) {
-          parser->state = SIM_PARSER_BEGIN;
+    case EXIT_STATUS: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if (('\n' == c) && SIM_ParserIsValidStatus(parser)) {
+          parser->state = START;
           parser->atend = i + 1;
         } else {
+          parser->state = AT;
+          parser->statusstart = 0;
           parser->statusend = 0;
-          parser->state = SIM_PARSER_AT; 
         }
-      } else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
-      }
-      else
-        parser->state = SIM_PARSER_STATUS;
-      break;
-    }
-
-    case SIM_PARSER_ENTER_URC: {
-      if ('\n' == c) {
-        parser->state = SIM_PARSER_URC;
-        parser->urcstart = i - 1;
-      } else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
-      }
-      else 
-        parser->state = SIM_PARSER_BEGIN;
-      break;
-    }
-
-    case SIM_PARSER_URC: {
-      if ('\r' == c)
-        parser->state = SIM_PARSER_EXIT_URC;
-      else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
       }
       break;
     }
 
-    case SIM_PARSER_EXIT_URC: {
-      if ('\n' == c) {
-        parser->state = SIM_PARSER_BEGIN;
-        parser->urcend = i + 1;
-      } else if ('\0' == c) {
-        parser->state = SIM_PARSER_FINISHED;
+    case USER_INPUT: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if ('\r' == c) {
+          parser->state = ENTER_SEND_STATUS;
+        } else {
+          parser->state = USER_INPUT;
+        }
+      }
+      break;
+    }
+
+    case ENTER_SEND_STATUS: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if ('\n' == c) {
+          parser->state = SEND_STATUS;
+          parser->statusstart = i + 1;
+        } else {
+          parser->state = USER_INPUT;
+        }
+      }
+      break;
+    }
+
+    case SEND_STATUS: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if ('\r' == c) {
+          parser->state = EXIT_SEND_STATUS;
+          parser->statusend = i;
+        } else {
+          parser->state = SEND_STATUS;
+        }
+      }
+      break;
+    }
+
+    case EXIT_SEND_STATUS: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if (('\n' == c) && SIM_ParserIsValidStatus(parser)) {
+            parser->state = START;
+            parser->atend = i + 1;
+        } else {
+          parser->state = USER_INPUT;
+        }
+      }
+      break;
+    }
+
+    case ENTER_URC: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if ('\n' == c) {
+          parser->state = URC;
+          parser->urcstart = i - 1;
+        } else {
+          parser->state = USER_INPUT;
+        }
+      }
+      break;
+    }
+
+    case URC: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if ('\r' == c) {
+          parser->state = EXIT_URC;
+        } else {
+          parser->state = URC;
+        }
+      }
+      break;
+    }
+
+    case EXIT_URC: {
+      if ('\0' == c) {
+        parser->state = FINISHED;
+      } else {
+        if ('\n' == c) {
+          parser->state = START;
+          parser->urcend = i + 1;
+        } else {
+          parser->state = URC;
+        }
       }
       break;
     }
 
     default: {
-      parser->state = SIM_PARSER_FINISHED;
+      parser->state = ERROR;
       break;
     }
     }

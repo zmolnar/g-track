@@ -25,19 +25,21 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef enum {
-  SIM_PARSER_BEGIN,
-  SIM_PARSER_ENTER_AT,
-  SIM_PARSER_AT,
-  SIM_PARSER_ENTER_WAIT_USER_INPUT,
-  SIM_PARSER_USER_INPUT,
-  SIM_PARSER_ENTER_STATUS,
-  SIM_PARSER_STATUS,
-  SIM_PARSER_EXIT_AT,
-  SIM_PARSER_INVALID,
-  SIM_PARSER_ENTER_URC,
-  SIM_PARSER_URC,
-  SIM_PARSER_EXIT_URC,
-  SIM_PARSER_FINISHED,
+  START,
+  ENTER_AT,
+  AT,
+  ENTER_STATUS,
+  STATUS,
+  EXIT_STATUS,
+  USER_INPUT,
+  ENTER_SEND_STATUS,
+  SEND_STATUS,
+  EXIT_SEND_STATUS,
+  ENTER_URC,
+  URC,
+  EXIT_URC,
+  FINISHED,
+  ERROR,
 } SIM_ParserState_t;
 
 typedef enum {
