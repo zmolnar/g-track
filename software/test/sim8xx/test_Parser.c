@@ -5,6 +5,7 @@
 
 static SIM_Parser_t parser;
 
+
 void setUp(void)
 {
     memset(&parser, 0, sizeof(parser));
@@ -14,7 +15,7 @@ void tearDown(void)
 {
 }
 
-void test_aturcparser_ATonly(void)
+void test_ParserATonly(void)
 {
     char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n";
     
@@ -28,7 +29,7 @@ void test_aturcparser_ATonly(void)
     TEST_ASSERT_EQUAL(0, parser.urcend);
 }
 
-void test_aturcparser_ATonlyIsAtMessage(void)
+void test_ParserATonlyIsAtMessage(void)
 {
     char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n";
 
@@ -38,7 +39,19 @@ void test_aturcparser_ATonlyIsAtMessage(void)
     TEST_ASSERT_FALSE(SIM_ParserIsUrc(&parser));
 }
 
-void test_aturcparser_URConly(void)
+void test_ParserGetAtMessage(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n";
+
+    SIM_ParserProcessInput(&parser, input);
+
+    char at[128] = {0};
+    SIM_ParserGetAtMessage(&parser, at, sizeof(at));
+
+    TEST_ASSERT_EQUAL_STRING(input, at);
+}
+
+void test_ParserURConly(void)
 {
     char input[] = "\r\n+CPIN: NOT INSERTED\r\n";
     
@@ -52,7 +65,7 @@ void test_aturcparser_URConly(void)
     TEST_ASSERT_EQUAL(0, parser.atend);
 }
 
-void test_aturcparser_URConlyIsURC(void)
+void test_ParserURConlyIsURC(void)
 {
     char input[] = "\r\n+CPIN: NOT INSERTED\r\n";
 
@@ -62,7 +75,19 @@ void test_aturcparser_URConlyIsURC(void)
     TEST_ASSERT_FALSE(SIM_ParserIsAtMessage(&parser));
 }
 
-void test_aturcparser_FirstATSecondURC(void)
+void test_ParserGetURC(void)
+{
+    char input[] = "\r\n+CPIN: NOT INSERTED\r\n";
+
+    SIM_ParserProcessInput(&parser, input);
+
+    char urc[128] = {0};
+    SIM_ParserGetUrc(&parser, urc, sizeof(urc));
+
+    TEST_ASSERT_EQUAL_STRING(input, urc);
+}
+
+void test_ParserFirstATSecondURC(void)
 {
     char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n\r\n+CPIN: NOT INSERTED\r\n";
     
@@ -76,7 +101,7 @@ void test_aturcparser_FirstATSecondURC(void)
     TEST_ASSERT_EQUAL(42, parser.urcend);
 }
 
-void test_aturcparser_FirstATSecondURC_IsAT_IsURC(void)
+void test_ParserFirstATSecondURC_IsAT_IsURC(void)
 {
     char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n\r\n+CPIN: NOT INSERTED\r\n";
     
@@ -85,8 +110,25 @@ void test_aturcparser_FirstATSecondURC_IsAT_IsURC(void)
     TEST_ASSERT(SIM_ParserIsUrc(&parser));
     TEST_ASSERT(SIM_ParserIsAtMessage(&parser));
 }
-#if 1
-void test_aturcparser_FirstURCSecondAT(void)
+
+void test_ParserFirstATSecondURC_GetAT_GetURC(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n\r\n+CPIN: NOT INSERTED\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+
+    char at[128] = {0};
+    SIM_ParserGetAtMessage(&parser, at, sizeof(at));
+
+    TEST_ASSERT_EQUAL_STRING("AT+CGNSPWR=1\r\r\nOK\r\n", at);
+
+    char urc[128] = {0};
+    SIM_ParserGetUrc(&parser, urc, sizeof(urc));
+
+    TEST_ASSERT_EQUAL_STRING("\r\n+CPIN: NOT INSERTED\r\n", urc);
+}
+
+void test_ParserFirstURCSecondAT(void)
 {
     char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\r\nOK\r\n";
     
@@ -100,120 +142,175 @@ void test_aturcparser_FirstURCSecondAT(void)
     TEST_ASSERT_EQUAL(42, parser.atend);
 }
 
-void test_aturcparser_FirstURCSecondATWithEmbeddedNotStatus(void)
+void test_ParserFirstURCSecondAT_IsAT_IsURC(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nOK\r\n";
+    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\r\nOK\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+
+    TEST_ASSERT(SIM_ParserIsUrc(&parser));
+    TEST_ASSERT(SIM_ParserIsAtMessage(&parser));
+}
+
+void test_ParserFirstURCSecondAT_GetAT_GetURC(void)
+{
+    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\r\nOK\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+
+    char at[128] = {0};
+    SIM_ParserGetAtMessage(&parser, at, sizeof(at));
+
+    TEST_ASSERT_EQUAL_STRING("AT+CGNSPWR=1\r\r\nOK\r\n", at);
+
+    char urc[128] = {0};
+    SIM_ParserGetUrc(&parser, urc, sizeof(urc));
+
+    TEST_ASSERT_EQUAL_STRING("\r\n+CPIN: NOT INSERTED\r\n", urc);
+}
+
+void test_ParserATWithEmbeddedInvalidStatus(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nOK\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
-    TEST_ASSERT_EQUAL(0, parser.urcstart);
-    TEST_ASSERT_EQUAL(23, parser.urcend);
-    TEST_ASSERT_EQUAL(23, parser.atstart);
-    TEST_ASSERT_EQUAL(52, parser.statusstart);
-    TEST_ASSERT_EQUAL(54, parser.statusend);
-    TEST_ASSERT_EQUAL(56, parser.atend);
+    TEST_ASSERT_EQUAL(0, parser.atstart);
+    TEST_ASSERT_EQUAL(29, parser.statusstart);
+    TEST_ASSERT_EQUAL(31, parser.statusend);
+    TEST_ASSERT_EQUAL(33, parser.atend);
 }
 
-void test_aturcparser_TestStatusOK(void)
+void test_ParserATWithEmbeddedInvalidStatus_isAT(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nOK\r\n";
+    char input[] = "AT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nOK\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    TEST_ASSERT(SIM_ParserIsAtMessage(&parser));
+}
+
+void test_ParserATWithEmbeddedInvalidStatus_getStatus(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nOK\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_OK, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusCONNECT(void)
+void test_ParserATWithEmbeddedInvalidStatus_isATGetAtMessage(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nCONNECT\r\n";
+    char input[] = "AT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nOK\r\n";
+
+    SIM_ParserProcessInput(&parser, input);
+
+    char at[128] = {0};
+    SIM_ParserGetAtMessage(&parser, at, sizeof(at));
+
+    TEST_ASSERT_EQUAL_STRING(input, at);
+}
+
+void test_ParserTestStatusOK(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\r\nOK\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    TEST_ASSERT_EQUAL(SIM8XX_OK, SIM_ParserGetStatus(&parser));
+}
+
+void test_ParserTestStatusCONNECT(void)
+{
+    char input[] = "AT+CGNSPWR=1\r\r\nCONNECT\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_CONNECT, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusSEND_OK(void)
+void test_ParserTestStatusSEND_OK(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nSEND OK\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nSEND OK\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_SEND_OK, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusSEND_FAIL(void)
+void test_ParserTestStatusSEND_FAIL(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nSEND FAIL\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nSEND FAIL\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_SEND_FAIL, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusRING(void)
+void test_ParserTestStatusRING(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nRING\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nRING\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_RING, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusNO_CARRIER(void)
+void test_ParserTestStatusNO_CARRIER(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nNO CARRIER\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nNO CARRIER\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_NO_CARRIER, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusERROR(void)
+void test_ParserTestStatusERROR(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nERROR\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nERROR\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_ERROR, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusNO_DIALTONE(void)
+void test_ParserTestStatusNO_DIALTONE(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nNO DIALTONE\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nNO DIALTONE\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_NO_DIALTONE, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusBUSY(void)
+void test_ParserTestStatusBUSY(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nBUSY\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nBUSY\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_BUSY, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusNO_ANSWER(void)
+void test_ParserTestStatusNO_ANSWER(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nNO ANSWER\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nNO ANSWER\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_NO_ANSWER, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusPROCEEDING(void)
+void test_ParserTestStatusPROCEEDING(void)
 {
-    char input[] = "\r\n+CPIN: NOT INSERTED\r\nAT+CGNSPWR=1\r\nNOTASTATUS\r\n\r\r\nPROCEEDING\r\n";
+    char input[] = "AT+CGNSPWR=1\r\r\nPROCEEDING\r\n";
     
     SIM_ParserProcessInput(&parser, input);
     
     TEST_ASSERT_EQUAL(SIM8XX_PROCEEDING, SIM_ParserGetStatus(&parser));
 }
 
-void test_aturcparser_TestStatusWAIT_USER_DATA(void)
+void test_ParserTestStatusWAIT_USER_DATA(void)
 {
     char input[] = "AT+BTSPPSEND\r\r\n> ";
     
@@ -222,4 +319,64 @@ void test_aturcparser_TestStatusWAIT_USER_DATA(void)
     TEST_ASSERT_EQUAL(SIM8XX_WAITING_FOR_INPUT, SIM_ParserGetStatus(&parser));
 }
 
-#endif
+void test_ParserTestStatusWAIT_USER_DATA_isAt(void)
+{
+    char input[] = "AT+BTSPPSEND\r\r\n> ";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    TEST_ASSERT(SIM_ParserIsAtMessage(&parser));
+    TEST_ASSERT_FALSE(SIM_ParserIsUrc(&parser));
+}
+
+void test_ParserTestStatusWAIT_USER_DATA_getAt(void)
+{
+    char input[] = "AT+BTSPPSEND\r\r\n> ";
+
+    SIM_ParserProcessInput(&parser, input);
+
+    char at[128] = {0};
+    SIM_ParserGetAtMessage(&parser, at, sizeof(at));
+
+    TEST_ASSERT_EQUAL_STRING(input, at);
+}
+
+void test_ParserTestStatus_UserData_SEND_OK(void)
+{
+    char input[] = "some user data with embedded \"> \" should not cause problems\r\nSEND OK\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    TEST_ASSERT_EQUAL(SIM8XX_SEND_OK, SIM_ParserGetStatus(&parser));
+}
+
+void test_ParserTestStatus_UserData_isAT(void)
+{
+    char input[] = "some user data with embedded \"> \" should not cause problems\r\nSEND OK\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    TEST_ASSERT(SIM_ParserIsAtMessage(&parser));
+    TEST_ASSERT_FALSE(SIM_ParserIsUrc(&parser));
+}
+
+void test_ParserTestStatus_UserData_getAt(void)
+{
+    char input[] = "some user data with embedded \"> \" should not cause problems\r\nSEND OK\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+
+    char at[128] = {0};
+    SIM_ParserGetAtMessage(&parser, at, sizeof(at));
+
+    TEST_ASSERT_EQUAL_STRING(input, at);
+}
+
+void test_ParserTestStatus_UserDataSent_SEND_FAIL(void)
+{
+    char input[] = "some user data with embedded \"> \" should not cause problems\r\nSEND FAIL\r\n";
+    
+    SIM_ParserProcessInput(&parser, input);
+    
+    TEST_ASSERT_EQUAL(SIM8XX_SEND_FAIL, SIM_ParserGetStatus(&parser));
+}
