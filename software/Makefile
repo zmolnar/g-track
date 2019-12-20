@@ -89,9 +89,7 @@ CONFDIR = ./config
 # Imported source files and paths
 CHIBIOS = ./ChibiOS
 BOARD   = ./board
-SIM8XX  = ./source/sim8xx
-ATLIB   = $(SIM8XX)/at
-URCLIB  = $(SIM8XX)/urc
+SIM8XX  = ./sim8xx
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -137,16 +135,6 @@ CSRC = $(ALLCSRC) \
        source/BluetoothManagerThread.c \
        source/BluetoothShell.c \
        source/BluetoothStream.c \
-       $(SIM8XX)/utils/Utils.c \
-       $(SIM8XX)/Parser.c \
-       $(SIM8XX)/sim8xx.c \
-       $(ATLIB)/commands/AtBtpower.c \
-       $(ATLIB)/commands/AtCgnspwr.c \
-       $(ATLIB)/commands/AtCgnsinf.c \
-       $(ATLIB)/commands/AtClip.c \
-       $(ATLIB)/commands/AtCpin.c \
-       $(URCLIB)/UrcBluetooth.c \
-       $(SIM8XX)/sim8xxReaderThread.c \
        $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -177,7 +165,7 @@ TCPPSRC =
 ASMSRC = $(ALLASMSRC)
 ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR) $(SIM8XX) $(ATLIB) $(URCLIB)
+INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR)
 
 #
 # Project, sources and paths

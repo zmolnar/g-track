@@ -1,0 +1,3 @@
+[submodule "software/sim8xx"]
+	path = software/sim8xx
+	url = https://github.com/zmolnar/sim8xx.git
