@@ -110,6 +110,7 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 include $(CHIBIOS)/os/various/shell/shell.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
+include $(SIM8XX)/ports/ChibiOS/sim8xx.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/STM32L452xC.ld

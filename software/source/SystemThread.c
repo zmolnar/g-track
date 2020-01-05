@@ -14,7 +14,7 @@
 #include "Dashboard.h"
 #include "GpsReaderThread.h"
 #include "Logger.h"
-#include "sim8xx.h"
+#include "SimHandlerThread.h"
 
 #include "chprintf.h"
 #include <string.h>
@@ -22,7 +22,6 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define MAX_TRIES 3
 #define ARRAY_LENGTH(a) (sizeof((a)) / sizeof((a)[0]))
 
 #define SYS_LOGFILE  "/system.log"
@@ -72,26 +71,6 @@ static System_t system = {0};
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static bool SYS_connectModem(void)
-{
-  uint32_t i = 0;
-  while ((i++ < MAX_TRIES) && (!SIM_IsConnected(&SIM8D1))) {
-    SIM_TogglePower(&SIM8D1);
-  }
-
-  return (i <= MAX_TRIES);
-}
-
-static bool SYS_disconnectModem(void)
-{
-  uint32_t i = 0;
-  while ((i++ < MAX_TRIES) && (SIM_IsConnected(&SIM8D1))) {
-    SIM_TogglePower(&SIM8D1);
-  }
-
-  return (i <= MAX_TRIES);
-}
-
 static const char *SYS_getStateString(SYS_State_t state)
 {
   static const char *const stateStrs[] = {
@@ -119,7 +98,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
 
   switch (evt) {
   case SYS_CMD_IGNITION_ON: {
-    if (SYS_connectModem()) {
+    if (SHD_ConnectModem()) {
       GPS_Start();
       COT_Start();
       BLT_Start();
@@ -132,7 +111,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
     break;
   }
   case SYS_CMD_IGNITION_OFF: {
-    if (SYS_disconnectModem()) {
+    if (SHD_DisconnectModem()) {
       COT_Stop();
       GPS_Stop();
       newState = SYS_STATE_PARKING;
@@ -159,7 +138,7 @@ static SYS_State_t SYS_parkingStateHandler(SYS_Command_t evt)
 
   switch (evt) {
   case SYS_CMD_IGNITION_ON: {
-    if (SYS_connectModem()) {
+    if (SHD_ConnectModem()) {
       GPS_Start();
       COT_Start();
       newState = SYS_STATE_RIDING;
@@ -188,7 +167,7 @@ static SYS_State_t SYS_ridingStateHandler(SYS_Command_t evt)
   case SYS_CMD_IGNITION_OFF: {
     COT_Stop();
     GPS_Stop();
-    if (SYS_disconnectModem()) {
+    if (SHD_DisconnectModem()) {
       newState = SYS_STATE_PARKING;
     } else {
       system.error = SYS_ERR_MODEM_POWER_OFF;
