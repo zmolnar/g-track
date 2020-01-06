@@ -83,7 +83,7 @@ static void GPS_savePositionInLogfile(GPS_Data_t *pdata)
 
   chsnprintf(entry,
              sizeof(entry),
-             "%04d-%02d-%02d/%02d:%02d:%02d:%03d ",
+             "%04d%02d%02d%02d%02d%02d%03d ",
              pdata->time.year,
              pdata->time.month,
              pdata->time.day,
@@ -150,9 +150,9 @@ static void GPS_updatePosition(void)
   if (succeeded) {
     gps.lockState = gpsdata.isLocked ? GPS_LOCKED : GPS_SEARCHING;
     DSB_SetPosition(&gpsdata);
-    COT_SpeedAvailable();
     GPS_updateClockInDashboard(&gpsdata.time);
     GPS_savePositionInLogfile(&gpsdata);
+    COT_SpeedAvailable();
   } else {
     gps.error = GPS_ERR_UPDATE;
   }

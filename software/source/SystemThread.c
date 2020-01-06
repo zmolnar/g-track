@@ -111,6 +111,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
   }
   case SYS_CMD_IGNITION_OFF: {
     if (SHD_DisconnectModem()) {
+      BLT_Stop();
       COT_Stop();
       GPS_Stop();
       newState = SYS_STATE_PARKING;
@@ -140,6 +141,7 @@ static SYS_State_t SYS_parkingStateHandler(SYS_Command_t evt)
     if (SHD_ConnectModem()) {
       GPS_Start();
       COT_Start();
+      BLT_Start();
       newState = SYS_STATE_RIDING;
     } else {
       system.error = SYS_ERR_MODEM_POWER_ON;
@@ -164,6 +166,7 @@ static SYS_State_t SYS_ridingStateHandler(SYS_Command_t evt)
 
   switch (evt) {
   case SYS_CMD_IGNITION_OFF: {
+    BLT_Stop();
     COT_Stop();
     GPS_Stop();
     if (SHD_DisconnectModem()) {
@@ -260,7 +263,6 @@ THD_FUNCTION(SYS_Thread, arg)
 
 void SYS_Init(void)
 {
-  DSB_Init();
   memset(&system.events, 0, sizeof(system.events));
   chMBObjectInit(&system.mailbox, system.events, ARRAY_LENGTH(system.events));
   system.state = SYS_STATE_INIT;

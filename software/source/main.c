@@ -17,14 +17,15 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "BoardMonitorThread.h"
-#include "SystemThread.h"
-#include "PeripheralManagerThread.h"
-#include "GpsReaderThread.h"
-#include "ChainOilerThread.h"
-#include "CallManagerThread.h"
 #include "BluetoothManagerThread.h"
+#include "BoardMonitorThread.h"
+#include "CallManagerThread.h"
+#include "ChainOilerThread.h"
+#include "Dashboard.h"
+#include "GpsReaderThread.h"
+#include "PeripheralManagerThread.h"
 #include "SimHandlerThread.h"
+#include "SystemThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
 static THD_WORKING_AREA(waBoardMonitorThread, 8192);
@@ -38,8 +39,8 @@ static THD_WORKING_AREA(waBluetoothManagerThread, 8192);
  * Green LED blinker thread, times are in milliseconds.
  */
 static THD_WORKING_AREA(waHeartBeatThread, 128);
-static THD_FUNCTION(HeartBeatThread, arg) {
-
+static THD_FUNCTION(HeartBeatThread, arg)
+{
   (void)arg;
   chRegSetThreadName("heartbeat");
 
@@ -47,8 +48,7 @@ static THD_FUNCTION(HeartBeatThread, arg) {
 
   while (true) {
     GpsLockState_t state = GPS_GetLockState();
-    switch (state)
-    {
+    switch (state) {
     case GPS_NOT_POWERED: {
       palClearLine(LINE_LED_3_GREEN);
       chThdSleepMilliseconds(250);
@@ -85,7 +85,8 @@ static THD_FUNCTION(HeartBeatThread, arg) {
 /*
  * Application entry point.
  */
-int main(void) {
+int main(void)
+{
   /*
    * System initializations.
    * - HAL initialization, this also initializes the configured device drivers
@@ -96,62 +97,35 @@ int main(void) {
   halInit();
   chSysInit();
 
+  DSB_Init();
   SHD_Init();
   SYS_Init();
   BMT_Init();
   PRP_Init();
   GPS_Init();
-  COT_Init();  
+  COT_Init();
   CLL_Init();
   BLT_Init();
 
-  chThdCreateStatic(waHeartBeatThread,
-                    sizeof(waHeartBeatThread),
-                    NORMALPRIO,
-                    HeartBeatThread,
-                    NULL);
+  chThdCreateStatic(
+      waHeartBeatThread, sizeof(waHeartBeatThread), NORMALPRIO, HeartBeatThread, NULL);
 
-  chThdCreateStatic(waSystemThread,
-                    sizeof(waSystemThread),
-                    NORMALPRIO,
-                    SYS_Thread,
-                    NULL);
+  chThdCreateStatic(waSystemThread, sizeof(waSystemThread), NORMALPRIO, SYS_Thread, NULL);
 
-  chThdCreateStatic(waBoardMonitorThread,
-                    sizeof(waBoardMonitorThread),
-                    NORMALPRIO,
-                    BMT_Thread,
-                    NULL);  
+  chThdCreateStatic(
+      waBoardMonitorThread, sizeof(waBoardMonitorThread), NORMALPRIO, BMT_Thread, NULL);
 
-  chThdCreateStatic(waPeripheralManagerThread,
-                    sizeof(waPeripheralManagerThread),
-                    NORMALPRIO,
-                    PRP_Thread,
-                    NULL);   
+  chThdCreateStatic(
+      waPeripheralManagerThread, sizeof(waPeripheralManagerThread), NORMALPRIO, PRP_Thread, NULL);
 
-  chThdCreateStatic(waGpsReaderThread,
-                    sizeof(waGpsReaderThread),
-                    NORMALPRIO,
-                    GPS_Thread,
-                    NULL);       
+  chThdCreateStatic(waGpsReaderThread, sizeof(waGpsReaderThread), NORMALPRIO, GPS_Thread, NULL);
 
-  chThdCreateStatic(waChainOilerThread,
-                    sizeof(waChainOilerThread),
-                    NORMALPRIO,
-                    COT_Thread,
-                    NULL);
+  chThdCreateStatic(waChainOilerThread, sizeof(waChainOilerThread), NORMALPRIO, COT_Thread, NULL);
 
-  chThdCreateStatic(waCallManagerThread, 
-                    sizeof(waCallManagerThread), 
-                    NORMALPRIO, 
-                    CLL_Thread, 
-                    NULL);
+  chThdCreateStatic(waCallManagerThread, sizeof(waCallManagerThread), NORMALPRIO, CLL_Thread, NULL);
 
-  chThdCreateStatic(waBluetoothManagerThread, 
-                    sizeof(waBluetoothManagerThread), 
-                    NORMALPRIO, 
-                    BLT_Thread, 
-                    NULL);
+  chThdCreateStatic(
+      waBluetoothManagerThread, sizeof(waBluetoothManagerThread), NORMALPRIO, BLT_Thread, NULL);
 
   while (true) {
     chThdSleepMilliseconds(1000);

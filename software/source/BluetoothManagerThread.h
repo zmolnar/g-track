@@ -51,7 +51,7 @@ void BLT_Stop(void);
 /**
  * 
  */
-void BLT_ProcessUrc(void);
+void BLT_ProcessEvent(void);
 
 /**
  * 

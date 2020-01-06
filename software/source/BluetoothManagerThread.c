@@ -24,7 +24,7 @@
 
 #define BLT_LOGFILE "/bluetooth.log"
 
-#define SHELL_WA_SIZE THD_WORKING_AREA_SIZE(2048)p
+#define SHELL_WA_SIZE THD_WORKING_AREA_SIZE(2048)
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -40,7 +40,7 @@ typedef enum {
 typedef enum {
   BLT_CMD_START,
   BLT_CMD_STOP,
-  BLT_CMD_PROCESS_URC,
+  BLT_CMD_PROCESS_EVENT,
   BLT_CMD_SEND_STREAM_DATA,
   BLT_CMD_SEND_USER_DATA,
 } BLT_Command_t;
@@ -63,12 +63,10 @@ typedef struct {
 /*****************************************************************************/
 Bluetooth_t bluetooth;
 
-#if 0
 static const ShellConfig BluetoothShellConfig = {
     (BaseSequentialStream *)&bluetooth.stream,
     BL_Commands,
 };
-#endif
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -97,7 +95,6 @@ static void BLT_logStateChange(BLT_State_t from, BLT_State_t to)
   LOG_Write(BLT_LOGFILE, entry);
 }
 
-#if 0
 static void BLT_startShell(void)
 {
   if (!bluetooth.shell) {
@@ -109,17 +106,17 @@ static void BLT_startShell(void)
                                           (void *)&BluetoothShellConfig);
   }
 }
-#endif
 
 static void BLT_StopShell(void)
 {
-  if (bluetooth.shell && chThdTerminatedX(bluetooth.shell)) {
+  if (bluetooth.shell) {
+    chThdTerminate(bluetooth.shell);
     chThdWait(bluetooth.shell);
     bluetooth.shell = NULL;
   }
 }
 
-static void BLT_EventCallback(GSM_BluetoothEvent_t *p)
+static void BLT_eventCallback(GSM_BluetoothEvent_t *p)
 {
   bluetooth.btevent = *p;
 }
@@ -129,8 +126,9 @@ static bool BLT_setupAndStart(void)
   bool result = false;
 
   if (SIM_BluetoothSetup(&SIM868, "gtrack", "2020")) {
-    if (SIM_RegisterBluetoothCallback(&SIM868, BLT_EventCallback)) {
+    if (SIM_RegisterBluetoothCallback(&SIM868, BLT_eventCallback)) {
       if (SIM_BluetoothStart(&SIM868)) {
+        BLT_startShell();
         result = true;
       }
     }
@@ -156,7 +154,7 @@ static BLT_State_t BLT_initStateHandler(BLT_Command_t cmd)
     newState = BLT_STATE_DISABLED;
     break;
   }
-  case BLT_CMD_PROCESS_URC:
+  case BLT_CMD_PROCESS_EVENT:
   case BLT_CMD_SEND_STREAM_DATA:
   case BLT_CMD_SEND_USER_DATA:
   default: {
@@ -184,7 +182,7 @@ static BLT_State_t BLT_disabledStateHandler(BLT_Command_t cmd)
     break;
   }
   case BLT_CMD_STOP:
-  case BLT_CMD_PROCESS_URC:
+  case BLT_CMD_PROCESS_EVENT:
   case BLT_CMD_SEND_STREAM_DATA:
   case BLT_CMD_SEND_USER_DATA:
   default: {
@@ -198,15 +196,31 @@ static BLT_State_t BLT_disabledStateHandler(BLT_Command_t cmd)
   return newState;
 }
 
-bool BLT_sendSppData(const char data[], size_t length)
+BLT_State_t BLT_procesEventInConnectedState(void)
 {
-  return SIM_BluetoothSendSppData(&SIM868, data, length);
-}
+  BLT_State_t newState = BLT_STATE_CONNECTED;
 
-BLT_State_t BLT_procesUrcInConnectedState(void)
-{
-  // TODO: Add implementation.
-  return BLT_STATE_CONNECTED;
+  switch (bluetooth.btevent.type) {
+  case GSM_BT_INCOMING_DATA: {
+    BluetoothStream_t *stream = &bluetooth.stream;
+    const char *idata         = bluetooth.btevent.payload.incomingData.data;
+    size_t ilen               = strlen(idata);
+    BLS_ProcessRxData(stream, idata, ilen);
+    break;
+  }
+  case GSM_BT_DISCONNECTED: {
+    newState = BLT_STATE_DISCONNECTED;
+    break;
+  }
+  case GSM_BT_NO_EVENT:
+  case GSM_BT_CONNECTING:
+  case GSM_BT_CONNECTED:
+  default: {
+    break;
+  }
+  }
+
+  return newState;
 }
 
 static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
@@ -214,8 +228,8 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
   BLT_State_t newState = BLT_STATE_CONNECTED;
 
   switch (cmd) {
-  case BLT_CMD_PROCESS_URC: {
-    newState = BLT_procesUrcInConnectedState();
+  case BLT_CMD_PROCESS_EVENT: {
+    newState = BLT_procesEventInConnectedState();
     break;
   }
   case BLT_CMD_STOP: {
@@ -229,7 +243,7 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
   case BLT_CMD_SEND_STREAM_DATA: {
     char *data    = bluetooth.stream.tx.data;
     size_t length = bluetooth.stream.tx.end;
-    if (BLT_sendSppData(data, length)) {
+    if (SIM_BluetoothSendSppData(&SIM868, data, length)) {
       BLS_ClearTxBuffer(&bluetooth.stream);
       BLS_NotifyWriter(&bluetooth.stream);
     } else {
@@ -240,7 +254,7 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
   case BLT_CMD_SEND_USER_DATA: {
     const char *data = bluetooth.stream.udata;
     size_t length    = bluetooth.stream.ulength;
-    if (BLT_sendSppData(data, length)) {
+    if (SIM_BluetoothSendSppData(&SIM868, data, length)) {
       BLS_NotifyWriter(&bluetooth.stream);
     } else {
       newState = BLT_STATE_ERROR;
@@ -261,10 +275,29 @@ static BLT_State_t BLT_connectedStateHandler(BLT_Command_t cmd)
   return newState;
 }
 
-BLT_State_t BLT_procesUrcInDisconnectedState(void)
+BLT_State_t BLT_procesEventInDisconnectedState(void)
 {
-  // TODO: Add implementation.
-  return BLT_STATE_DISCONNECTED;
+  BLT_State_t newState = BLT_STATE_DISCONNECTED;
+
+  switch (bluetooth.btevent.type) {
+  case GSM_BT_CONNECTING: {
+    if (!SIM_BluetoothAcceptConnection(&SIM868))
+      newState = BLT_STATE_ERROR;
+    break;
+  }
+  case GSM_BT_CONNECTED: {
+    newState = BLT_STATE_CONNECTED;
+    break;
+  }
+  case GSM_BT_INCOMING_DATA:
+  case GSM_BT_DISCONNECTED: 
+  case GSM_BT_NO_EVENT:
+  default: {
+    break;
+  }
+  }
+
+  return newState;
 }
 
 static BLT_State_t BLT_disconnectedStateHandler(BLT_Command_t cmd)
@@ -272,8 +305,8 @@ static BLT_State_t BLT_disconnectedStateHandler(BLT_Command_t cmd)
   BLT_State_t newState = BLT_STATE_DISCONNECTED;
 
   switch (cmd) {
-  case BLT_CMD_PROCESS_URC: {
-    newState = BLT_procesUrcInDisconnectedState();
+  case BLT_CMD_PROCESS_EVENT: {
+    newState = BLT_procesEventInDisconnectedState();
     break;
   }
   case BLT_CMD_STOP: {
@@ -293,7 +326,6 @@ static BLT_State_t BLT_disconnectedStateHandler(BLT_Command_t cmd)
   }
 
   if (BLT_STATE_DISCONNECTED != newState) {
-    BLT_StopShell();
     BLT_logStateChange(BLT_STATE_CONNECTED, newState);
   }
 
@@ -381,10 +413,10 @@ void BLT_Stop(void)
   chSysUnlock();
 }
 
-void BLT_ProcessUrc(void)
+void BLT_ProcessEvent(void)
 {
   chSysLock();
-  chMBPostI(&bluetooth.mailbox, BLT_CMD_PROCESS_URC);
+  chMBPostI(&bluetooth.mailbox, BLT_CMD_PROCESS_EVENT);
   chSysUnlock();
 }
 

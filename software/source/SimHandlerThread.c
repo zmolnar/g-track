@@ -12,6 +12,8 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+#define PARSER_STACK_SIZE THD_WORKING_AREA_SIZE(2048)
+#define READER_STACK_SIZE THD_WORKING_AREA_SIZE(128)
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -26,6 +28,8 @@ typedef enum {
 typedef struct SimHandler_s {
   SHD_State_t state;
   semaphore_t parserSync;
+  thread_reference_t reader;
+  thread_reference_t parser;
 } SimHandler_t;
 
 /*****************************************************************************/
@@ -71,8 +75,10 @@ static void SHD_PowerPulse(void)
 void SHD_Init(void)
 {
   palSetLine(LINE_WAVESHARE_POWER);
-  chSemObjectInit(&simHandler.parserSync, 0);
   simHandler.state = SHD_STATE_INIT;
+  chSemObjectInit(&simHandler.parserSync, 0);
+  simHandler.reader = NULL;
+  simHandler.parser = NULL;
 
   static Sim8xxConfig_t simConfig = {
       .put = SHD_serialPut,
@@ -97,13 +103,21 @@ bool SHD_ConnectModem(void)
 
     if (isAlive) {
       if (SIM_Start(&SIM868)) {
-        simHandler.state = SHD_STATE_CONNECTED;
+        simHandler.state  = SHD_STATE_CONNECTED;
+        simHandler.parser = chThdCreateFromHeap(
+            NULL, PARSER_STACK_SIZE, "simparser", NORMALPRIO + 1, SimParserThread, &SIM868);
+        simHandler.reader = chThdCreateFromHeap(
+            NULL, READER_STACK_SIZE, "simreader", NORMALPRIO + 1, SimReaderThread, &SIM868);
         result = true;
+      } else {
+        simHandler.state  = SHD_STATE_ERROR;
+        simHandler.parser = NULL;
+        simHandler.reader = NULL;
       }
-      else 
-        simHandler.state = SHD_STATE_ERROR;
     } else {
-      simHandler.state = SHD_STATE_ERROR;
+      simHandler.state  = SHD_STATE_ERROR;
+      simHandler.parser = NULL;
+      simHandler.reader = NULL;
     }
   } else {
     result = true;
@@ -127,7 +141,17 @@ bool SHD_DisconnectModem(void)
     if (!isAlive) {
       if (SIM_Stop(&SIM868)) {
         simHandler.state = SHD_STATE_DISCONNECTED;
-        result     = true;
+        if (simHandler.reader) {
+          chThdTerminate(simHandler.parser);
+          chThdWait(simHandler.parser);
+          simHandler.parser = NULL;
+        }
+        if (simHandler.reader) {
+          chThdTerminate(simHandler.reader);
+          chThdWait(simHandler.reader);
+          simHandler.reader = NULL;
+        }
+        result = true;
       } else
         simHandler.state = SHD_STATE_ERROR;
     } else {
@@ -143,31 +167,37 @@ bool SHD_DisconnectModem(void)
 
 THD_FUNCTION(SimReaderThread, arg)
 {
-  (void)arg;
-  chRegSetThreadName("simreader");
+  Sim8xx_t *modem = (Sim8xx_t *)arg;
 
-  while (true) {
-    msg_t c = sdGet(&SD1);
-    SIM_ProcessChar(&SIM868, (char)c);
+  while (!chThdShouldTerminateX()) {
+    msg_t c = sdGetTimeout(&SD1, chTimeMS2I(100));
 
-    do {
-      c = sdGetTimeout(&SD1, chTimeMS2I(10));
-      SIM_ProcessChar(&SIM868, (char)c);
-    } while (c != MSG_TIMEOUT);
+    if ((MSG_TIMEOUT != c) && (MSG_RESET != c)) {
+      SIM_ProcessChar(modem, (char)c);
 
-    chSemSignal(&simHandler.parserSync);
+      do {
+        c = sdGetTimeout(&SD1, chTimeMS2I(10));
+        SIM_ProcessChar(modem, (char)c);
+      } while (c != MSG_TIMEOUT);
+
+      chSemSignal(&simHandler.parserSync);
+    }
   }
+
+  chThdExit(MSG_OK);
 }
 
 THD_FUNCTION(SimParserThread, arg)
 {
-  (void)arg;
-  chRegSetThreadName("simparser");
+  Sim8xx_t *modem = (Sim8xx_t *)arg;
 
-  while (true) {
-    chSemWait(&simHandler.parserSync);
-    SIM_Parse(&SIM868);
+  while (!chThdShouldTerminateX()) {
+    msg_t c = chSemWaitTimeout(&simHandler.parserSync, chTimeMS2I(100));
+    if (MSG_OK == c)
+      SIM_Parse(modem);
   }
+
+  chThdExit(MSG_OK);
 }
 
 /****************************** END OF FILE **********************************/
