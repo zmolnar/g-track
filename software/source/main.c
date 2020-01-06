@@ -24,6 +24,7 @@
 #include "ChainOilerThread.h"
 #include "CallManagerThread.h"
 #include "BluetoothManagerThread.h"
+#include "SimHandlerThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
 static THD_WORKING_AREA(waBoardMonitorThread, 8192);
@@ -95,6 +96,7 @@ int main(void) {
   halInit();
   chSysInit();
 
+  SHD_Init();
   SYS_Init();
   BMT_Init();
   PRP_Init();

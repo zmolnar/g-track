@@ -11,7 +11,6 @@
 #include "DebugShell.h"
 #include "Logger.h"
 #include "Sdcard.h"
-#include "sim8xx.h"
 
 #include <string.h>
 
@@ -43,18 +42,6 @@ typedef struct PeripheralManager_s {
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
-static SerialConfig sd_config = {
-    19200,
-    0,
-    USART_CR2_STOP1_BITS,
-    0,
-};
-static Sim8xxConfig sim_config = {
-    &SD1,
-    &sd_config,
-    LINE_WAVESHARE_POWER,
-};
-
 static PeripheralManager_t manager;
 
 /*****************************************************************************/
@@ -115,8 +102,9 @@ THD_FUNCTION(PRP_Thread, arg)
   DSH_Init();
 
   while (true) {
-    PRP_Command_t cmd;
-    if (MSG_OK == chMBFetchTimeout(&manager.mailbox, (msg_t *)&cmd, TIME_INFINITE)) {
+    msg_t msg;
+    if (MSG_OK == chMBFetchTimeout(&manager.mailbox, &msg, TIME_INFINITE)) {
+      PRP_Command_t cmd = (PRP_Command_t)msg;
       switch (cmd) {
       case PRP_CMD_SDC_INSERTED: {
         SDC_Mount();
@@ -145,9 +133,6 @@ THD_FUNCTION(PRP_Thread, arg)
 
 void PRP_Init(void)
 {
-  SIM_Init(&SIM8D1);
-  SIM_Start(&SIM8D1, &sim_config);
-
   memset(manager.commands, 0, sizeof(manager.commands));
   chMBObjectInit(&manager.mailbox, manager.commands, ARRAY_LENGTH(manager.commands));
 }

@@ -32,6 +32,12 @@ extern Sim8xx_t SIM868;
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
+void SHD_Init(void);
+
+bool SHD_ConnectModem(void);
+
+bool SHD_DisconnectModem(void);
+
 THD_FUNCTION(SimParserThread, arg);
 
 THD_FUNCTION(SimReaderThread, arg);

@@ -12,6 +12,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "Sim8xx.h"
+
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
@@ -23,26 +25,6 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
-typedef struct {
-  char date[18 + 1];
-  double latitude;
-  double longitude;
-  double altitude;
-  double speed;
-  int gpsSatInView;
-  int gnssSatInUse;
-  int gnssSatInView;
-} DSB_Position_t;
-
-typedef struct {
-  uint32_t year;
-  uint32_t month;
-  uint32_t day;
-  uint32_t hour;
-  uint32_t min;
-  uint32_t sec;
-  uint32_t msec;
-} DSB_DateTime_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
@@ -52,10 +34,10 @@ typedef struct {
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
 void DSB_Init(void);
-void DSB_GetPosition(DSB_Position_t *pos);
-void DSB_SetPosition(DSB_Position_t *new);
-void DSB_GetTime(DSB_DateTime_t *time);
-void DSB_SetTime(DSB_DateTime_t *time);
+void DSB_GetPosition(GPS_Data_t *pos);
+void DSB_SetPosition(GPS_Data_t *new);
+void DSB_GetTime(GPS_Time_t *time);
+void DSB_SetTime(GPS_Time_t *time);
 
 #endif /* DASHBOARD_H */
 

@@ -8,8 +8,8 @@
 /*****************************************************************************/
 #include "SystemThread.h"
 
-#include "CallManagerThread.h"
 #include "BluetoothManagerThread.h"
+#include "CallManagerThread.h"
 #include "ChainOilerThread.h"
 #include "Dashboard.h"
 #include "GpsReaderThread.h"
@@ -24,7 +24,7 @@
 /*****************************************************************************/
 #define ARRAY_LENGTH(a) (sizeof((a)) / sizeof((a)[0]))
 
-#define SYS_LOGFILE  "/system.log"
+#define SYS_LOGFILE "/system.log"
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -37,8 +37,8 @@ typedef enum {
   SYS_STATE_ERROR,
 } SYS_State_t;
 
-typedef enum { 
-  SYS_CMD_IGNITION_ON, 
+typedef enum {
+  SYS_CMD_IGNITION_ON,
   SYS_CMD_IGNITION_OFF,
 } SYS_Command_t;
 
@@ -87,8 +87,7 @@ static const char *SYS_getStateString(SYS_State_t state)
 static void SYS_logStateChange(SYS_State_t from, SYS_State_t to)
 {
   char entry[32] = {0};
-  chsnprintf(entry, sizeof(entry), "%s -> %s",
-             SYS_getStateString(from), SYS_getStateString(to));
+  chsnprintf(entry, sizeof(entry), "%s -> %s", SYS_getStateString(from), SYS_getStateString(to));
   LOG_Write(SYS_LOGFILE, entry);
 }
 
@@ -102,11 +101,11 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
       GPS_Start();
       COT_Start();
       BLT_Start();
-      //CLL_Start();
+      // CLL_Start();
       newState = SYS_STATE_RIDING;
     } else {
       system.error = SYS_ERR_MODEM_POWER_ON;
-      newState    = SYS_STATE_ERROR;
+      newState     = SYS_STATE_ERROR;
     }
     break;
   }
@@ -117,7 +116,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
       newState = SYS_STATE_PARKING;
     } else {
       system.error = SYS_ERR_MODEM_POWER_OFF;
-      newState    = SYS_STATE_ERROR;
+      newState     = SYS_STATE_ERROR;
     }
     break;
   }
@@ -144,7 +143,7 @@ static SYS_State_t SYS_parkingStateHandler(SYS_Command_t evt)
       newState = SYS_STATE_RIDING;
     } else {
       system.error = SYS_ERR_MODEM_POWER_ON;
-      newState    = SYS_STATE_ERROR;
+      newState     = SYS_STATE_ERROR;
     }
   }
   case SYS_CMD_IGNITION_OFF:
@@ -171,7 +170,7 @@ static SYS_State_t SYS_ridingStateHandler(SYS_Command_t evt)
       newState = SYS_STATE_PARKING;
     } else {
       system.error = SYS_ERR_MODEM_POWER_OFF;
-      newState    = SYS_STATE_ERROR;
+      newState     = SYS_STATE_ERROR;
     }
     break;
   }
@@ -200,7 +199,7 @@ static SYS_State_t SYS_errorStateHandler(SYS_Command_t evt)
   switch (evt) {
   case SYS_CMD_IGNITION_OFF: {
     system.error = SYS_ERR_NO_ERROR;
-    newState    = SYS_STATE_INIT;
+    newState     = SYS_STATE_INIT;
     break;
   }
   case SYS_CMD_IGNITION_ON:
@@ -210,7 +209,7 @@ static SYS_State_t SYS_errorStateHandler(SYS_Command_t evt)
   }
 
   if (SYS_STATE_ERROR != newState)
-    SYS_logStateChange(SYS_STATE_ERROR, newState);  
+    SYS_logStateChange(SYS_STATE_ERROR, newState);
 
   return newState;
 }
@@ -227,8 +226,9 @@ THD_FUNCTION(SYS_Thread, arg)
   system.state = SYS_STATE_INIT;
 
   while (true) {
-    SYS_Command_t cmd;
-    if (MSG_OK == chMBFetchTimeout(&system.mailbox, (msg_t *)&cmd, TIME_INFINITE)) {
+    msg_t msg;
+    if (MSG_OK == chMBFetchTimeout(&system.mailbox, &msg, TIME_INFINITE)) {
+      SYS_Command_t cmd = (SYS_Command_t)msg;
       switch (system.state) {
       case SYS_STATE_INIT: {
         system.state = SYS_initStateHandler(cmd);

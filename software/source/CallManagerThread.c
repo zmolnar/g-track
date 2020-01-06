@@ -8,8 +8,7 @@
 /*****************************************************************************/
 #include "CallManagerThread.h"
 #include "Logger.h"
-#include "sim8xx.h"
-#include "at.h"
+#include "Sim8xx.h"
 
 #include <string.h>
 
@@ -57,6 +56,7 @@ static CallManager_t callmanager;
 /*****************************************************************************/
 static void CLL_unlockSimCard(void)
 {
+#if 0
   Sim8xxCommand cmd;
   SIM_CommandInit(&cmd);
   AT_CpinCreate(cmd.request, sizeof(cmd.request), "3943");
@@ -65,18 +65,7 @@ static void CLL_unlockSimCard(void)
   if (SIM8XX_OK != cmd.status) {
     // TODO error handling.
   }
-}
-
-static void CLL_disableClip(void)
-{
-  Sim8xxCommand cmd;
-  SIM_CommandInit(&cmd);
-  AT_ClipCreateOff(cmd.request, sizeof(cmd.request));
-  SIM_ExecuteCommand(&SIM8D1, &cmd);
-
-  if (SIM8XX_OK != cmd.status) {
-    // TODO error handling.
-  }
+#endif  
 }
 
 static CLL_State_t CLL_initStateHandler(CLL_Command_t cmd)
@@ -86,7 +75,6 @@ static CLL_State_t CLL_initStateHandler(CLL_Command_t cmd)
   switch(cmd) {
     case CLL_CMD_START: {
       CLL_unlockSimCard();
-      //CLL_disableClip();
       newState = CLL_STATE_ENABLED;
       break;
     }
@@ -186,8 +174,9 @@ THD_FUNCTION(CLL_Thread, arg)
   callmanager.state = CLL_STATE_INIT;
 
   while(true) {
-    CLL_Command_t cmd;
-    if (MSG_OK == chMBFetchTimeout(&callmanager.mailbox, (msg_t *)&cmd, TIME_INFINITE)) {
+    msg_t msg;
+    if (MSG_OK == chMBFetchTimeout(&callmanager.mailbox, &msg, TIME_INFINITE)) {
+      CLL_Command_t cmd = (CLL_Command_t)msg;
       switch (callmanager.state) {
         case CLL_STATE_INIT: {
           callmanager.state = CLL_initStateHandler(cmd);

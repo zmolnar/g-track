@@ -136,6 +136,7 @@ CSRC = $(ALLCSRC) \
        source/BluetoothManagerThread.c \
        source/BluetoothShell.c \
        source/BluetoothStream.c \
+       source/SimHandlerThread.c \
        $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

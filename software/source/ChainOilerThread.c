@@ -141,7 +141,7 @@ static ChainOiler_t chainOiler;
 /*****************************************************************************/
 static double COT_getSpeed(void)
 {
-  DSB_Position_t pos = {0};
+  GPS_Data_t pos = {0};
   DSB_GetPosition(&pos);
   return pos.speed;
 }
@@ -365,8 +365,9 @@ THD_FUNCTION(COT_Thread, arg)
   chThdSleepSeconds(2);
 
   while (true) {
-    COT_Command_t cmd;
-    if (MSG_OK == chMBFetchTimeout(&chainOiler.mailbox, (msg_t *)&cmd, TIME_INFINITE)) {
+    msg_t msg;
+    if (MSG_OK == chMBFetchTimeout(&chainOiler.mailbox, &msg, TIME_INFINITE)) {
+      COT_Command_t cmd = (COT_Command_t)msg;
       switch (chainOiler.state) {
       case COT_STATE_INIT: {
         chainOiler.state = COT_initStateHandler(cmd);

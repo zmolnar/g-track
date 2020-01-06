@@ -22,7 +22,7 @@
 /*****************************************************************************/
 typedef struct {
   mutex_t lock;
-  DSB_Position_t position;
+  GPS_Data_t position;
 } DSB_Dashboard_t;
 
 /*****************************************************************************/
@@ -110,7 +110,7 @@ static uint32_t DSB_convertMillisecondToMilliSecond(uint32_t millisecond)
   return millisecond % 3600000 % 60000 % 1000;
 }
 
-static void DSB_convertDateTimeToRTCDateTime(DSB_DateTime_t *dt, RTCDateTime *rtc)
+static void DSB_convertDateTimeToRTCDateTime(GPS_Time_t *dt, RTCDateTime *rtc)
 {
   rtc->year        = dt->year - 1980;
   rtc->month       = dt->month;
@@ -123,7 +123,7 @@ static void DSB_convertDateTimeToRTCDateTime(DSB_DateTime_t *dt, RTCDateTime *rt
   rtc->dstflag = DSB_isDaylightSavingTime(dt->day, dt->month, rtc->dayofweek) ? 1 : 0;
 }
 
-static void DSB_convertRTCDateTimeToDateTime(RTCDateTime *rtc, DSB_DateTime_t *dt)
+static void DSB_convertRTCDateTimeToDateTime(RTCDateTime *rtc, GPS_Time_t *dt)
 {
   dt->year  = rtc->year + 1980;
   dt->month = rtc->month;
@@ -144,21 +144,21 @@ void DSB_Init(void)
   rtcObjectInit(&RTCD1);
 }
 
-void DSB_GetPosition(DSB_Position_t *pos)
+void DSB_GetPosition(GPS_Data_t *pos)
 {
   DSB_lock();
   *pos = dashboard.position;
   DSB_unlock();
 }
 
-void DSB_SetPosition(DSB_Position_t *new)
+void DSB_SetPosition(GPS_Data_t *new)
 {
   DSB_lock();
   dashboard.position = *new;
   DSB_unlock();
 }
 
-void DSB_GetTime(DSB_DateTime_t *time)
+void DSB_GetTime(GPS_Time_t *time)
 {
   RTCDateTime rtcDateTime = {0};
   DSB_lock();
@@ -167,7 +167,7 @@ void DSB_GetTime(DSB_DateTime_t *time)
   DSB_convertRTCDateTimeToDateTime(&rtcDateTime, time);
 }
 
-void DSB_SetTime(DSB_DateTime_t *time)
+void DSB_SetTime(GPS_Time_t *time)
 {
   RTCDateTime rtcDateTime = {0};
   DSB_convertDateTimeToRTCDateTime(time, &rtcDateTime);

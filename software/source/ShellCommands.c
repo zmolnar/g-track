@@ -47,7 +47,7 @@ void SHC_GetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[])
   (void)argc;
   (void)argv;
 
-  DSB_DateTime_t dt = {0};
+  GPS_Time_t dt = {0};
   DSB_GetTime(&dt);
 
   chprintf(chp, SHELL_NEWLINE_STR);

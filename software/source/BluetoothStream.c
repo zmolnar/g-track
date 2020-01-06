@@ -33,25 +33,25 @@
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void BLS_clearBuffer(Buffer_t *bp)
+static void BLS_clearBuffer(IOBuffer_t *bp)
 {
   memset(bp->data, 0, sizeof(bp->data));
   bp->end = 0;
   bp->index = 0;
 }
 
-static void BLS_initBuffer(Buffer_t *bp)
+static void BLS_initBuffer(IOBuffer_t *bp)
 {
   BLS_clearBuffer(bp);
   chMtxObjectInit(&bp->lock);
 }
 
-static char *BLS_getFirstFree(Buffer_t *bp)
+static char *BLS_getFirstFree(IOBuffer_t *bp)
 {
   return bp->data + bp->end;
 }
 
-static size_t BLS_getFreeLength(Buffer_t *bp)
+static size_t BLS_getFreeLength(IOBuffer_t *bp)
 {
   return sizeof(bp->data)/sizeof(bp->data[0]) - bp->end;
 }
@@ -80,7 +80,7 @@ static size_t BLS_write(void *ip, const uint8_t *bp, size_t n) {
 static size_t BLS_read(void *ip, uint8_t *bp, size_t n)
 {
   BluetoothStream_t *bsp = ip;
-  Buffer_t *rxbuf = &bsp->rx;
+  IOBuffer_t *rxbuf = &bsp->rx;
 
   chMtxLock(&bsp->readlock);
   chMtxLock(&rxbuf->lock);
@@ -120,7 +120,7 @@ static void txTimerCallback(void *p)
 
 static msg_t BLS_put(void *ip, uint8_t b) {
   BluetoothStream_t *bsp = ip;
-  Buffer_t *txbuf = &bsp->tx;
+  IOBuffer_t *txbuf = &bsp->tx;
 
   chMtxLock(&bsp->writelock);
   chMtxLock(&txbuf->lock);
@@ -153,7 +153,7 @@ static msg_t BLS_put(void *ip, uint8_t b) {
  
 static msg_t BLS_get(void *ip) {
   BluetoothStream_t *bsp = ip;
-  Buffer_t *rxbuf = &bsp->rx;
+  IOBuffer_t *rxbuf = &bsp->rx;
 
   chMtxLock(&bsp->readlock);
   chMtxLock(&rxbuf->lock);
@@ -212,7 +212,7 @@ void BLS_ObjectInit(BluetoothStream_t *bsp)
 
 void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxlength)
 {
-  Buffer_t *rxbuf = &bsp->rx;
+  IOBuffer_t *rxbuf = &bsp->rx;
   chMtxLock(&rxbuf->lock);
 
   char *begin = BLS_getFirstFree(rxbuf);

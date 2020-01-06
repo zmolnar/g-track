@@ -9,24 +9,23 @@
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "hal.h"
 #include "ch.h"
+#include "hal.h"
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-typedef struct Buffer_s {
+typedef struct OutBuffer_s {
   char data[128];
   size_t end;
   size_t index;
   mutex_t lock;
-} Buffer_t;
+} IOBuffer_t;
 
 #define _bluetooth_stream_data                                                \
-  _base_sequential_stream_data                                                \
-  Buffer_t rx;                                                                \
-  Buffer_t tx;                                                                \
-  const char *udata;                                                       \
+  _base_sequential_stream_data IOBuffer_t rx;                                 \
+  IOBuffer_t tx;                                                              \
+  const char *udata;                                                          \
   size_t ulength;                                                             \
   mutex_t readlock;                                                           \
   mutex_t writelock;                                                          \

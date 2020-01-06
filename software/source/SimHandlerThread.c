@@ -23,6 +23,11 @@ typedef enum {
   SHD_STATE_ERROR,
 } SHD_State_t;
 
+typedef struct SimHandler_s {
+  SHD_State_t state;
+  semaphore_t parserSync;
+} SimHandler_t;
+
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
 /*****************************************************************************/
@@ -32,7 +37,7 @@ typedef enum {
 /*****************************************************************************/
 Sim8xx_t SIM868;
 
-static SHD_State_t modemState = SHD_STATE_INIT;
+static SimHandler_t simHandler;
 
 static SerialConfig sdConfig = {
     19200,
@@ -40,8 +45,6 @@ static SerialConfig sdConfig = {
     USART_CR2_STOP1_BITS,
     0,
 };
-
-static semaphore_t parserSync;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -55,43 +58,52 @@ static void SHD_serialPut(char c)
   sdPut(&SD1, c);
 }
 
+static void SHD_PowerPulse(void)
+{
+  palClearLine(LINE_WAVESHARE_POWER);
+  chThdSleepMilliseconds(2500);
+  palSetLine(LINE_WAVESHARE_POWER);
+}
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
 void SHD_Init(void)
 {
+  palSetLine(LINE_WAVESHARE_POWER);
+  chSemObjectInit(&simHandler.parserSync, 0);
+  simHandler.state = SHD_STATE_INIT;
+
   static Sim8xxConfig_t simConfig = {
       .put = SHD_serialPut,
   };
 
-  modemState = SHD_STATE_INIT;
   SIM_Init(&SIM868, &simConfig);
-  chSemObjectInit(&parserSync, 0);
 }
 
 bool SHD_ConnectModem(void)
 {
   bool result = false;
 
-  if (SHD_STATE_CONNECTED != modemState) {
+  if (SHD_STATE_CONNECTED != simHandler.state) {
     sdStart(&SD1, &sdConfig);
 
     bool isAlive = SIM_IsAlive(&SIM868);
 
     if (!isAlive) {
-      palToggleLine(LINE_WAVESHARE_POWER);
+      SHD_PowerPulse();
       isAlive = SIM_IsAlive(&SIM868);
     }
 
     if (isAlive) {
-      if (SIM_Start(&SIM868) {
-        modemState = SHD_STATE_CONNECTED;
-        success = true;
+      if (SIM_Start(&SIM868)) {
+        simHandler.state = SHD_STATE_CONNECTED;
+        result = true;
       }
       else 
-        modemState = SHD_STATE_ERROR;
+        simHandler.state = SHD_STATE_ERROR;
     } else {
-      modemState = SHD_STATE_ERROR;
+      simHandler.state = SHD_STATE_ERROR;
     }
   } else {
     result = true;
@@ -104,22 +116,22 @@ bool SHD_DisconnectModem(void)
 {
   bool result = false;
 
-  if (SHD_STATE_DISCONNECTED != modemState) {
+  if (SHD_STATE_DISCONNECTED != simHandler.state) {
     bool isAlive = SIM_IsAlive(&SIM868);
 
     if (isAlive) {
-      palToggleLine(LINE_WAVESHARE_POWER);
+      SHD_PowerPulse();
       isAlive = SIM_IsAlive(&SIM868);
     }
 
     if (!isAlive) {
       if (SIM_Stop(&SIM868)) {
-        modemState = SHD_STATE_DISCONNECTED;
-        result    = true;
+        simHandler.state = SHD_STATE_DISCONNECTED;
+        result     = true;
       } else
-        modemState = SHD_STATE_ERROR;
+        simHandler.state = SHD_STATE_ERROR;
     } else {
-      modemState = SHD_STATE_ERROR;
+      simHandler.state = SHD_STATE_ERROR;
     }
 
   } else {
@@ -135,15 +147,15 @@ THD_FUNCTION(SimReaderThread, arg)
   chRegSetThreadName("simreader");
 
   while (true) {
-    char c = sdGet(&SD1);
-    SIM_ProcessChar(&SIM868, c);
+    msg_t c = sdGet(&SD1);
+    SIM_ProcessChar(&SIM868, (char)c);
 
     do {
       c = sdGetTimeout(&SD1, chTimeMS2I(10));
-      SIM_ProcessChar(&SIM868, c);
+      SIM_ProcessChar(&SIM868, (char)c);
     } while (c != MSG_TIMEOUT);
 
-    chSemSignal(&parserSync);
+    chSemSignal(&simHandler.parserSync);
   }
 }
 
@@ -153,7 +165,7 @@ THD_FUNCTION(SimParserThread, arg)
   chRegSetThreadName("simparser");
 
   while (true) {
-    chSemWait(&parserSync);
+    chSemWait(&simHandler.parserSync);
     SIM_Parse(&SIM868);
   }
 }

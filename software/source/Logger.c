@@ -40,7 +40,7 @@
 /*****************************************************************************/
 static void LOG_createTimeStamp(char timestamp[], size_t length)
 {
-  DSB_DateTime_t dt = {0};
+  GPS_Time_t dt = {0};
   DSB_GetTime(&dt);
 
   chsnprintf(timestamp,
