@@ -100,7 +100,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
     if (SHD_ConnectModem()) {
       GPS_Start();
       COT_Start();
-      BLT_Start();
+      //BLT_Start();
       // CLL_Start();
       newState = SYS_STATE_RIDING;
     } else {
@@ -141,7 +141,7 @@ static SYS_State_t SYS_parkingStateHandler(SYS_Command_t evt)
     if (SHD_ConnectModem()) {
       GPS_Start();
       COT_Start();
-      BLT_Start();
+      //BLT_Start();
       newState = SYS_STATE_RIDING;
     } else {
       system.error = SYS_ERR_MODEM_POWER_ON;

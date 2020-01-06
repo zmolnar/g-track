@@ -89,47 +89,30 @@ void SHD_Init(void)
 
 bool SHD_ConnectModem(void)
 {
-  bool result = false;
-
   if (SHD_STATE_CONNECTED != simHandler.state) {
     sdStart(&SD1, &sdConfig);
+    simHandler.parser = chThdCreateFromHeap(
+        NULL, PARSER_STACK_SIZE, "simparser", NORMALPRIO + 1, SimParserThread, &SIM868);
+    simHandler.reader = chThdCreateFromHeap(
+        NULL, READER_STACK_SIZE, "simreader", NORMALPRIO + 1, SimReaderThread, &SIM868);
 
-    bool isAlive = SIM_IsAlive(&SIM868);
-
+    bool isAlive = SIM_Start(&SIM868);
     if (!isAlive) {
       SHD_PowerPulse();
-      isAlive = SIM_IsAlive(&SIM868);
+      isAlive = SIM_Start(&SIM868);
     }
 
-    if (isAlive) {
-      if (SIM_Start(&SIM868)) {
-        simHandler.state  = SHD_STATE_CONNECTED;
-        simHandler.parser = chThdCreateFromHeap(
-            NULL, PARSER_STACK_SIZE, "simparser", NORMALPRIO + 1, SimParserThread, &SIM868);
-        simHandler.reader = chThdCreateFromHeap(
-            NULL, READER_STACK_SIZE, "simreader", NORMALPRIO + 1, SimReaderThread, &SIM868);
-        result = true;
-      } else {
-        simHandler.state  = SHD_STATE_ERROR;
-        simHandler.parser = NULL;
-        simHandler.reader = NULL;
-      }
-    } else {
-      simHandler.state  = SHD_STATE_ERROR;
-      simHandler.parser = NULL;
-      simHandler.reader = NULL;
-    }
-  } else {
-    result = true;
+    if (isAlive)
+      simHandler.state = SHD_STATE_CONNECTED;
+    else
+      simHandler.state = SHD_STATE_ERROR;
   }
 
-  return result;
+  return SHD_STATE_CONNECTED == simHandler.state;
 }
 
 bool SHD_DisconnectModem(void)
 {
-  bool result = false;
-
   if (SHD_STATE_DISCONNECTED != simHandler.state) {
     bool isAlive = SIM_IsAlive(&SIM868);
 
@@ -151,18 +134,14 @@ bool SHD_DisconnectModem(void)
           chThdWait(simHandler.reader);
           simHandler.reader = NULL;
         }
-        result = true;
       } else
         simHandler.state = SHD_STATE_ERROR;
     } else {
       simHandler.state = SHD_STATE_ERROR;
     }
-
-  } else {
-    result = true;
   }
 
-  return result;
+  return SHD_STATE_DISCONNECTED == simHandler.state;
 }
 
 THD_FUNCTION(SimReaderThread, arg)
@@ -177,7 +156,8 @@ THD_FUNCTION(SimReaderThread, arg)
 
       do {
         c = sdGetTimeout(&SD1, chTimeMS2I(10));
-        SIM_ProcessChar(modem, (char)c);
+        if (c != MSG_TIMEOUT)
+          SIM_ProcessChar(modem, (char)c);
       } while (c != MSG_TIMEOUT);
 
       chSemSignal(&simHandler.parserSync);
