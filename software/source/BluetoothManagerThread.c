@@ -206,15 +206,25 @@ BLT_State_t BLT_procesEventInConnectedState(void)
     BluetoothStream_t *stream = &bluetooth.stream;
     const char *idata         = bluetooth.btevent.payload.incomingData.data;
     size_t ilen               = strlen(idata);
-    BLS_ProcessRxData(stream, idata, ilen);
+    //BLS_ProcessRxData(stream, idata, ilen);
+    SIM_BluetoothSendSppData(&SIM868, idata, ilen);
     break;
   }
   case GSM_BT_DISCONNECTED: {
+    BLT_StopShell();
     newState = BLT_STATE_DISCONNECTED;
     break;
   }
+  case GSM_BT_CONNECTING: {
+    if (SIM_BluetoothAcceptConnection(&SIM868)) {
+      BLT_startShell();
+    } else {
+      newState = BLT_STATE_ERROR;
+    }
+
+    break;
+  }
   case GSM_BT_NO_EVENT:
-  case GSM_BT_CONNECTING:
   case GSM_BT_CONNECTED:
   default: {
     break;
@@ -281,15 +291,11 @@ BLT_State_t BLT_procesEventInDisconnectedState(void)
   BLT_State_t newState = BLT_STATE_DISCONNECTED;
 
   switch (bluetooth.btevent.type) {
-  case GSM_BT_CONNECTING: {
-    if (!SIM_BluetoothAcceptConnection(&SIM868))
-      newState = BLT_STATE_ERROR;
-    break;
-  }
   case GSM_BT_CONNECTED: {
     newState = BLT_STATE_CONNECTED;
     break;
   }
+  case GSM_BT_CONNECTING:
   case GSM_BT_INCOMING_DATA:
   case GSM_BT_DISCONNECTED:
   case GSM_BT_NO_EVENT:
