@@ -107,25 +107,53 @@ int main(void)
   CLL_Init();
   BLT_Init();
 
-  chThdCreateStatic(
-      waHeartBeatThread, sizeof(waHeartBeatThread), NORMALPRIO, HeartBeatThread, NULL);
+  chThdCreateStatic(waHeartBeatThread,
+                    sizeof(waHeartBeatThread),
+                    NORMALPRIO,
+                    HeartBeatThread,
+                    NULL);
 
-  chThdCreateStatic(waSystemThread, sizeof(waSystemThread), NORMALPRIO, SYS_Thread, NULL);
+  chThdCreateStatic(waSystemThread, 
+                    sizeof(waSystemThread), 
+                    NORMALPRIO, 
+                    SYS_Thread, 
+                    NULL);
 
-  chThdCreateStatic(
-      waBoardMonitorThread, sizeof(waBoardMonitorThread), NORMALPRIO, BMT_Thread, NULL);
+  chThdCreateStatic(waBoardMonitorThread,
+                    sizeof(waBoardMonitorThread),
+                    NORMALPRIO,
+                    BMT_Thread,
+                    NULL);
 
-  chThdCreateStatic(
-      waPeripheralManagerThread, sizeof(waPeripheralManagerThread), NORMALPRIO, PRP_Thread, NULL);
+  chThdCreateStatic(waPeripheralManagerThread,
+                    sizeof(waPeripheralManagerThread),
+                    NORMALPRIO,
+                    PRP_Thread,
+                    NULL);
 
-  chThdCreateStatic(waGpsReaderThread, sizeof(waGpsReaderThread), NORMALPRIO, GPS_Thread, NULL);
+  chThdCreateStatic(waGpsReaderThread,
+                    sizeof(waGpsReaderThread),
+                    NORMALPRIO,
+                    GPS_Thread,
+                    NULL);
 
-  chThdCreateStatic(waChainOilerThread, sizeof(waChainOilerThread), NORMALPRIO, COT_Thread, NULL);
+  chThdCreateStatic(waChainOilerThread,
+                    sizeof(waChainOilerThread),
+                    NORMALPRIO,
+                    COT_Thread,
+                    NULL);
 
-  chThdCreateStatic(waCallManagerThread, sizeof(waCallManagerThread), NORMALPRIO, CLL_Thread, NULL);
+  chThdCreateStatic(waCallManagerThread,
+                    sizeof(waCallManagerThread),
+                    NORMALPRIO,
+                    CLL_Thread,
+                    NULL);
 
-  chThdCreateStatic(
-      waBluetoothManagerThread, sizeof(waBluetoothManagerThread), NORMALPRIO, BLT_Thread, NULL);
+  chThdCreateStatic(waBluetoothManagerThread,
+                    sizeof(waBluetoothManagerThread),
+                    NORMALPRIO,
+                    BLT_Thread,
+                    NULL);
 
   while (true) {
     chThdSleepMilliseconds(1000);
