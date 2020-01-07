@@ -102,10 +102,7 @@ bool SHD_ConnectModem(void)
       isAlive = SIM_Start(&SIM868);
     }
 
-    if (isAlive)
-      simHandler.state = SHD_STATE_CONNECTED;
-    else
-      simHandler.state = SHD_STATE_ERROR;
+    simHandler.state = isAlive ? SHD_STATE_CONNECTED : SHD_STATE_ERROR;
   }
 
   return SHD_STATE_CONNECTED == simHandler.state;

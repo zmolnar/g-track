@@ -119,6 +119,7 @@ static void BLT_StopShell(void)
 static void BLT_eventCallback(GSM_BluetoothEvent_t *p)
 {
   bluetooth.btevent = *p;
+  BLT_ProcessEvent();
 }
 
 static bool BLT_setupAndStart(void)
@@ -290,7 +291,7 @@ BLT_State_t BLT_procesEventInDisconnectedState(void)
     break;
   }
   case GSM_BT_INCOMING_DATA:
-  case GSM_BT_DISCONNECTED: 
+  case GSM_BT_DISCONNECTED:
   case GSM_BT_NO_EVENT:
   default: {
     break;
