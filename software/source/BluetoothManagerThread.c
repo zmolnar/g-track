@@ -129,7 +129,6 @@ static bool BLT_setupAndStart(void)
   if (SIM_BluetoothSetup(&SIM868, "gtrack", "2020")) {
     if (SIM_RegisterBluetoothCallback(&SIM868, BLT_eventCallback)) {
       if (SIM_BluetoothStart(&SIM868)) {
-        BLT_startShell();
         result = true;
       }
     }
@@ -206,8 +205,8 @@ BLT_State_t BLT_procesEventInConnectedState(void)
     BluetoothStream_t *stream = &bluetooth.stream;
     const char *idata         = bluetooth.btevent.payload.incomingData.data;
     size_t ilen               = strlen(idata);
-    //BLS_ProcessRxData(stream, idata, ilen);
-    SIM_BluetoothSendSppData(&SIM868, idata, ilen);
+    BLS_ProcessRxData(stream, idata, ilen);
+    //SIM_BluetoothSendSppData(&SIM868, idata, ilen);
     break;
   }
   case GSM_BT_DISCONNECTED: {

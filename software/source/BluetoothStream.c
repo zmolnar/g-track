@@ -53,7 +53,7 @@ static char *BLS_getFirstFree(IOBuffer_t *bp)
 
 static size_t BLS_getFreeLength(IOBuffer_t *bp)
 {
-  return sizeof(bp->data)/sizeof(bp->data[0]) - bp->end;
+  return sizeof(bp->data)/sizeof(bp->data[0]) - bp->end - 1;
 }
 
 static size_t BLS_write(void *ip, const uint8_t *bp, size_t n) {
@@ -216,13 +216,14 @@ void BLS_ProcessRxData(BluetoothStream_t *bsp, const char *rxdata, size_t rxleng
   chMtxLock(&rxbuf->lock);
 
   char *begin = BLS_getFirstFree(rxbuf);
-  size_t length = BLS_getFreeLength(rxbuf);
+  size_t length = BLS_getFreeLength(rxbuf) - 2;
 
   if (rxlength < length)
     length = rxlength;
 
   memcpy(begin, rxdata, length);
-  rxbuf->end += length;
+  begin[length] = '\r';
+  rxbuf->end += length + 1;
 
   BLS_NotifyReader(bsp);
 
