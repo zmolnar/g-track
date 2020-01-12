@@ -41,7 +41,7 @@ typedef struct SimHandler_s {
 /*****************************************************************************/
 Sim8xx_t SIM868;
 
-static SimHandler_t simHandler;
+SimHandler_t simHandler;
 
 static SerialConfig sdConfig = {
     19200,
@@ -65,7 +65,7 @@ static void SHD_serialPut(char c)
 static void SHD_PowerPulse(void)
 {
   palClearLine(LINE_WAVESHARE_POWER);
-  chThdSleepMilliseconds(2500);
+  chThdSleepMilliseconds(3000);
   palSetLine(LINE_WAVESHARE_POWER);
 }
 
