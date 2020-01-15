@@ -43,18 +43,18 @@
 #define STM32_HSI16_ENABLED                 FALSE
 #define STM32_HSI48_ENABLED                 FALSE
 #define STM32_LSI_ENABLED                   TRUE
-#define STM32_HSE_ENABLED                   FALSE
+#define STM32_HSE_ENABLED                   TRUE
 #define STM32_LSE_ENABLED                   TRUE
 #define STM32_MSIPLL_ENABLED                TRUE
 #define STM32_ADC_CLOCK_ENABLED             TRUE
 #define STM32_USB_CLOCK_ENABLED             TRUE
 #define STM32_SAI1_CLOCK_ENABLED            TRUE
-#define STM32_SAI2_CLOCK_ENABLED            TRUE
-#define STM32_MSIRANGE                      STM32_MSIRANGE_4M
-#define STM32_MSISRANGE                     STM32_MSISRANGE_4M
+#define STM32_SAI2_CLOCK_ENABLED            FALSE
+#define STM32_MSIRANGE                      STM32_MSIRANGE_8M
+#define STM32_MSISRANGE                     STM32_MSISRANGE_8M
 #define STM32_SW                            STM32_SW_PLL
-#define STM32_PLLSRC                        STM32_PLLSRC_MSI
-#define STM32_PLLM_VALUE                    1
+#define STM32_PLLSRC                        STM32_PLLSRC_HSE
+#define STM32_PLLM_VALUE                    2
 #define STM32_PLLN_VALUE                    80
 #define STM32_PLLP_VALUE                    7
 #define STM32_PLLQ_VALUE                    6
@@ -90,7 +90,7 @@
 #define STM32_ADCSEL                        STM32_ADCSEL_SYSCLK
 #define STM32_SWPMI1SEL                     STM32_SWPMI1SEL_PCLK1
 #define STM32_DFSDMSEL                      STM32_DFSDMSEL_PCLK2
-#define STM32_RTCSEL                        STM32_RTCSEL_LSI
+#define STM32_RTCSEL                        STM32_RTCSEL_LSE
 
 /*
  * IRQ system settings.
