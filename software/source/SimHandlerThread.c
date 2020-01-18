@@ -59,6 +59,7 @@ static SerialConfig sdConfig = {
 /*****************************************************************************/
 static void SHD_serialPut(char c)
 {
+  ITM_SendChar(c);
   sdPut(&SD1, c);
 }
 
@@ -149,12 +150,15 @@ THD_FUNCTION(SimReaderThread, arg)
     msg_t c = sdGetTimeout(&SD1, chTimeMS2I(100));
 
     if ((MSG_TIMEOUT != c) && (MSG_RESET != c)) {
+      ITM_SendChar(c);
       SIM_ProcessChar(modem, (char)c);
 
       do {
         c = sdGetTimeout(&SD1, chTimeMS2I(10));
-        if (c != MSG_TIMEOUT)
+        if (c != MSG_TIMEOUT) {
+          ITM_SendChar(c);
           SIM_ProcessChar(modem, (char)c);
+        }
       } while (c != MSG_TIMEOUT);
 
       chSemSignal(&simHandler.parserSync);
