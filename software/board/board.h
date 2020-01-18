@@ -301,7 +301,7 @@
 #define VAL_GPIOB_MODER             (PIN_MODE_INPUT(GPIOB_ACC_INT1)           | \
                                      PIN_MODE_INPUT(GPIOB_ACC_INT2)           | \
                                      PIN_MODE_INPUT(GPIOB_PB2_NC)             | \
-                                     PIN_MODE_INPUT(GPIOB_SWD_SWO)            | \
+                                     PIN_MODE_ALTERNATE(GPIOB_SWD_SWO)        | \
                                      PIN_MODE_INPUT(GPIOB_PB4_NC)             | \
                                      PIN_MODE_OUTPUT(GPIOB_WAVESHARE_POWER)   | \
                                      PIN_MODE_ALTERNATE(GPIOB_RPI_UART_TX)    | \
@@ -349,10 +349,10 @@
 #define VAL_GPIOB_PUPDR             (PIN_PUPDR_PULLUP(GPIOB_ACC_INT1)           | \
                                      PIN_PUPDR_PULLUP(GPIOB_ACC_INT2)           | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB2_NC)             | \
-                                     PIN_PUPDR_PULLUP(GPIOB_SWD_SWO)            | \
+                                     PIN_PUPDR_FLOATING(GPIOB_SWD_SWO)          | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB4_NC)             | \
                                      PIN_PUPDR_PULLUP(GPIOB_WAVESHARE_POWER)    | \
-                                     PIN_PUPDR_PULLDOWN(GPIOB_RPI_UART_TX)        | \
+                                     PIN_PUPDR_PULLDOWN(GPIOB_RPI_UART_TX)      | \
                                      PIN_PUPDR_PULLUP(GPIOB_RPI_UART_RX)        | \
                                      PIN_PUPDR_PULLUP(GPIOB_PB8_NC)             | \
                                      PIN_PUPDR_PULLDOWN(GPIOB_EXT_SW1)          | \
