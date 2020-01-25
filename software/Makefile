@@ -90,6 +90,7 @@ CONFDIR = ./config
 CHIBIOS = ./ChibiOS
 BOARD   = ./board
 SIM8XX  = ./sim8xx
+MININI  = ./source/minIni
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -111,6 +112,7 @@ include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 include $(CHIBIOS)/os/various/shell/shell.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 include $(SIM8XX)/ports/ChibiOS/sim8xx.mk
+include $(MININI)/minIni.mk
 
 # Define linker script file here
 LDSCRIPT= $(STARTUPLD)/STM32L452xC.ld

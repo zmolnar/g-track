@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "ConfigManagerThread.h"
+#include "minIni.h"
 #include <string.h>
 
 /*****************************************************************************/
@@ -61,6 +62,10 @@ THD_FUNCTION(CFM_Thread, arg)
 {
   (void)arg;
   chRegSetThreadName("config-manager");
+
+  chThdSleepMilliseconds(3000);
+  char user[100] = {0};
+  ini_gets("server", "user", "NULL", user, sizeof(user), "gtrack.ini");
 
   while (true) {
     msg_t msg;

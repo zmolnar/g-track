@@ -1,0 +1,6 @@
+MININISRC = $(MININI)/minIni.c
+MININIINC = $(MININI)
+
+# Shared variables
+ALLCSRC += $(MININISRC)
+ALLINC  += $(MININIINC)
