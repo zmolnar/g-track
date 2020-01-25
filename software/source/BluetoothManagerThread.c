@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include "BluetoothManagerThread.h"
 #include "BluetoothShell.h"
+#include "ConfigManagerThread.h"
 #include "Logger.h"
 #include "Sim8xx.h"
 #include "SimHandlerThread.h"
@@ -125,8 +126,10 @@ static void BLT_eventCallback(GSM_BluetoothEvent_t *p)
 static bool BLT_setupAndStart(void)
 {
   bool result = false;
-
-  if (SIM_BluetoothSetup(&SIM868, "gtrack", "2020")) {
+  const char *hostname = CFM_GetBluetoothHostName();
+  const char *pin = CFM_GetBluetoothPin();
+  
+  if (SIM_BluetoothSetup(&SIM868, hostname, pin)) {
     if (SIM_RegisterBluetoothCallback(&SIM868, BLT_eventCallback)) {
       if (SIM_BluetoothStart(&SIM868)) {
         result = true;

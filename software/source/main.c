@@ -26,6 +26,7 @@
 #include "PeripheralManagerThread.h"
 #include "SimHandlerThread.h"
 #include "SystemThread.h"
+#include "ConfigManagerThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
 static THD_WORKING_AREA(waBoardMonitorThread, 8192);
@@ -34,6 +35,7 @@ static THD_WORKING_AREA(waGpsReaderThread, 8192);
 static THD_WORKING_AREA(waChainOilerThread, 8192);
 static THD_WORKING_AREA(waCallManagerThread, 8192);
 static THD_WORKING_AREA(waBluetoothManagerThread, 8192);
+static THD_WORKING_AREA(waConfigManagerThread, 8192);
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -106,6 +108,7 @@ int main(void)
   COT_Init();
   CLL_Init();
   BLT_Init();
+  CFM_Init();
 
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
@@ -153,6 +156,12 @@ int main(void)
                     sizeof(waBluetoothManagerThread),
                     NORMALPRIO,
                     BLT_Thread,
+                    NULL);
+
+  chThdCreateStatic(waConfigManagerThread,
+                    sizeof(waConfigManagerThread),
+                    NORMALPRIO,
+                    CFM_Thread,
                     NULL);
 
   while (true) {
