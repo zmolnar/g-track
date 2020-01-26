@@ -46,15 +46,33 @@ static ConfigManager_t configManager;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void CFM_ReadConfig(void)
-{
-
-}
-
-static void CFM_ClearConfig(void)
+static void CFM_LoadDefaultConfig(void)
 {
   memcpy(&configManager.config, &defaultConfig, sizeof(Config_t));
 }
+
+static void CFM_Read(void)
+{
+  ini_gets(CFG_BLUETOOTH_SECTION,
+           CFG_BLUETOOTH_HOSTNAME,
+           CFG_BLUETOOTH_HOSTNAME_DEFAULT,
+           configManager.config.bluetooth.hostname,
+           sizeof(configManager.config.bluetooth.hostname),
+           CFG_INI_FILE);
+
+  ini_gets(CFG_BLUETOOTH_SECTION,
+           CFG_BLUETOOTH_PIN,
+           CFG_BLUETOOTH_PIN_DEFAULT,
+           configManager.config.bluetooth.pin,
+           sizeof(configManager.config.bluetooth.pin),
+           CFG_INI_FILE);
+}
+
+static void CFM_Clear(void)
+{
+  CFM_LoadDefaultConfig();
+}
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -63,27 +81,25 @@ THD_FUNCTION(CFM_Thread, arg)
   (void)arg;
   chRegSetThreadName("config-manager");
 
-  chThdSleepMilliseconds(3000);
-  char user[100] = {0};
-  ini_gets("server", "user", "NULL", user, sizeof(user), "gtrack.ini");
+  CFM_LoadDefaultConfig();
 
   while (true) {
     msg_t msg;
     if (MSG_OK == chMBFetchTimeout(&configManager.mailbox, &msg, TIME_INFINITE)) {
       CFM_Command_t cmd = (CFM_Command_t)msg;
       switch (cmd) {
-        case CFM_CMD_READ: {
-          CFM_ReadConfig();
-          break;
-        }
-        case CFM_CMD_CLEAR: {
-          CFM_ClearConfig();
-          break;
-        }
-        case CFM_CMD_INVALID :
-        default : {
-          break;
-        }
+      case CFM_CMD_READ: {
+        CFM_Read();
+        break;
+      }
+      case CFM_CMD_CLEAR: {
+        CFM_Clear();
+        break;
+      }
+      case CFM_CMD_INVALID:
+      default: {
+        break;
+      }
       }
     }
   }
@@ -94,6 +110,30 @@ void CFM_Init(void)
   memcpy(&configManager.config, &defaultConfig, sizeof(Config_t));
   chMBObjectInit(
       &configManager.mailbox, configManager.commands, ARRAY_LENGTH(configManager.commands));
+}
+
+void CFM_ReadConfigI(void)
+{
+  chMBPostI(&configManager.mailbox, CFM_CMD_READ);
+}
+
+void CFM_ReadConfig(void) 
+{
+  chSysLock();
+  CFM_ReadConfigI();
+  chSysUnlock();
+}
+
+void CFM_ClearConfigI(void)
+{
+  chMBPostI(&configManager.mailbox, CFM_CMD_CLEAR);
+}
+
+void CFM_ClearConfig(void) 
+{
+  chSysLock();
+  CFM_ClearConfigI();
+  chSysUnlock();
 }
 
 const char *CFM_GetBluetoothHostName(void)

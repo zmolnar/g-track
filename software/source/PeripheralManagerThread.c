@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include "PeripheralManagerThread.h"
 
+#include "ConfigManagerThread.h"
 #include "DebugShell.h"
 #include "Logger.h"
 #include "Sdcard.h"
@@ -109,6 +110,7 @@ THD_FUNCTION(PRP_Thread, arg)
       case PRP_CMD_SDC_INSERTED: {
         SDC_Mount();
         PRP_writeSysInfo();
+        CFM_ReadConfig();
         break;
       }
       case PRP_CMD_SDC_REMOVED: {

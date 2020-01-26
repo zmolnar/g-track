@@ -112,6 +112,7 @@ static void BLT_StopShell(void)
 {
   if (bluetooth.shell) {
     chThdTerminate(bluetooth.shell);
+    BLS_NotifyReader(&bluetooth.stream);
     chThdWait(bluetooth.shell);
     bluetooth.shell = NULL;
   }
@@ -125,10 +126,10 @@ static void BLT_eventCallback(GSM_BluetoothEvent_t *p)
 
 static bool BLT_setupAndStart(void)
 {
-  bool result = false;
+  bool result          = false;
   const char *hostname = CFM_GetBluetoothHostName();
-  const char *pin = CFM_GetBluetoothPin();
-  
+  const char *pin      = CFM_GetBluetoothPin();
+
   if (SIM_BluetoothSetup(&SIM868, hostname, pin)) {
     if (SIM_RegisterBluetoothCallback(&SIM868, BLT_eventCallback)) {
       if (SIM_BluetoothStart(&SIM868)) {
@@ -209,7 +210,6 @@ BLT_State_t BLT_procesEventInConnectedState(void)
     const char *idata         = bluetooth.btevent.payload.incomingData.data;
     size_t ilen               = strlen(idata);
     BLS_ProcessRxData(stream, idata, ilen);
-    //SIM_BluetoothSendSppData(&SIM868, idata, ilen);
     break;
   }
   case GSM_BT_DISCONNECTED: {
@@ -217,15 +217,7 @@ BLT_State_t BLT_procesEventInConnectedState(void)
     newState = BLT_STATE_DISCONNECTED;
     break;
   }
-  case GSM_BT_CONNECTING: {
-    if (SIM_BluetoothAcceptConnection(&SIM868)) {
-      BLT_startShell();
-    } else {
-      newState = BLT_STATE_ERROR;
-    }
-
-    break;
-  }
+  case GSM_BT_CONNECTING:
   case GSM_BT_NO_EVENT:
   case GSM_BT_CONNECTED:
   default: {
@@ -294,11 +286,30 @@ BLT_State_t BLT_procesEventInDisconnectedState(void)
 
   switch (bluetooth.btevent.type) {
   case GSM_BT_CONNECTED: {
-    newState = BLT_STATE_CONNECTED;
+    if (0 == strncmp("SPP", bluetooth.btevent.payload.connected.profile, 3)) {
+      BLT_startShell();
+      newState = BLT_STATE_CONNECTED;
+    }
     break;
   }
-  case GSM_BT_CONNECTING:
-  case GSM_BT_INCOMING_DATA:
+  case GSM_BT_CONNECTING: {
+    if (0 == strncmp("SPP", bluetooth.btevent.payload.connecting.profile, 3)) {
+      bool success = SIM_BluetoothAcceptConnection(&SIM868);
+      if (success) {
+        BLT_startShell();
+        newState = BLT_STATE_CONNECTED;
+      } else {
+        newState = BLT_STATE_ERROR;
+      }
+    }
+    break;
+  }
+  case GSM_BT_INCOMING_DATA: {
+    newState = BLT_STATE_CONNECTED;
+    BLT_startShell();
+    BLT_ProcessEvent();
+    break;
+  }
   case GSM_BT_DISCONNECTED:
   case GSM_BT_NO_EVENT:
   default: {

@@ -35,6 +35,14 @@ THD_FUNCTION(CFM_Thread, arg);
 
 void CFM_Init(void);
 
+void CFM_ReadConfigI(void);
+
+void CFM_ReadConfig(void);
+
+void CFM_ClearConfigI(void);
+
+void CFM_ClearConfig(void);
+
 const char *CFM_GetBluetoothHostName(void);
 
 const char *CFM_GetBluetoothPin(void);
