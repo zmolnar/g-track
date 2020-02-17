@@ -111,6 +111,7 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 include $(CHIBIOS)/os/various/shell/shell.mk
 include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
+include $(CHIBIOS)/os/ex/ST/lis3dsh.mk
 include $(SIM8XX)/ports/ChibiOS/sim8xx.mk
 include $(MININI)/minIni.mk
 
@@ -139,6 +140,7 @@ CSRC = $(ALLCSRC) \
        source/BluetoothShell.c \
        source/BluetoothStream.c \
        source/SimHandlerThread.c \
+       source/MotionDetectorThread.c \
        source/ConfigManagerThread.c \
        source/Config.c \
        $(CONFDIR)/usbcfg.c

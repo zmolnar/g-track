@@ -45,49 +45,6 @@
 /*===========================================================================*/
 /* Driver local functions.                                                   */
 /*===========================================================================*/
-
-#if (LIS3DSH_USE_SPI) || defined(__DOXYGEN__)
-/**
- * @brief   Reads a generic register value using SPI.
- * @pre     The SPI interface must be initialized and the driver started.
- * @note    Multiple write/read requires proper settings in CTRL_REG6.
- *
- * @param[in] spip      pointer to the SPI interface
- * @param[in] reg       starting register address
- * @param[in] n         number of adjacent registers to write
- * @param[in] b         pointer to a buffer.
- */
-static void lis3dshSPIReadRegister(SPIDriver *spip, uint8_t reg, size_t n,
-                                   uint8_t* b) {
-  uint8_t cmd;
-  cmd = reg | LIS3DSH_RW;
-  spiSelect(spip);
-  spiSend(spip, 1, &cmd);
-  spiReceive(spip, n, b);
-  spiUnselect(spip);
-}
-
-/**
- * @brief   Writes a value into a generic register using SPI.
- * @pre     The SPI interface must be initialized and the driver started.
- * @note    Multiple write/read requires proper settings in CTRL_REG6.
- *
- * @param[in] spip      pointer to the SPI interface
- * @param[in] reg       starting register address
- * @param[in] n         number of adjacent registers to write
- * @param[in] b         pointer to a buffer of values.
- */
-static void lis3dshSPIWriteRegister(SPIDriver *spip, uint8_t reg, size_t n,
-                                    uint8_t* b) {
-  uint8_t cmd;
-  cmd = reg;
-  spiSelect(spip);
-  spiSend(spip, 1, &cmd);
-  spiSend(spip, n, b);
-  spiUnselect(spip);
-}
-#endif /* LIS3DSH_USE_SPI */
-
 /**
  * @brief   Return the number of axes of the BaseAccelerometer.
  *
@@ -346,7 +303,7 @@ static msg_t acc_reset_sensivity(void *ip) {
 static msg_t acc_set_full_scale(LIS3DSHDriver *devp, lis3dsh_acc_fs_t fs) {
   float newfs, scale;
   uint8_t i, cr;
-  msg_t msg;
+  msg_t msg = MSG_OK;
 
   osalDbgCheck(devp != NULL);
 
@@ -437,6 +394,45 @@ static const struct BaseAccelerometerVMT vmt_accelerometer = {
 /*===========================================================================*/
 /* Driver exported functions.                                                */
 /*===========================================================================*/
+#if (LIS3DSH_USE_SPI) || defined(__DOXYGEN__)
+/**
+ * @brief   Reads a generic register value using SPI.
+ * @pre     The SPI interface must be initialized and the driver started.
+ * @note    Multiple write/read requires proper settings in CTRL_REG6.
+ *
+ * @param[in] spip      pointer to the SPI interface
+ * @param[in] reg       starting register address
+ * @param[in] n         number of adjacent registers to write
+ * @param[in] b         pointer to a buffer.
+ */
+void lis3dshSPIReadRegister(SPIDriver *spip, uint8_t reg, size_t n, uint8_t* b) {
+  uint8_t cmd;
+  cmd = reg | LIS3DSH_RW;
+  spiSelect(spip);
+  spiSend(spip, 1, &cmd);
+  spiReceive(spip, n, b);
+  spiUnselect(spip);
+}
+
+/**
+ * @brief   Writes a value into a generic register using SPI.
+ * @pre     The SPI interface must be initialized and the driver started.
+ * @note    Multiple write/read requires proper settings in CTRL_REG6.
+ *
+ * @param[in] spip      pointer to the SPI interface
+ * @param[in] reg       starting register address
+ * @param[in] n         number of adjacent registers to write
+ * @param[in] b         pointer to a buffer of values.
+ */
+void lis3dshSPIWriteRegister(SPIDriver *spip, uint8_t reg, size_t n, uint8_t* b) {
+  uint8_t cmd;
+  cmd = reg;
+  spiSelect(spip);
+  spiSend(spip, 1, &cmd);
+  spiSend(spip, n, b);
+  spiUnselect(spip);
+}
+#endif /* LIS3DSH_USE_SPI */
 
 /**
  * @brief   Initializes an instance.
@@ -479,7 +475,7 @@ void lis3dshStart(LIS3DSHDriver *devp, const LIS3DSHConfig *config) {
   {
     cr = LIS3DSH_CTRL_REG4_XEN | LIS3DSH_CTRL_REG4_YEN | LIS3DSH_CTRL_REG4_ZEN |
          devp->config->accoutputdatarate;
-#if LIS3DSH_USE_ADVANCED || defined(__DOXYGEN__)
+#if LIS3DSH_ACC_USE_ADVANCED || defined(__DOXYGEN__)
     cr |= devp->config->accblockdataupdate;
 #endif
   }
@@ -500,7 +496,7 @@ void lis3dshStart(LIS3DSHDriver *devp, const LIS3DSHConfig *config) {
   /* Control register 5 configuration block.*/
   {
     cr = devp->config->accfullscale;
-#if LIS3DSH_USE_ADVANCED || defined(__DOXYGEN__)
+#if LIS3DSH_ACC_USE_ADVANCED || defined(__DOXYGEN__)
     cr |= devp->config->accantialiasing;
 #endif
   }
@@ -521,7 +517,7 @@ void lis3dshStart(LIS3DSHDriver *devp, const LIS3DSHConfig *config) {
   /* Control register 6 configuration block.*/
   {
     cr = LIS3DSH_CTRL_REG6_ADD_INC;
-#if LIS3DSH_USE_ADVANCED || defined(__DOXYGEN__)
+#if LIS3DSH_ACC_USE_ADVANCED || defined(__DOXYGEN__)
     cr |= devp->config->accblockdataupdate;
 #endif
   }

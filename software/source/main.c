@@ -27,6 +27,7 @@
 #include "SimHandlerThread.h"
 #include "SystemThread.h"
 #include "ConfigManagerThread.h"
+#include "MotionDetectorThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
 static THD_WORKING_AREA(waBoardMonitorThread, 8192);
@@ -36,6 +37,7 @@ static THD_WORKING_AREA(waChainOilerThread, 8192);
 static THD_WORKING_AREA(waCallManagerThread, 8192);
 static THD_WORKING_AREA(waBluetoothManagerThread, 8192);
 static THD_WORKING_AREA(waConfigManagerThread, 8192);
+static THD_WORKING_AREA(waMotionDetectorThread, 8192);
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -109,6 +111,7 @@ int main(void)
   CLL_Init();
   BLT_Init();
   CFM_Init();
+  MDT_Init();
 
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
@@ -163,6 +166,12 @@ int main(void)
                     NORMALPRIO,
                     CFM_Thread,
                     NULL);
+
+  chThdCreateStatic(waMotionDetectorThread,
+                    sizeof(waMotionDetectorThread),
+                    NORMALPRIO,
+                    MDT_Thread,
+                    NULL);                    
 
   while (true) {
     chThdSleepMilliseconds(1000);

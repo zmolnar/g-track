@@ -391,11 +391,11 @@ typedef struct LIS3DSHDriver LIS3DSHDriver;
  * @brief   LIS3DSH full scale.
  */
 typedef enum {
-  LIS3DSH_ACC_FS_2G = 0x00,         /**< Full scale ±2g.                    */
-  LIS3DSH_ACC_FS_4G = 0x08,         /**< Full scale ±4g.                    */
-  LIS3DSH_ACC_FS_6G = 0x10,         /**< Full scale ±6g.                    */
-  LIS3DSH_ACC_FS_8G = 0x18,         /**< Full scale ±8g.                    */
-  LIS3DSH_ACC_FS_16G = 0x20         /**< Full scale ±16g.                   */
+  LIS3DSH_ACC_FS_2G = 0x00,         /**< Full scale ï¿½2g.                    */
+  LIS3DSH_ACC_FS_4G = 0x08,         /**< Full scale ï¿½4g.                    */
+  LIS3DSH_ACC_FS_6G = 0x10,         /**< Full scale ï¿½6g.                    */
+  LIS3DSH_ACC_FS_8G = 0x18,         /**< Full scale ï¿½8g.                    */
+  LIS3DSH_ACC_FS_16G = 0x20         /**< Full scale ï¿½16g.                   */
 }lis3dsh_acc_fs_t;
 
 /**
@@ -696,6 +696,8 @@ struct LIS3DSHDriver {
 #ifdef __cplusplus
 extern "C" {
 #endif
+  void lis3dshSPIReadRegister(SPIDriver *spip, uint8_t reg, size_t n, uint8_t* b);
+  void lis3dshSPIWriteRegister(SPIDriver *spip, uint8_t reg, size_t n, uint8_t* b);
   void lis3dshObjectInit(LIS3DSHDriver *devp);
   void lis3dshStart(LIS3DSHDriver *devp, const LIS3DSHConfig *config);
   void lis3dshStop(LIS3DSHDriver *devp);

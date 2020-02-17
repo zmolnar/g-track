@@ -192,8 +192,12 @@ void _pal_lld_enablepadevent(ioportid_t port,
     EXTI->FTSR1 &= ~padmask;
 
   /* Programming interrupt and event registers.*/
+#if 0  
   EXTI_D1->IMR1 |= padmask;
   EXTI_D1->EMR1 &= ~padmask;
+#endif
+  EXTI->IMR1 |= padmask;
+  EXTI->EMR1 &= ~padmask;
 #else
   if (mode & PAL_EVENT_MODE_RISING_EDGE)
     EXTI->RTSR |= padmask;
@@ -251,11 +255,18 @@ void _pal_lld_disablepadevent(ioportid_t port, iopadid_t pad) {
 
 #if defined(STM32_EXTI_ENHANCED)
     /* Disabling channel.*/
+#if 0    
     EXTI_D1->IMR1  &= ~padmask;
     EXTI_D1->EMR1  &= ~padmask;
+#endif
+    EXTI->IMR1  &= ~padmask;
+    EXTI->EMR1  &= ~padmask;
     EXTI->RTSR1     = rtsr1 & ~padmask;
     EXTI->FTSR1     = ftsr1 & ~padmask;
+#if 0    
     EXTI_D1->PR1    = padmask;
+#endif
+    EXTI->PR1    = padmask;    
 #else
     /* Disabling channel.*/
     EXTI->IMR  &= ~padmask;
