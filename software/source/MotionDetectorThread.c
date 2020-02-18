@@ -100,7 +100,8 @@ uint8_t MDT_readReg(uint8_t address)
   return r;
 }
 
-void MDT_interrupt(void *arg)
+#if 0
+void MDT_interrupt_1(void *arg)
 {
   (void)arg;
 
@@ -109,7 +110,6 @@ void MDT_interrupt(void *arg)
   chSysUnlockFromISR();
 }
 
-#if 0
 void MDT_configureInterrupt_1(void)
 {
   palSetLineMode(LINE_ACC_INT1, PAL_MODE_INPUT_PULLUP);
@@ -131,11 +131,24 @@ void MDT_loadStateMachine_1(void)
 }
 #endif
 
-void MDT_configureInterrupt_2(void)
+void MDT_interrupt_2(void *arg)
 {
-  palSetLineMode(LINE_ACC_INT2, PAL_MODE_INPUT_PULLUP);
-  palSetLineCallback(LINE_ACC_INT2, MDT_interrupt, NULL);
+  (void)arg;
+
+  chSysLockFromISR();
+  MDT_ListenI();
+  chSysUnlockFromISR();
+}
+
+void MDT_enableInterrupt_2(void)
+{
+  palSetLineCallback(LINE_ACC_INT2, MDT_interrupt_2, NULL);
   palEnableLineEvent(LINE_ACC_INT2, PAL_EVENT_MODE_FALLING_EDGE);
+}
+
+void MDT_disableInterrupt_2(void)
+{
+  palDisableLineEvent(LINE_ACC_INT2);
 }
 
 void MDT_loadStateMachine_2(void)
@@ -156,9 +169,11 @@ void MDT_loadStateMachine_2(void)
 
 void MDT_beep(void)
 {
+  pwmStart(&PWMD2, &beepConfig);
   pwmEnableChannel(&PWMD2, 2, PWM_PERCENTAGE_TO_WIDTH(&PWMD2, 5000));
   chThdSleepMilliseconds(20);
   pwmDisableChannel(&PWMD2, 2);
+  pwmStop(&PWMD2);
 }
 
 MDT_State_t MDT_initStateHandler(MDT_Command_t cmd) {
@@ -166,14 +181,16 @@ MDT_State_t MDT_initStateHandler(MDT_Command_t cmd) {
 
   switch(cmd) {
   case MDT_CMD_START: {
-    pwmStart(&PWMD2, &beepConfig);
     lis3dshStart(&detector.lis3dsh, &lis3dshConfig);
     MDT_loadStateMachine_2();
-    MDT_configureInterrupt_2();
+    MDT_enableInterrupt_2();
     newState = MDT_STATE_ENABLED;
     break;
   }
   case MDT_CMD_STOP: {
+    MDT_disableInterrupt_2();
+    lis3dshStart(&detector.lis3dsh, &lis3dshConfig);
+    lis3dshStop(&detector.lis3dsh);
     newState = MDT_STATE_DISABLED;
     break;
   }
@@ -191,7 +208,7 @@ MDT_State_t MDT_enabledStateHandler(MDT_Command_t cmd) {
 
   switch(cmd) {
   case MDT_CMD_STOP: {
-    pwmStop(&PWMD2);
+    MDT_disableInterrupt_2();
     lis3dshStop(&detector.lis3dsh);
     newState = MDT_STATE_DISABLED;
     break;
@@ -216,10 +233,9 @@ MDT_State_t MDT_disabledStateHandler(MDT_Command_t cmd) {
 
   switch (cmd) {
   case MDT_CMD_START: {
-    pwmStart(&PWMD2, &beepConfig);
     lis3dshStart(&detector.lis3dsh, &lis3dshConfig);
     MDT_loadStateMachine_2();
-    MDT_configureInterrupt_2();
+    MDT_enableInterrupt_2();
     newState = MDT_STATE_ENABLED;
     break;
   }
@@ -240,6 +256,7 @@ THD_FUNCTION(MDT_Thread, arg) {
   (void)arg;
   chRegSetThreadName("motion-detector");
 
+  // Remove it later!!!
   MDT_Start();
 
   while(true) {
