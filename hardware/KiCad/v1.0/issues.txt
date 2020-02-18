@@ -1,0 +1,2 @@
+- Add high-side FET to control the power of LIS3DSH otherwise it is not possible to reset safely
+
