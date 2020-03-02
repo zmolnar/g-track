@@ -15,7 +15,7 @@
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
 #define BUFFER_LENGTH 5
-#define URL_LENGTH 512;
+#define URL_LENGTH 512
 #define BUFFER_WATERMARK 2
 
 /*****************************************************************************/
@@ -40,7 +40,7 @@ typedef struct Reporter_s {
   msg_t events[10];
   mailbox_t mailbox;
   virtual_timer_t timer;
-  struct Buffer_s {
+  struct PositionBuffer_s {
     GPS_Data_t data[BUFFER_LENGTH];
     size_t wrindex;
     size_t rdindex;
@@ -88,7 +88,7 @@ static bool RPT_popOldestFromBuffer(GPS_Data_t *p)
   bool result = false;
 
   if (reporter.buffer.rdindex != reporter.buffer.wrindex) {
-    memcpy(p, &reporter.buffer.data[reporter.buffer.rdindex], sizeof(*p);
+    memcpy(p, &reporter.buffer.data[reporter.buffer.rdindex], sizeof(*p));
     reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
     result = true;
   }
@@ -108,14 +108,7 @@ static size_t RPT_generateURL(void)
 {
   size_t length = 0;
 
-  if (0 < reporter.buffer.length) {
-    strcpy(reporter.url, "http://www.defaultserver.com/gtrack.php?");
-    for (size_t i = 0; i < reporter.buffer.length; ++i) {
-      GPS_Data_t pos;
-      RPT_popOldestFromBuffer(&pos);
-      // TODO implement URL
-    }
-  }
+
 
   return length;
 }
@@ -190,6 +183,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
       RPT_generateURL();
       SIM_IpHttpGet(&SIM868, reporter.url);
     }
+    break;
   }
   case RPT_CMD_EMPTY_BUFFER: {
     RPT_emptyBuffer();
