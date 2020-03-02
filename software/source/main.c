@@ -119,16 +119,16 @@ int main(void)
                     HeartBeatThread,
                     NULL);
 
-  chThdCreateStatic(waSystemThread, 
-                    sizeof(waSystemThread), 
-                    NORMALPRIO, 
-                    SYS_Thread, 
-                    NULL);
-
   chThdCreateStatic(waPeripheralManagerThread,
                     sizeof(waPeripheralManagerThread),
                     NORMALPRIO,
                     PRP_Thread,
+                    NULL);
+
+  chThdCreateStatic(waSystemThread, 
+                    sizeof(waSystemThread), 
+                    NORMALPRIO, 
+                    SYS_Thread, 
                     NULL);
 
   chThdCreateStatic(waGpsReaderThread,

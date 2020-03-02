@@ -23,6 +23,7 @@ typedef struct ConfigManager_s {
   Config_t config;
   msg_t commands[10];
   mailbox_t mailbox;
+  semaphore_t configRead;
 } ConfigManager_t;
 
 typedef enum {
@@ -94,7 +95,7 @@ THD_FUNCTION(CFM_Thread, arg)
       switch (cmd) {
       case CFM_CMD_LOAD: {
         if (CFM_LoadIniFile())
-          chEvtBroadcastFlags(&ConfigEventFactory, CONFIG_LOADED);
+          chSemSignal(&configManager.configRead);
         break;
       }
       case CFM_CMD_STORE: {
@@ -114,22 +115,15 @@ void CFM_Init(void)
   memcpy(&configManager.config, &defaultConfig, sizeof(Config_t));
   chMBObjectInit(
       &configManager.mailbox, configManager.commands, ARRAY_LENGTH(configManager.commands));
+  chSemObjectInit(&configManager.configRead, 0);
 }
 
 void CFM_WaitForValidConfig(void)
 {
-  event_listener_t listener;
-  chEvtRegisterMaskWithFlags(&ConfigEventFactory, &listener, EVENT_MASK(0), SYSTEM_INITIALIZED);
+  while (MSG_OK != chSemWait(&configManager.configRead))
+    ;
 
-  bool isinitialized = false;
-  while (!isinitialized) {
-    eventmask_t emask = chEvtWaitAny(ALL_EVENTS);
-    if (emask & EVENT_MASK(0)) {
-      eventflags_t flags = chEvtGetAndClearFlags(&listener);
-      if (SYSTEM_INITIALIZED & flags)
-        isinitialized = true;
-    }
-  }
+  chSemSignal(&configManager.configRead);  
 }
 
 void CFM_LoadConfigI(void)

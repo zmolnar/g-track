@@ -54,6 +54,7 @@ typedef struct System_s {
   mailbox_t mailbox;
   SYS_State_t state;
   SYS_Error_t error;
+  semaphore_t sysinitialized;
 } System_t;
 
 /*****************************************************************************/
@@ -133,7 +134,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
   if (SYS_STATE_INIT != newState)
     SYS_logStateChange(SYS_STATE_INIT, newState);
 
-  chEvtBroadcastFlags(&SysEventFactory, SYSTEM_INITIALIZED);
+  chSemSignal(&system.sysinitialized);
 
   return newState;
 }
@@ -273,22 +274,15 @@ void SYS_Init(void)
   chMBObjectInit(&system.mailbox, system.events, ARRAY_LENGTH(system.events));
   system.state = SYS_STATE_INIT;
   system.error = SYS_ERR_NO_ERROR;
+  chSemObjectInit(&system.sysinitialized, 0);
 }
 
 void SYS_WaitForSuccessfulInit(void)
 {
-  event_listener_t listener;
-  chEvtRegisterMaskWithFlags(&SysEventFactory, &listener, EVENT_MASK(0), SYSTEM_INITIALIZED);
+  while(MSG_OK != chSemWait(&system.sysinitialized))
+    ;
 
-  bool isinitialized = false;
-  while (!isinitialized) {
-    eventmask_t emask = chEvtWaitAny(ALL_EVENTS);
-    if (emask & EVENT_MASK(0)) {
-      eventflags_t flags = chEvtGetAndClearFlags(&listener);
-      if (SYSTEM_INITIALIZED & flags)
-        isinitialized = true;
-    }
-  }
+  chSemSignal(&system.sysinitialized);
 }
 
 void SYS_IgnitionOn(void)

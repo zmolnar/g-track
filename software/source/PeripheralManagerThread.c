@@ -171,10 +171,10 @@ void PRP_ConfigureGPIOInterrupts(void)
 
   palSetLineCallback(LINE_BT0, PRP_Button0Callback, NULL);
   palEnableLineEvent(LINE_BT0, PAL_EVENT_MODE_BOTH_EDGES);
-
+#if 0
   palSetLineCallback(LINE_EXT_SW1, PRP_Switch1Callback, NULL);
   palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
-
+#endif
   palSetLineCallback(LINE_EXT_SW2, PRP_Switch2Callback, NULL);
   palEnableLineEvent(LINE_EXT_SW2, PAL_EVENT_MODE_BOTH_EDGES);
 }
@@ -211,7 +211,7 @@ static bool PRP_isSw2Pressed(void)
 
 static void PRP_collectInitialEvents(void)
 {
-  chSysLockFromISR();
+  chSysLock();
 
   chMBPostI(&manager.mailbox, PRP_EVENT_IGNITION);
 
@@ -230,7 +230,7 @@ static void PRP_collectInitialEvents(void)
   if (PRP_isSw2Pressed())
     chMBPostI(&manager.mailbox, PRP_EVENT_SW2);
 
-  chSysUnlockFromISR();
+  chSysUnlock();
 }
 
 /*****************************************************************************/
@@ -242,6 +242,7 @@ THD_FUNCTION(PRP_Thread, arg)
   chRegSetThreadName("peripheral");
 
   PRP_collectInitialEvents();
+  PRP_ConfigureGPIOInterrupts();
 
   while (true) {
     msg_t msg;
