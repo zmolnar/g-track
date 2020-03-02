@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "ChainOilerThread.h"
+#include "SystemThread.h"
 
 #include "Averager.h"
 #include "Dashboard.h"
@@ -360,9 +361,7 @@ THD_FUNCTION(COT_Thread, arg)
   (void)arg;
   chRegSetThreadName(CHAIN_OILER_THREAD_NAME);
 
-  chainOiler.state = COT_STATE_INIT;
-
-  chThdSleepSeconds(2);
+  SYS_WaitForSuccessfulInit();
 
   while (true) {
     msg_t msg;

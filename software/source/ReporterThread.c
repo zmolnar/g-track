@@ -9,6 +9,7 @@
 #include "Dashboard.h"
 #include "ReporterThread.h"
 #include "SimHandlerThread.h"
+#include "SystemThread.h"
 #include "Sim8xx.h"
 
 /*****************************************************************************/
@@ -228,6 +229,8 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 THD_FUNCTION(RPT_Thread, arg) {
   (void)arg;
   chRegSetThreadName("reporter");
+
+  SYS_WaitForSuccessfulInit();
 
   while(true) {
     msg_t msg;

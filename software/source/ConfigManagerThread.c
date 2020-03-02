@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "ConfigManagerThread.h"
+#include "SystemThread.h"
 #include "minIni.h"
 #include <string.h>
 
@@ -81,7 +82,7 @@ THD_FUNCTION(CFM_Thread, arg)
   (void)arg;
   chRegSetThreadName("config-manager");
 
-  CFM_LoadDefaultConfig();
+  SYS_WaitForSuccessfulInit();
 
   while (true) {
     msg_t msg;

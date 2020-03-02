@@ -18,7 +18,6 @@
 #include "hal.h"
 
 #include "BluetoothManagerThread.h"
-#include "BoardMonitorThread.h"
 #include "CallManagerThread.h"
 #include "ChainOilerThread.h"
 #include "Dashboard.h"
@@ -31,7 +30,6 @@
 #include "ReporterThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
-static THD_WORKING_AREA(waBoardMonitorThread, 8192);
 static THD_WORKING_AREA(waPeripheralManagerThread, 8192);
 static THD_WORKING_AREA(waGpsReaderThread, 8192);
 static THD_WORKING_AREA(waChainOilerThread, 8192);
@@ -106,7 +104,6 @@ int main(void)
   DSB_Init();
   SHD_Init();
   SYS_Init();
-  BMT_Init();
   PRP_Init();
   GPS_Init();
   COT_Init();
@@ -126,12 +123,6 @@ int main(void)
                     sizeof(waSystemThread), 
                     NORMALPRIO, 
                     SYS_Thread, 
-                    NULL);
-
-  chThdCreateStatic(waBoardMonitorThread,
-                    sizeof(waBoardMonitorThread),
-                    NORMALPRIO,
-                    BMT_Thread,
                     NULL);
 
   chThdCreateStatic(waPeripheralManagerThread,

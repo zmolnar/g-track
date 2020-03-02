@@ -9,6 +9,7 @@
 #include "BluetoothManagerThread.h"
 #include "BluetoothShell.h"
 #include "ConfigManagerThread.h"
+#include "SystemThread.h"
 #include "Logger.h"
 #include "Sim8xx.h"
 #include "SimHandlerThread.h"
@@ -375,7 +376,7 @@ THD_FUNCTION(BLT_Thread, arg)
   (void)arg;
   chRegSetThreadName("bluetooth");
 
-  bluetooth.state = BLT_STATE_INIT;
+  SYS_WaitForSuccessfulInit();
 
   while (true) {
     msg_t msg;

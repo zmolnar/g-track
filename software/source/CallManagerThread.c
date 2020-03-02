@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "CallManagerThread.h"
+#include "SystemThread.h"
 #include "Logger.h"
 #include "Sim8xx.h"
 
@@ -171,7 +172,7 @@ THD_FUNCTION(CLL_Thread, arg)
   (void)arg;
   chRegSetThreadName("call");
 
-  callmanager.state = CLL_STATE_INIT;
+  SYS_WaitForSuccessfulInit();
 
   while(true) {
     msg_t msg;

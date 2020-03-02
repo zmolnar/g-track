@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "ChainOilerThread.h"
+#include "SystemThread.h"
 #include "Dashboard.h"
 #include "GpsReaderThread.h"
 #include "Logger.h"
@@ -324,10 +325,9 @@ static GPS_State_t GPS_errorStateHandler(GPS_Command_t cmd)
 THD_FUNCTION(GPS_Thread, arg)
 {
   (void)arg;
-
   chRegSetThreadName("gps");
 
-  gps.state = GPS_INIT;
+  SYS_WaitForSuccessfulInit();
 
   while (true) {
     msg_t msg;

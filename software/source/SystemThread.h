@@ -23,10 +23,15 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
+typedef enum {
+  NO_EVENT           = 0,
+  SYSTEM_INITIALIZED = (1 << 0),
+} SystemEvent_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
 /*****************************************************************************/
+extern event_source_t SysEventFactory;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
@@ -40,6 +45,11 @@ THD_FUNCTION(SYS_Thread, arg);
  * @brief Initialize resources used by the system thread.
  */
 void SYS_Init(void);
+
+/**
+ * 
+ */
+void SYS_WaitForSuccessfulInit(void);
 
 /**
  * @brief Notifies the system module that the ignition was set on.

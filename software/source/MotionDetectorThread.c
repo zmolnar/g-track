@@ -9,6 +9,7 @@
 #include "hal.h"
 
 #include "MotionDetectorThread.h"
+#include "SystemThread.h"
 #include "lis3dsh.h"
 
 #include <string.h>
@@ -255,6 +256,8 @@ MDT_State_t MDT_disabledStateHandler(MDT_Command_t cmd) {
 THD_FUNCTION(MDT_Thread, arg) {
   (void)arg;
   chRegSetThreadName("motion-detector");
+
+  SYS_WaitForSuccessfulInit();
 
   while(true) {
     msg_t msg;
