@@ -142,6 +142,7 @@ CSRC = $(ALLCSRC) \
        source/SimHandlerThread.c \
        source/MotionDetectorThread.c \
        source/ConfigManagerThread.c \
+       source/ReporterThread.c \
        source/Config.c \
        $(CONFDIR)/usbcfg.c
 

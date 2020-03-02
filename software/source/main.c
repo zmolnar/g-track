@@ -28,6 +28,7 @@
 #include "SystemThread.h"
 #include "ConfigManagerThread.h"
 #include "MotionDetectorThread.h"
+#include "ReporterThread.h"
 
 static THD_WORKING_AREA(waSystemThread, 8192);
 static THD_WORKING_AREA(waBoardMonitorThread, 8192);
@@ -38,6 +39,7 @@ static THD_WORKING_AREA(waCallManagerThread, 8192);
 static THD_WORKING_AREA(waBluetoothManagerThread, 8192);
 static THD_WORKING_AREA(waConfigManagerThread, 8192);
 static THD_WORKING_AREA(waMotionDetectorThread, 8192);
+static THD_WORKING_AREA(waReporterThread, 8192);
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -112,6 +114,7 @@ int main(void)
   BLT_Init();
   CFM_Init();
   MDT_Init();
+  RPT_Init();
 
   chThdCreateStatic(waHeartBeatThread,
                     sizeof(waHeartBeatThread),
@@ -171,7 +174,13 @@ int main(void)
                     sizeof(waMotionDetectorThread),
                     NORMALPRIO,
                     MDT_Thread,
-                    NULL);                    
+                    NULL);        
+
+  chThdCreateStatic(waReporterThread,
+                    sizeof(waReporterThread),
+                    NORMALPRIO,
+                    RPT_Thread,
+                    NULL);                                   
 
   while (true) {
     chThdSleepMilliseconds(1000);
