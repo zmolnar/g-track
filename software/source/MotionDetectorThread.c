@@ -256,9 +256,6 @@ THD_FUNCTION(MDT_Thread, arg) {
   (void)arg;
   chRegSetThreadName("motion-detector");
 
-  // Remove it later!!!
-  MDT_Start();
-
   while(true) {
     msg_t msg;
     if (MSG_OK == chMBFetchTimeout(&detector.mailbox, &msg, TIME_INFINITE)) {

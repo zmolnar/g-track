@@ -15,6 +15,7 @@
 #include "GpsReaderThread.h"
 #include "Logger.h"
 #include "SimHandlerThread.h"
+#include "ReporterThread.h"
 
 #include "chprintf.h"
 #include <string.h>
@@ -101,6 +102,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
       GPS_Start();
       COT_Start();
       BLT_Start();
+      RPT_Start();
       // CLL_Start();
       newState = SYS_STATE_RIDING;
     } else {

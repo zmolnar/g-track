@@ -30,6 +30,7 @@ typedef struct SimHandler_s {
   semaphore_t parserSync;
   thread_reference_t reader;
   thread_reference_t parser;
+  semaphore_t SIMUnlocked;
 } SimHandler_t;
 
 /*****************************************************************************/
@@ -70,6 +71,21 @@ static void SHD_PowerPulse(void)
   palSetLine(LINE_WAVESHARE_POWER);
 }
 
+static void SHD_ModemCallback(GSM_ModemEvent_t *event)
+{
+  switch(event->type) {
+    case MODEM_EVENT_SIM_UNLOCKED: {
+      chSysLock();
+      chSemResetI(&simHandler.SIMUnlocked, 1);
+      chSysUnlock();
+    }
+    case MODEM_NO_EVENT:
+    default: {
+      break;
+    }
+  }
+}
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -80,12 +96,14 @@ void SHD_Init(void)
   chSemObjectInit(&simHandler.parserSync, 0);
   simHandler.reader = NULL;
   simHandler.parser = NULL;
+  chSemObjectInit(&simHandler.SIMUnlocked, 0);
 
   static Sim8xxConfig_t simConfig = {
       .put = SHD_serialPut,
   };
 
   SIM_Init(&SIM868, &simConfig);
+  SIM_RegisterModemCallback(&SIM868, SHD_ModemCallback);
 }
 
 bool SHD_ConnectModem(void)
@@ -106,7 +124,15 @@ bool SHD_ConnectModem(void)
     simHandler.state = isAlive ? SHD_STATE_CONNECTED : SHD_STATE_ERROR;
   }
 
-  return SHD_STATE_CONNECTED == simHandler.state;
+  bool result = false;
+  if (SHD_STATE_CONNECTED == simHandler.state) {
+    SIM_UnlockSIMCard(&SIM868, "3943");
+    if (MSG_OK == chSemWaitTimeout(&simHandler.SIMUnlocked, TIME_S2I(10))) {
+      result = true;
+    }
+  }
+
+  return result;
 }
 
 bool SHD_DisconnectModem(void)

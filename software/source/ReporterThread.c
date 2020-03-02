@@ -6,6 +6,7 @@
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
+#include "Dashboard.h"
 #include "ReporterThread.h"
 #include "SimHandlerThread.h"
 #include "Sim8xx.h"
@@ -13,6 +14,9 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+#define BUFFER_LENGTH 5
+#define URL_LENGTH 512;
+#define BUFFER_WATERMARK 2
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -26,15 +30,22 @@ typedef enum {
 typedef enum {
   RPT_CMD_START,
   RPT_CMD_STOP,
-  RPT_CMD_SEND,
+  RPT_CMD_GET_POSITION,
+  RPT_CMD_EMPTY_BUFFER,
+  RPT_CMD_SEND_DATA,
 } RPT_Command_t;
 
 typedef struct Reporter_s {
-  virtual_timer_t timer;
   RPT_State_t state;
   msg_t events[10];
   mailbox_t mailbox;
-  semaphore_t modemReady;
+  virtual_timer_t timer;
+  struct Buffer_s {
+    GPS_Data_t data[BUFFER_LENGTH];
+    size_t wrindex;
+    size_t rdindex;
+  } buffer;
+  char url[URL_LENGTH];
 } Reporter_t;
 
 /*****************************************************************************/
@@ -54,42 +65,79 @@ Reporter_t reporter;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void RPT_ModemCallback(GSM_ModemEvent_t *event)
+static void RPT_emptyBuffer(void)
 {
-  switch(event->type) {
-    case MODEM_EVENT_SIM_UNLOCKED: {
-      chSysLock();
-      chSemResetI(&reporter.modemReady, 1);
-      chSysUnlock();
-    }
-    case MODEM_NO_EVENT:
-    default: {
-      break;
+  memset(reporter.buffer.data, 0, sizeof(reporter.buffer.data));
+  reporter.buffer.wrindex = 0;
+  reporter.buffer.rdindex = 0;
+}
+
+static void RPT_pushPositionIntoBuffer(void)
+{
+  GPS_Data_t *nextFree = &reporter.buffer.data[reporter.buffer.wrindex];
+  DSB_GetPosition(nextFree);
+
+  reporter.buffer.wrindex = (reporter.buffer.wrindex + 1) % BUFFER_LENGTH;
+  if (reporter.buffer.wrindex == reporter.buffer.rdindex)
+    reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
+}
+
+static bool RPT_popOldestFromBuffer(GPS_Data_t *p)
+{
+  memset(p, 0, sizeof(*p));
+  bool result = false;
+
+  if (reporter.buffer.rdindex != reporter.buffer.wrindex) {
+    memcpy(p, &reporter.buffer.data[reporter.buffer.rdindex], sizeof(*p);
+    reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
+    result = true;
+  }
+
+  return result;
+}
+
+static bool RPT_dataNeedsToBeSent(void)
+{
+  size_t length = BUFFER_LENGTH + reporter.buffer.wrindex - reporter.buffer.rdindex;
+  length %= BUFFER_LENGTH;
+
+  return (BUFFER_WATERMARK <= length);
+}
+
+static size_t RPT_generateURL(void)
+{
+  size_t length = 0;
+
+  if (0 < reporter.buffer.length) {
+    strcpy(reporter.url, "http://www.defaultserver.com/gtrack.php?");
+    for (size_t i = 0; i < reporter.buffer.length; ++i) {
+      GPS_Data_t pos;
+      RPT_popOldestFromBuffer(&pos);
+      // TODO implement URL
     }
   }
+
+  return length;
 }
 
 static void RPT_IpCallback(GSM_IpEvent_t *event)
 {
-  static uint32_t i = 0;
-  i++;
-}
-
-static void RPT_UnlockSIMCardAndWaitToBeReady(void)
-{
-  SIM_UnlockSIMCard(&SIM868, "3943");
-
-  while (MSG_OK != chSemWait(&reporter.modemReady))
-    ;
-}
-
-static void timercallback(void *p)
-{
-  (void)p;
-  chSysLockFromISR();
-  chMBPostI(&reporter.mailbox, RPT_CMD_SEND);
-  chVTSetI(&reporter.timer, TIME_S2I(10), timercallback, NULL);
-  chSysUnlockFromISR();
+  switch(event->type) {
+  case IP_EVENT_NET_DISCONNECTED: {
+    // TODO implement net disconnect handler.
+    break;
+  }
+  case IP_EVENT_HTTP_ACTION: {
+    if (200 == event->payload.httpaction.httpStatus) {
+      RPT_EmptyBuffer();
+    } 
+    break;
+  }
+  case IP_EVENT_NO_EVENT:
+  default: {
+    break;
+  }
+  }
 }
 
 static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
@@ -98,18 +146,19 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_START: {
-    RPT_UnlockSIMCardAndWaitToBeReady();
     SIM_IpSetup(&SIM868, "internet.vodafone.net");
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
-    chVTSet(&reporter.timer, TIME_S2I(10), timercallback, NULL);
     newState = RPT_STATE_ENABLED;
     break;
   }
   case RPT_CMD_STOP: {
-
+    newState = RPT_STATE_DISABLED;
     break;
   }
+  case RPT_CMD_GET_POSITION:
+  case RPT_CMD_EMPTY_BUFFER:
+  case RPT_CMD_SEND_DATA:
   default: {
     break;
   }
@@ -120,15 +169,63 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
 
 static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
 {
-  const char *url = "http://www.melcontrol.com/gtrack.php?message=20200228122429 HelloGPRS!";
-  SIM_IpHttpGet(&SIM868, url);
+  RPT_State_t newState = RPT_STATE_ENABLED;
 
-  return RPT_STATE_ENABLED;
+  switch(cmd) {
+  case RPT_CMD_STOP: {
+    SIM_IpHttpStop(&SIM868);
+    SIM_IpClose(&SIM868);
+    newState = RPT_STATE_DISABLED;
+    break;
+  }
+  case RPT_CMD_GET_POSITION: {
+    RPT_pushPositionIntoBuffer();
+    if (RPT_dataNeedsToBeSent()) {
+      RPT_SendData();
+    }
+    break;
+  }
+  case RPT_CMD_SEND_DATA: {
+    if (RPT_dataNeedsToBeSent()) {
+      RPT_generateURL();
+      SIM_IpHttpGet(&SIM868, reporter.url);
+    }
+  }
+  case RPT_CMD_EMPTY_BUFFER: {
+    RPT_emptyBuffer();
+    break;
+  }
+  case RPT_CMD_START:
+  default: {
+    break;
+  }
+  }  
+
+  return newState;
 }
 
 static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 {
-  return RPT_STATE_DISABLED;
+  RPT_State_t newState = RPT_STATE_DISABLED;
+
+  switch(cmd) {
+  case RPT_CMD_START: {
+    SIM_IpSetup(&SIM868, "internet.vodafone.net");
+    SIM_IpOpen(&SIM868);
+    SIM_IpHttpStart(&SIM868);
+    newState = RPT_STATE_ENABLED;
+    break;
+  }
+  case RPT_CMD_GET_POSITION:
+  case RPT_CMD_EMPTY_BUFFER:
+  case RPT_CMD_SEND_DATA:
+  case RPT_CMD_STOP:
+  default: {
+    break;
+  }
+  }  
+
+  return newState;
 }
 
 /*****************************************************************************/
@@ -137,13 +234,6 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 THD_FUNCTION(RPT_Thread, arg) {
   (void)arg;
   chRegSetThreadName("reporter");
-
-  SIM_RegisterModemCallback(&SIM868, RPT_ModemCallback);
-  SIM_RegisterIpCallback(&SIM868, RPT_IpCallback);
-
-  // Just for testing
-  chThdSleepSeconds(10);
-  RPT_Start();
 
   while(true) {
     msg_t msg;
@@ -172,11 +262,16 @@ THD_FUNCTION(RPT_Thread, arg) {
 
 void RPT_Init(void)
 {
-  chVTObjectInit(&reporter.timer);
+  reporter.state = RPT_STATE_INIT;
   memset(reporter.events, 0, sizeof(reporter.events));
   chMBObjectInit(&reporter.mailbox, reporter.events, ARRAY_LENGTH(reporter.events));
-  chSemObjectInit(&reporter.modemReady, 0);
-  reporter.state = RPT_STATE_INIT;
+  chVTObjectInit(&reporter.timer);
+  memset(reporter.buffer.data, 0, sizeof(reporter.buffer.data));
+  reporter.buffer.wrindex = 0;
+  reporter.buffer.rdindex = 0;
+  memset(reporter.url, 0, sizeof(reporter.url));
+
+  SIM_RegisterIpCallback(&SIM868, RPT_IpCallback);
 }
 
 void RPT_StartI(void)
@@ -200,6 +295,42 @@ void RPT_Stop(void)
 {
   chSysLock();
   RPT_StopI();
+  chSysUnlock();
+}
+
+void RPT_GetPositionI(void)
+{
+  chMBPostI(&reporter.mailbox, RPT_CMD_GET_POSITION);
+}
+
+void RPT_GetPosition(void)
+{
+  chSysLock();
+  RPT_GetPositionI();
+  chSysUnlock();
+}
+
+void RPT_EmptyBufferI(void)
+{
+  chMBPostI(&reporter.mailbox, RPT_CMD_EMPTY_BUFFER);
+}
+
+void RPT_EmptyBuffer(void)
+{
+  chSysLock();
+  RPT_EmptyBufferI();
+  chSysUnlock();
+}
+
+void RPT_SendDataI(void)
+{
+  chMBPostI(&reporter.mailbox, RPT_CMD_SEND_DATA);
+}
+
+void RPT_SendData(void)
+{
+  chSysLock();
+  RPT_SendDataI();
   chSysUnlock();
 }
 

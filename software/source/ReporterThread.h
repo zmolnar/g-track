@@ -33,8 +33,26 @@
 THD_FUNCTION(RPT_Thread, arg);
 
 void RPT_Init(void);
+
+void RPT_StartI(void);
+
 void RPT_Start(void);
+
+void RPT_StopI(void);
+
 void RPT_Stop(void);
+
+void RPT_GetPositionI(void);
+
+void RPT_GetPosition(void);
+
+void RPT_EmptyBufferI(void);
+
+void RPT_EmptyBuffer(void);
+
+void RPT_SendDataI(void);
+
+void RPT_SendData(void);
 
 #endif /* REPORTER_THREAD_H */
 
