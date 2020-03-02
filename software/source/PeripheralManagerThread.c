@@ -252,7 +252,7 @@ THD_FUNCTION(PRP_Thread, arg)
         if (PRP_isSdcInserted()) {
           SDC_Mount();
           PRP_writeSysInfo();
-          CFM_ReadConfig();
+          CFM_LoadConfig();
         } else {
           SDC_Unmount();
         }

@@ -27,9 +27,13 @@ typedef struct ConfigManager_s {
 
 typedef enum {
   CFM_CMD_INVALID,
-  CFM_CMD_READ,
-  CFM_CMD_CLEAR,
+  CFM_CMD_LOAD,
+  CFM_CMD_STORE,
 } CFM_Command_t;
+
+typedef enum {
+  CONFIG_LOADED = (1 << 0),
+} ConfigEvent_t;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -39,6 +43,8 @@ typedef enum {
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
 static ConfigManager_t configManager;
+
+EVENTSOURCE_DECL(ConfigEventFactory);
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -52,7 +58,7 @@ static void CFM_LoadDefaultConfig(void)
   memcpy(&configManager.config, &defaultConfig, sizeof(Config_t));
 }
 
-static void CFM_Read(void)
+static bool CFM_LoadIniFile(void)
 {
   ini_gets(CFG_BLUETOOTH_SECTION,
            CFG_BLUETOOTH_HOSTNAME,
@@ -67,11 +73,8 @@ static void CFM_Read(void)
            configManager.config.bluetooth.pin,
            sizeof(configManager.config.bluetooth.pin),
            CFG_INI_FILE);
-}
 
-static void CFM_Clear(void)
-{
-  CFM_LoadDefaultConfig();
+  return true;         
 }
 
 /*****************************************************************************/
@@ -89,12 +92,12 @@ THD_FUNCTION(CFM_Thread, arg)
     if (MSG_OK == chMBFetchTimeout(&configManager.mailbox, &msg, TIME_INFINITE)) {
       CFM_Command_t cmd = (CFM_Command_t)msg;
       switch (cmd) {
-      case CFM_CMD_READ: {
-        CFM_Read();
+      case CFM_CMD_LOAD: {
+        if (CFM_LoadIniFile())
+          chEvtBroadcastFlags(&ConfigEventFactory, CONFIG_LOADED);
         break;
       }
-      case CFM_CMD_CLEAR: {
-        CFM_Clear();
+      case CFM_CMD_STORE: {
         break;
       }
       case CFM_CMD_INVALID:
@@ -113,27 +116,43 @@ void CFM_Init(void)
       &configManager.mailbox, configManager.commands, ARRAY_LENGTH(configManager.commands));
 }
 
-void CFM_ReadConfigI(void)
+void CFM_WaitForValidConfig(void)
 {
-  chMBPostI(&configManager.mailbox, CFM_CMD_READ);
+  event_listener_t listener;
+  chEvtRegisterMaskWithFlags(&ConfigEventFactory, &listener, EVENT_MASK(0), SYSTEM_INITIALIZED);
+
+  bool isinitialized = false;
+  while (!isinitialized) {
+    eventmask_t emask = chEvtWaitAny(ALL_EVENTS);
+    if (emask & EVENT_MASK(0)) {
+      eventflags_t flags = chEvtGetAndClearFlags(&listener);
+      if (SYSTEM_INITIALIZED & flags)
+        isinitialized = true;
+    }
+  }
 }
 
-void CFM_ReadConfig(void) 
+void CFM_LoadConfigI(void)
+{
+  chMBPostI(&configManager.mailbox, CFM_CMD_LOAD);
+}
+
+void CFM_LoadConfig(void) 
 {
   chSysLock();
-  CFM_ReadConfigI();
+  CFM_LoadConfigI();
   chSysUnlock();
 }
 
-void CFM_ClearConfigI(void)
+void CFM_StoreConfigI(void)
 {
-  chMBPostI(&configManager.mailbox, CFM_CMD_CLEAR);
+  chMBPostI(&configManager.mailbox, CFM_CMD_STORE);
 }
 
-void CFM_ClearConfig(void) 
+void CFM_StoreConfig(void) 
 {
   chSysLock();
-  CFM_ClearConfigI();
+  CFM_StoreConfigI();
   chSysUnlock();
 }
 

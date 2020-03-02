@@ -377,6 +377,7 @@ THD_FUNCTION(BLT_Thread, arg)
   chRegSetThreadName("bluetooth");
 
   SYS_WaitForSuccessfulInit();
+  CFM_WaitForValidConfig();
 
   while (true) {
     msg_t msg;
