@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "PeripheralManagerThread.h"
+#include "SimHandlerThread.h"
 #include "ChainOilerThread.h"
 #include "SystemThread.h"
 
@@ -260,6 +261,9 @@ THD_FUNCTION(PRP_Thread, arg)
   PRP_collectInitialEvents();
   PRP_ConfigureGPIOInterrupts();
 
+  while(!SHD_ResetAndConnectModem("3943"))
+    ;
+
   while (true) {
     msg_t msg;
     if (MSG_OK == chMBFetchTimeout(&manager.mailbox, &msg, TIME_INFINITE)) {
@@ -330,7 +334,7 @@ void PRP_Init(void)
   chMBObjectInit(&manager.mailbox, manager.events, ARRAY_LENGTH(manager.events));
   memset(&manager.counter, 0, sizeof(manager.counter));
   memset(&manager.padState, 0, sizeof(manager.padState));
-  
+
   SDC_Init();
   DSH_Init();
 }

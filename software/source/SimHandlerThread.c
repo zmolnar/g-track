@@ -30,6 +30,7 @@ typedef struct SimHandler_s {
   semaphore_t parserSync;
   thread_reference_t reader;
   thread_reference_t parser;
+  semaphore_t pinRequested;
   semaphore_t SIMUnlocked;
 } SimHandler_t;
 
@@ -75,15 +76,41 @@ static void SHD_ModemCallback(GSM_ModemEvent_t *event)
 {
   switch(event->type) {
     case MODEM_EVENT_SIM_UNLOCKED: {
-      chSysLock();
-      chSemResetI(&simHandler.SIMUnlocked, 1);
-      chSysUnlock();
+      chSemSignal(&simHandler.SIMUnlocked);
+      break;
+    }
+    case MODEM_EVENT_CPIN: {
+      if (CPIN_PIN_REQUIRED == event->payload.cpin.status) 
+        chSemSignal(&simHandler.pinRequested);
+      break;
     }
     case MODEM_NO_EVENT:
     default: {
       break;
     }
   }
+}
+
+bool SHD_waitRequestForPinCode(void)
+{
+  bool result = false;
+  if (MSG_OK == chSemWaitTimeout(&simHandler.pinRequested, TIME_S2I(10))) {
+    chSemSignal(&simHandler.pinRequested);
+    result = true;
+  }
+
+  return result;
+}
+
+bool SHD_waitForSimUnlock(void)
+{
+  bool result = false;
+  if (MSG_OK == chSemWaitTimeout(&simHandler.SIMUnlocked, TIME_S2I(10))) {
+    chSemSignal(&simHandler.SIMUnlocked);
+    result = true;
+  }
+
+  return result;
 }
 
 /*****************************************************************************/
@@ -97,6 +124,7 @@ void SHD_Init(void)
   simHandler.reader = NULL;
   simHandler.parser = NULL;
   chSemObjectInit(&simHandler.SIMUnlocked, 0);
+  chSemObjectInit(&simHandler.pinRequested, 0);
 
   static Sim8xxConfig_t simConfig = {
       .put = SHD_serialPut,
@@ -104,68 +132,55 @@ void SHD_Init(void)
 
   SIM_Init(&SIM868, &simConfig);
   SIM_RegisterModemCallback(&SIM868, SHD_ModemCallback);
+  sdStart(&SD1, &sdConfig);
+  simHandler.parser = chThdCreateFromHeap(
+      NULL, PARSER_STACK_SIZE, "simparser", NORMALPRIO + 1, SimParserThread, &SIM868);
+  simHandler.reader = chThdCreateFromHeap(
+      NULL, READER_STACK_SIZE, "simreader", NORMALPRIO + 1, SimReaderThread, &SIM868);
 }
 
-bool SHD_ConnectModem(void)
+bool SHD_ResetModem(void)
 {
-  if (SHD_STATE_CONNECTED != simHandler.state) {
-    sdStart(&SD1, &sdConfig);
-    simHandler.parser = chThdCreateFromHeap(
-        NULL, PARSER_STACK_SIZE, "simparser", NORMALPRIO + 1, SimParserThread, &SIM868);
-    simHandler.reader = chThdCreateFromHeap(
-        NULL, READER_STACK_SIZE, "simreader", NORMALPRIO + 1, SimReaderThread, &SIM868);
-
-    bool isAlive = SIM_Start(&SIM868);
-    if (!isAlive) {
-      SHD_PowerPulse();
-      isAlive = SIM_Start(&SIM868);
-    }
-
-    simHandler.state = isAlive ? SHD_STATE_CONNECTED : SHD_STATE_ERROR;
+  bool isAlive = SIM_IsAlive(&SIM868);
+  if (isAlive) {
+    SHD_PowerPulse();
   }
 
-  bool result = false;
-  if (SHD_STATE_CONNECTED == simHandler.state) {
-    SIM_UnlockSIMCard(&SIM868, "3943");
-    if (MSG_OK == chSemWaitTimeout(&simHandler.SIMUnlocked, TIME_S2I(10))) {
-      result = true;
+  SHD_PowerPulse();
+
+  isAlive = SIM_IsAlive(&SIM868);
+  simHandler.state = isAlive ? SHD_STATE_DISCONNECTED : SHD_STATE_ERROR;
+
+  return isAlive;
+}
+
+bool SHD_ResetAndConnectModem(const char *pin)
+{
+  bool success = false;
+
+  if (SHD_ResetModem()) {
+    if (SIM_Start(&SIM868)) {
+      if (SHD_waitRequestForPinCode()) {
+        if (SIM_UnlockSIMCard(&SIM868, pin)) {
+          if (SHD_waitForSimUnlock()) {
+            success          = true;
+            simHandler.state = SHD_STATE_CONNECTED;
+          }
+        }
+      }
     }
   }
 
-  return result;
+  if (!success)
+    simHandler.state = SHD_STATE_ERROR;
+
+  return success;
 }
 
 bool SHD_DisconnectModem(void)
 {
-  if (SHD_STATE_DISCONNECTED != simHandler.state) {
-    bool isAlive = SIM_IsAlive(&SIM868);
-
-    if (isAlive) {
-      SHD_PowerPulse();
-      isAlive = SIM_IsAlive(&SIM868);
-    }
-
-    if (!isAlive) {
-      if (SIM_Stop(&SIM868)) {
-        simHandler.state = SHD_STATE_DISCONNECTED;
-        if (simHandler.reader) {
-          chThdTerminate(simHandler.parser);
-          chThdWait(simHandler.parser);
-          simHandler.parser = NULL;
-        }
-        if (simHandler.reader) {
-          chThdTerminate(simHandler.reader);
-          chThdWait(simHandler.reader);
-          simHandler.reader = NULL;
-        }
-      } else
-        simHandler.state = SHD_STATE_ERROR;
-    } else {
-      simHandler.state = SHD_STATE_ERROR;
-    }
-  }
-
-  return SHD_STATE_DISCONNECTED == simHandler.state;
+  simHandler.state = SHD_STATE_DISCONNECTED;
+  return true;
 }
 
 THD_FUNCTION(SimReaderThread, arg)

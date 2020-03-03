@@ -66,8 +66,6 @@ typedef struct System_s {
 /*****************************************************************************/
 System_t system = {0};
 
-EVENTSOURCE_DECL(SysEventFactory);
-
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -101,29 +99,19 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
 
   switch (evt) {
   case SYS_CMD_IGNITION_ON: {
-    if (SHD_ConnectModem()) {
-      GPS_Start();
-      COT_Start();
-      BLT_Start();
-      RPT_Start();
-      // CLL_Start();
-      newState = SYS_STATE_RIDING;
-    } else {
-      system.error = SYS_ERR_MODEM_POWER_ON;
-      newState     = SYS_STATE_ERROR;
-    }
-    break;
+    GPS_Start();
+    COT_Start();
+    BLT_Start();
+    RPT_Start();
+    // CLL_Start();
+    newState = SYS_STATE_RIDING;
+   break;
   }
   case SYS_CMD_IGNITION_OFF: {
-    if (SHD_DisconnectModem()) {
-      BLT_Stop();
-      COT_Stop();
-      GPS_Stop();
-      newState = SYS_STATE_PARKING;
-    } else {
-      system.error = SYS_ERR_MODEM_POWER_OFF;
-      newState     = SYS_STATE_ERROR;
-    }
+    BLT_Stop();
+    COT_Stop();
+    GPS_Stop();
+    newState = SYS_STATE_PARKING;
     break;
   }
   default: {
@@ -145,15 +133,11 @@ static SYS_State_t SYS_parkingStateHandler(SYS_Command_t evt)
 
   switch (evt) {
   case SYS_CMD_IGNITION_ON: {
-    if (SHD_ConnectModem()) {
-      GPS_Start();
-      COT_Start();
-      BLT_Start();
-      newState = SYS_STATE_RIDING;
-    } else {
-      system.error = SYS_ERR_MODEM_POWER_ON;
-      newState     = SYS_STATE_ERROR;
-    }
+    GPS_Start();
+    COT_Start();
+    BLT_Start();
+    newState = SYS_STATE_RIDING;
+    break;
   }
   case SYS_CMD_IGNITION_OFF:
   default: {
@@ -176,12 +160,7 @@ static SYS_State_t SYS_ridingStateHandler(SYS_Command_t evt)
     BLT_Stop();
     COT_Stop();
     GPS_Stop();
-    if (SHD_DisconnectModem()) {
-      newState = SYS_STATE_PARKING;
-    } else {
-      system.error = SYS_ERR_MODEM_POWER_OFF;
-      newState     = SYS_STATE_ERROR;
-    }
+    newState = SYS_STATE_PARKING;
     break;
   }
   case SYS_CMD_IGNITION_ON:

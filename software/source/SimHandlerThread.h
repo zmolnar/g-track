@@ -34,7 +34,9 @@ extern Sim8xx_t SIM868;
 /*****************************************************************************/
 void SHD_Init(void);
 
-bool SHD_ConnectModem(void);
+bool SHD_ResetModem(void);
+
+bool SHD_ResetAndConnectModem(const char *pin);
 
 bool SHD_DisconnectModem(void);
 
