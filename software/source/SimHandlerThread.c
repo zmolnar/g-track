@@ -46,7 +46,7 @@ Sim8xx_t SIM868;
 SimHandler_t simHandler;
 
 static SerialConfig sdConfig = {
-    19200,
+    115200,
     0,
     USART_CR2_STOP1_BITS,
     0,
@@ -144,6 +144,7 @@ bool SHD_ResetModem(void)
   bool isAlive = SIM_IsAlive(&SIM868);
   if (isAlive) {
     SHD_PowerPulse();
+    chThdSleepMilliseconds(1000);
   }
 
   SHD_PowerPulse();
