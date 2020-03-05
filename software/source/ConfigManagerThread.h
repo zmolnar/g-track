@@ -45,9 +45,9 @@ void CFM_StoreConfigI(void);
 
 void CFM_StoreConfig(void);
 
-const char *CFM_GetBluetoothHostName(void);
+const BluetoothConfig_t *CFM_GetBluetoothConfig(void);
 
-const char *CFM_GetBluetoothPin(void);
+const GprsConfig_t * CFM_GetGprsConfig(void);
 
 #endif /* CONFIG_MANAGER_THREAD_H */
 

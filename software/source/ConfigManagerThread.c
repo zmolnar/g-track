@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include "ConfigManagerThread.h"
 #include "SystemThread.h"
+#include "Sdcard.h"
 #include "minIni.h"
 #include <string.h>
 
@@ -24,6 +25,7 @@ typedef struct ConfigManager_s {
   msg_t commands[10];
   mailbox_t mailbox;
   semaphore_t configRead;
+  bool isInitialized;
 } ConfigManager_t;
 
 typedef enum {
@@ -31,10 +33,6 @@ typedef enum {
   CFM_CMD_LOAD,
   CFM_CMD_STORE,
 } CFM_Command_t;
-
-typedef enum {
-  CONFIG_LOADED = (1 << 0),
-} ConfigEvent_t;
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -54,13 +52,10 @@ EVENTSOURCE_DECL(ConfigEventFactory);
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void CFM_LoadDefaultConfig(void)
+static void CFM_LoadIniFile(void)
 {
-  memcpy(&configManager.config, &defaultConfig, sizeof(Config_t));
-}
+  SDC_Lock();
 
-static bool CFM_LoadIniFile(void)
-{
   ini_gets(CFG_BLUETOOTH_SECTION,
            CFG_BLUETOOTH_HOSTNAME,
            CFG_BLUETOOTH_HOSTNAME_DEFAULT,
@@ -75,7 +70,20 @@ static bool CFM_LoadIniFile(void)
            sizeof(configManager.config.bluetooth.pin),
            CFG_INI_FILE);
 
-  return true;         
+  ini_gets(CFG_GPRS_SECTION,
+          CFG_GPRS_APN,
+          CFG_GPRS_APN_DEFAULT, configManager.config.gprs.apn,
+          sizeof(configManager.config.gprs.apn),
+          CFG_INI_FILE);
+
+  ini_gets(CFG_SIM_SECTION,
+           CFG_SIM_PIN,
+           CFG_SIM_PIN_DEFAULT,
+           configManager.config.sim.pin,
+           sizeof(configManager.config.sim.pin),
+           CFG_INI_FILE);
+
+  SDC_Unlock();        
 }
 
 /*****************************************************************************/
@@ -94,8 +102,11 @@ THD_FUNCTION(CFM_Thread, arg)
       CFM_Command_t cmd = (CFM_Command_t)msg;
       switch (cmd) {
       case CFM_CMD_LOAD: {
-        if (CFM_LoadIniFile())
+        CFM_LoadIniFile();
+        if (!configManager.isInitialized) {
           chSemSignal(&configManager.configRead);
+          configManager.isInitialized = true;
+        }
         break;
       }
       case CFM_CMD_STORE: {
@@ -112,10 +123,11 @@ THD_FUNCTION(CFM_Thread, arg)
 
 void CFM_Init(void)
 {
-  memcpy(&configManager.config, &defaultConfig, sizeof(Config_t));
-  chMBObjectInit(
-      &configManager.mailbox, configManager.commands, ARRAY_LENGTH(configManager.commands));
+  memset(&configManager.config, 0, sizeof(configManager.config));
+  memset(configManager.commands, 0, sizeof(configManager.commands));
+  chMBObjectInit(&configManager.mailbox, configManager.commands, ARRAY_LENGTH(configManager.commands));
   chSemObjectInit(&configManager.configRead, 0);
+  configManager.isInitialized = false;
 }
 
 void CFM_WaitForValidConfig(void)
@@ -150,14 +162,14 @@ void CFM_StoreConfig(void)
   chSysUnlock();
 }
 
-const char *CFM_GetBluetoothHostName(void)
+const BluetoothConfig_t *CFM_GetBluetoothConfig(void)
 {
-  return configManager.config.bluetooth.hostname;
+  return &configManager.config.bluetooth;
 }
 
-const char *CFM_GetBluetoothPin(void)
+const GprsConfig_t * CFM_GetGprsConfig(void)
 {
-  return configManager.config.bluetooth.pin;
+  return &configManager.config.gprs;
 }
 
 /****************************** END OF FILE **********************************/

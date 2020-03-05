@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "Dashboard.h"
+#include "ConfigManagerThread.h"
 #include "ReporterThread.h"
 #include "SimHandlerThread.h"
 #include "SystemThread.h"
@@ -40,6 +41,7 @@ typedef struct Reporter_s {
   RPT_State_t state;
   msg_t events[10];
   mailbox_t mailbox;
+  const GprsConfig_t *config;
   virtual_timer_t timer;
   struct PositionBuffer_s {
     GPS_Data_t data[BUFFER_LENGTH];
@@ -140,7 +142,8 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_START: {
-    SIM_IpSetup(&SIM868, "internet.vodafone.net");
+    const char *apn = reporter.config->apn;
+    SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
     newState = RPT_STATE_ENABLED;
@@ -205,7 +208,8 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_START: {
-    SIM_IpSetup(&SIM868, "internet.vodafone.net");
+    const char *apn = reporter.config->apn;
+    SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
     newState = RPT_STATE_ENABLED;
@@ -231,6 +235,8 @@ THD_FUNCTION(RPT_Thread, arg) {
   chRegSetThreadName("reporter");
 
   SYS_WaitForSuccessfulInit();
+
+  reporter.config = CFM_GetGprsConfig();
 
   while(true) {
     msg_t msg;
@@ -262,6 +268,7 @@ void RPT_Init(void)
   reporter.state = RPT_STATE_INIT;
   memset(reporter.events, 0, sizeof(reporter.events));
   chMBObjectInit(&reporter.mailbox, reporter.events, ARRAY_LENGTH(reporter.events));
+  reporter.config = NULL;
   chVTObjectInit(&reporter.timer);
   memset(reporter.buffer.data, 0, sizeof(reporter.buffer.data));
   reporter.buffer.wrindex = 0;

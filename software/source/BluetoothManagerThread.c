@@ -51,6 +51,7 @@ typedef struct {
   BLT_State_t state;
   msg_t commands[10];
   mailbox_t mailbox;
+  const BluetoothConfig_t *config;
   BluetoothStream_t stream;
   thread_reference_t shell;
   GSM_BluetoothEvent_t btevent;
@@ -128,8 +129,8 @@ static void BLT_eventCallback(GSM_BluetoothEvent_t *p)
 static bool BLT_setupAndStart(void)
 {
   bool result          = false;
-  const char *hostname = CFM_GetBluetoothHostName();
-  const char *pin      = CFM_GetBluetoothPin();
+  const char *hostname = bluetooth.config->hostname;
+  const char *pin      = bluetooth.config->pin;
 
   if (SIM_BluetoothSetup(&SIM868, hostname, pin)) {
     if (SIM_RegisterBluetoothCallback(&SIM868, BLT_eventCallback)) {
@@ -379,6 +380,8 @@ THD_FUNCTION(BLT_Thread, arg)
   SYS_WaitForSuccessfulInit();
   CFM_WaitForValidConfig();
 
+  bluetooth.config = CFM_GetBluetoothConfig();
+
   while (true) {
     msg_t msg;
     if (MSG_OK == chMBFetchTimeout(&bluetooth.mailbox, &msg, TIME_INFINITE)) {
@@ -415,6 +418,7 @@ THD_FUNCTION(BLT_Thread, arg)
 void BLT_Init(void)
 {
   bluetooth.state = BLT_STATE_INIT;
+  bluetooth.config = NULL;
   memset(bluetooth.commands, 0, sizeof(bluetooth.commands));
   chMBObjectInit(&bluetooth.mailbox, bluetooth.commands, ARRAY_LENGTH(bluetooth.commands));
   BLS_ObjectInit(&bluetooth.stream);
