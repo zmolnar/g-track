@@ -139,22 +139,21 @@ void PRP_USBCallback(void *p)
   chSysUnlockFromISR();
 }
 
-void PRP_Button0Switch1Callback(void *p)
+void PRP_Switch1Callback(void *p)
 {
   (void)p;
-
-  uint32_t bt0 = (PAL_HIGH == palReadLine(LINE_BT0)) ? 1 : 0;
-  uint32_t sw1 = (PAL_HIGH == palReadLine(LINE_EXT_SW1)) ? 1 : 0;
-
   chSysLockFromISR();
-  if (bt0 != manager.padState.bt0) {
-    manager.counter.bt0++;
-    chMBPostI(&manager.mailbox, PRP_EVENT_BT0);
-  }
-  if (sw1 != manager.padState.sw1) {
-    manager.counter.sw1++;
-    chMBPostI(&manager.mailbox, PRP_EVENT_SW1);
-  }
+  manager.counter.sw1++;
+  chMBPostI(&manager.mailbox, PRP_EVENT_SW1);
+  chSysUnlockFromISR();
+}
+
+void PRP_Button0Callback(void *p)
+{
+  (void)p;
+  chSysLockFromISR();
+  manager.counter.bt0++;
+  chMBPostI(&manager.mailbox, PRP_EVENT_BT0);
   chSysUnlockFromISR();
 }
 
@@ -239,10 +238,11 @@ void PRP_ConfigureGPIOInterrupts(void)
   palSetLineCallback(LINE_SDC_CARD_DETECT, PRP_SdcDetectCallback, NULL);
   palEnableLineEvent(LINE_SDC_CARD_DETECT, PAL_EVENT_MODE_BOTH_EDGES);
 
-  palSetLineCallback(LINE_USB_VBUS_SENSE, PRP_USBCallback, NULL);
-  palEnableLineEvent(LINE_USB_VBUS_SENSE, PAL_EVENT_MODE_BOTH_EDGES);
+  palSetLineCallback(LINE_EXT_SW1, PRP_Switch1Callback, NULL);
+  // palSetLineCallback(LINE_USB_VBUS_SENSE, PRP_USBCallback, NULL);
+  palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
 
-  palSetLineCallback(LINE_BT0, PRP_Button0Switch1Callback, NULL);
+  palSetLineCallback(LINE_BT0, PRP_Button0Callback, NULL);
   palEnableLineEvent(LINE_BT0, PAL_EVENT_MODE_BOTH_EDGES);
 
   palSetLineCallback(LINE_EXT_SW2, PRP_Switch2Callback, NULL);
