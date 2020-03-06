@@ -197,35 +197,11 @@ static void PRP_collectInitialEvents(void)
   chSysLock();
 
   chMBPostI(&peripheralManager.mailbox, PRP_EVENT_IGN);
-
-  if (PRP_isButton0Pressed())
-    chMBPostI(&peripheralManager.mailbox, PRP_EVENT_BT0);
-
-  if (PRP_isSw1Pressed())
-    chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW1);
-
-  if (PRP_isSw2Pressed())
-    chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW2);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_BT0);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW1);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW2);
 
   chSysUnlock();
-}
-
-static void PRP_ConfigureGPIOInterrupts(void)
-{
-  palSetLineCallback(LINE_EXT_IGNITION, PRP_IgnitionCallback, NULL);
-  palEnableLineEvent(LINE_EXT_IGNITION, PAL_EVENT_MODE_BOTH_EDGES);
-
-  palSetLineCallback(LINE_SDC_CARD_DETECT, PRP_SdcDetectCallback, NULL);
-  palEnableLineEvent(LINE_SDC_CARD_DETECT, PAL_EVENT_MODE_BOTH_EDGES);
-
-  palSetLineCallback(LINE_BT0, PRP_Button0Callback, NULL);
-  palEnableLineEvent(LINE_BT0, PAL_EVENT_MODE_BOTH_EDGES);
-
-  palSetLineCallback(LINE_EXT_SW1, PRP_Switch1Callback, NULL);
-  palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
-
-  palSetLineCallback(LINE_EXT_SW2, PRP_Switch2Callback, NULL);
-  palEnableLineEvent(LINE_EXT_SW2, PAL_EVENT_MODE_BOTH_EDGES);
 }
 
 static void PRP_waitForSdcardAndLoadConfig(void)
@@ -253,6 +229,9 @@ static void PRP_waitForSdcardAndLoadConfig(void)
   }
 
   CFM_WaitForValidConfig();
+  
+  palSetLineCallback(LINE_SDC_CARD_DETECT, PRP_SdcDetectCallback, NULL);
+  palEnableLineEvent(LINE_SDC_CARD_DETECT, PAL_EVENT_MODE_BOTH_EDGES);
 
   peripheralManager.config = CFM_GetSimConfig();
 }
@@ -276,7 +255,6 @@ THD_FUNCTION(PRP_Thread, arg)
   PRP_setupModem();
   PRP_readInitialStates();
   PRP_collectInitialEvents();
-  PRP_ConfigureGPIOInterrupts();
 
   while (true) {
     msg_t msg;
@@ -291,6 +269,7 @@ THD_FUNCTION(PRP_Thread, arg)
         } else {
           SYS_IgnitionOff();
         }
+        palSetLineCallback(LINE_EXT_IGNITION, PRP_IgnitionCallback, NULL);
         palEnableLineEvent(LINE_EXT_IGNITION, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }  
@@ -309,6 +288,7 @@ THD_FUNCTION(PRP_Thread, arg)
           if (SDC_Unmount())
             palSetLine(LINE_LED_2_RED);
         }
+        palSetLineCallback(LINE_SDC_CARD_DETECT, PRP_SdcDetectCallback, NULL);
         palEnableLineEvent(LINE_SDC_CARD_DETECT, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }
@@ -318,6 +298,7 @@ THD_FUNCTION(PRP_Thread, arg)
         if (PRP_isButton0Pressed()) {
           COT_OneShot();
         }
+        palSetLineCallback(LINE_BT0, PRP_Button0Callback, NULL);
         palEnableLineEvent(LINE_BT0, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }
@@ -327,6 +308,7 @@ THD_FUNCTION(PRP_Thread, arg)
         if (PRP_isSw1Pressed()) {
           ;
         }
+        palSetLineCallback(LINE_EXT_SW1, PRP_Switch1Callback, NULL);
         palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }
@@ -336,6 +318,7 @@ THD_FUNCTION(PRP_Thread, arg)
         if (PRP_isSw2Pressed()) {
           ;
         }
+        palSetLineCallback(LINE_EXT_SW2, PRP_Switch2Callback, NULL);
         palEnableLineEvent(LINE_EXT_SW2, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }

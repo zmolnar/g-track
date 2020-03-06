@@ -34,7 +34,7 @@
 #define CFG_SIM_PIN_DEFAULT "0000"
 
 #define CFG_GPS_SECTION "gps"
-#define CFG_GPS_TIMEZONE "timezone"
+#define CFG_GPS_UTCOFFSET "utcoffset"
 
 #define CFG_MOTION_DETECTOR_SECTION "motiondetector"
 #define CFG_MOTION_DETECTOR_THRESHOLD "threshold"

@@ -83,7 +83,7 @@ static void CFM_LoadIniFile(void)
            sizeof(configManager.config.sim.pin),
            CFG_INI_FILE);
 
-  long tmp = ini_getl(CFG_GPS_SECTION, CFG_GPS_TIMEZONE, 0, CFG_INI_FILE);
+  long tmp = ini_getl(CFG_GPS_SECTION, CFG_GPS_UTCOFFSET, 0, CFG_INI_FILE);
   configManager.config.gps.utcOffset = (int8_t)tmp;
 
   tmp = ini_getl(CFG_MOTION_DETECTOR_SECTION, CFG_MOTION_DETECTOR_THRESHOLD, 0, CFG_INI_FILE);
