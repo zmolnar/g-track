@@ -50,12 +50,12 @@ void SDC_Unlock(void);
 /**
  * @brief Mount filesystem on SD card.
  */
-void SDC_Mount(void);
+bool SDC_Mount(void);
 
 /**
  * @brief Unmount filesystem on SD card.
  */
-void SDC_Unmount(void);
+bool SDC_Unmount(void);
 
 /**
  * @brief Recursively list all files in the filesystem.

@@ -123,29 +123,33 @@ void SDC_Unlock(void)
   chMtxUnlock(&sdcardMutex);
 }
 
-void SDC_Mount(void)
+bool SDC_Mount(void)
 {
   SDC_Lock();
+
   if (!fsReady) {
+    
     mmcStart(&MMCD1, &mmccfg);
 
-    if (mmcConnect(&MMCD1))
-      return;
-
-    if (FR_OK != f_mount(&SDC_FS, "/", 1)) {
-      mmcDisconnect(&MMCD1);
-      mmcStop(&MMCD1);
-      return;
+    if (HAL_SUCCESS == mmcConnect(&MMCD1)) {
+      if (FR_OK == f_mount(&SDC_FS, "/", 1)) {
+        fsReady = true;
+      } else {
+        mmcDisconnect(&MMCD1);
+        mmcStop(&MMCD1);
+        fsReady = false;
+      }
+    } else {
+      fsReady = false;
     }
-
-    fsReady = TRUE;
-    palClearLine(LINE_LED_2_RED);
   }
 
   SDC_Unlock();
+
+  return fsReady;
 }
 
-void SDC_Unmount(void)
+bool SDC_Unmount(void)
 {
   SDC_Lock();
 
@@ -154,10 +158,11 @@ void SDC_Unmount(void)
     mmcStop(&MMCD1);
 
     fsReady = FALSE;
-    palSetLine(LINE_LED_2_RED);
   }
 
   SDC_Unlock();
+
+  return !fsReady;
 }
 
 void SDC_Tree(BaseSequentialStream *chp, int argc, char *argv[])

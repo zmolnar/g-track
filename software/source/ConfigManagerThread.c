@@ -172,4 +172,9 @@ const GprsConfig_t * CFM_GetGprsConfig(void)
   return &configManager.config.gprs;
 }
 
+const SimConfig_t * CFM_GetSimConfig(void)
+{
+  return &configManager.config.sim;
+}
+
 /****************************** END OF FILE **********************************/

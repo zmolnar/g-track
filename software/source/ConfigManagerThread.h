@@ -49,6 +49,8 @@ const BluetoothConfig_t *CFM_GetBluetoothConfig(void);
 
 const GprsConfig_t * CFM_GetGprsConfig(void);
 
+const SimConfig_t * CFM_GetSimConfig(void);
+
 #endif /* CONFIG_MANAGER_THREAD_H */
 
 /****************************** END OF FILE **********************************/

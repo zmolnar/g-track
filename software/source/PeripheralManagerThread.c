@@ -10,9 +10,7 @@
 #include "SimHandlerThread.h"
 #include "ChainOilerThread.h"
 #include "SystemThread.h"
-
 #include "ConfigManagerThread.h"
-#include "DebugShell.h"
 #include "Logger.h"
 #include "Sdcard.h"
 
@@ -28,9 +26,8 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef enum {
+  PRP_EVENT_IGN,
   PRP_EVENT_SDC,
-  PRP_EVENT_USB,
-  PRP_EVENT_IGNITION,
   PRP_EVENT_BT0,
   PRP_EVENT_SW1,
   PRP_EVENT_SW2,
@@ -39,18 +36,17 @@ typedef enum {
 typedef struct PeripheralManager_s {
   msg_t events[10];
   mailbox_t mailbox;
+  const SimConfig_t *config;
   struct EventCounter_s {
-    uint32_t sdc;
-    uint32_t usb;
     uint32_t ign;
+    uint32_t sdc;
     uint32_t bt0;
     uint32_t sw1;
     uint32_t sw2;
   } counter;
   struct PadState_s {
-    uint32_t sdc : 1;
-    uint32_t usb : 1;
     uint32_t ign : 1;
+    uint32_t sdc : 1;
     uint32_t bt0 : 1;
     uint32_t sw1 : 1;
     uint32_t sw2 : 1;
@@ -64,7 +60,7 @@ typedef struct PeripheralManager_s {
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL CONSTANTS AND VARIABLES                              */
 /*****************************************************************************/
-static PeripheralManager_t manager;
+static PeripheralManager_t peripheralManager;
 
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
@@ -116,8 +112,9 @@ void PRP_IgnitionCallback(void *p)
 {
   (void)p;
   chSysLockFromISR();
-  manager.counter.ign++;
-  chMBPostI(&manager.mailbox, PRP_EVENT_IGNITION);
+  peripheralManager.counter.ign++;
+  palDisableLineEventI(LINE_EXT_IGNITION);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_IGN);
   chSysUnlockFromISR();
 }
 
@@ -125,26 +122,9 @@ void PRP_SdcDetectCallback(void *p)
 {
   (void)p;
   chSysLockFromISR();
-  manager.counter.sdc++;
-  chMBPostI(&manager.mailbox, PRP_EVENT_SDC);
-  chSysUnlockFromISR();
-}
-
-void PRP_USBCallback(void *p)
-{
-  (void)p;
-  chSysLockFromISR();
-  manager.counter.usb++;
-  chMBPostI(&manager.mailbox, PRP_EVENT_USB);
-  chSysUnlockFromISR();
-}
-
-void PRP_Switch1Callback(void *p)
-{
-  (void)p;
-  chSysLockFromISR();
-  manager.counter.sw1++;
-  chMBPostI(&manager.mailbox, PRP_EVENT_SW1);
+  peripheralManager.counter.sdc++;
+  palDisableLineEventI(LINE_SDC_CARD_DETECT);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SDC);
   chSysUnlockFromISR();
 }
 
@@ -152,8 +132,19 @@ void PRP_Button0Callback(void *p)
 {
   (void)p;
   chSysLockFromISR();
-  manager.counter.bt0++;
-  chMBPostI(&manager.mailbox, PRP_EVENT_BT0);
+  peripheralManager.counter.bt0++;
+  palDisableLineEventI(LINE_BT0);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_BT0);
+  chSysUnlockFromISR();
+}
+
+void PRP_Switch1Callback(void *p)
+{
+  (void)p;
+  chSysLockFromISR();
+  peripheralManager.counter.sw1++;
+  palDisableLineEventI(LINE_EXT_SW1);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW1);
   chSysUnlockFromISR();
 }
 
@@ -161,9 +152,15 @@ void PRP_Switch2Callback(void *p)
 {
   (void)p;
   chSysLockFromISR();
-  manager.counter.sw2++;
-  chMBPostI(&manager.mailbox, PRP_EVENT_SW2);
+  peripheralManager.counter.sw2++;
+  palDisableLineEventI(LINE_EXT_SW2);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW2);
   chSysUnlockFromISR();
+}
+
+static bool PRP_isIgnitionOn(void)
+{
+  return PAL_HIGH == palReadLine(LINE_EXT_IGNITION);
 }
 
 static bool PRP_isSdcInserted(void)
@@ -171,19 +168,9 @@ static bool PRP_isSdcInserted(void)
   return PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT);
 }
 
-static bool PRP_isUsbConnected(void)
-{
-  return PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE);
-}
-
 static bool PRP_isButton0Pressed(void)
 {
   return PAL_LOW == palReadLine(LINE_BT0);
-}
-
-static bool PRP_isIgnitionOn(void)
-{
-  return PAL_HIGH == palReadLine(LINE_EXT_IGNITION);
 }
 
 static bool PRP_isSw1Pressed(void)
@@ -198,39 +185,32 @@ static bool PRP_isSw2Pressed(void)
 
 static void PRP_readInitialStates(void)
 {
-  manager.padState.sdc = (PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT)) ? 1 : 0;
-  manager.padState.usb = (PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE)) ? 1 : 0;
-  manager.padState.ign = (PAL_HIGH == palReadLine(LINE_EXT_IGNITION)) ? 1 : 0;
-  manager.padState.bt0 = (PAL_HIGH == palReadLine(LINE_BT0)) ? 1 : 0;
-  manager.padState.sw1 = (PAL_HIGH == palReadLine(LINE_EXT_SW1)) ? 1 : 0;
-  manager.padState.sw2 = (PAL_HIGH == palReadLine(LINE_EXT_SW2)) ? 1 : 0;
+  peripheralManager.padState.ign = palReadLine(LINE_EXT_IGNITION);
+  peripheralManager.padState.sdc = palReadLine(LINE_SDC_CARD_DETECT);
+  peripheralManager.padState.bt0 = palReadLine(LINE_BT0);
+  peripheralManager.padState.sw1 = palReadLine(LINE_EXT_SW1);
+  peripheralManager.padState.sw2 = palReadLine(LINE_EXT_SW2);
 }
 
 static void PRP_collectInitialEvents(void)
 {
   chSysLock();
 
-  chMBPostI(&manager.mailbox, PRP_EVENT_IGNITION);
-
-  if (PRP_isSdcInserted())
-    chMBPostI(&manager.mailbox, PRP_EVENT_SDC);
-
-  if (PRP_isUsbConnected())
-    chMBPostI(&manager.mailbox, PRP_EVENT_USB);
+  chMBPostI(&peripheralManager.mailbox, PRP_EVENT_IGN);
 
   if (PRP_isButton0Pressed())
-    chMBPostI(&manager.mailbox, PRP_EVENT_BT0);
+    chMBPostI(&peripheralManager.mailbox, PRP_EVENT_BT0);
 
   if (PRP_isSw1Pressed())
-    chMBPostI(&manager.mailbox, PRP_EVENT_SW1);
+    chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW1);
 
   if (PRP_isSw2Pressed())
-    chMBPostI(&manager.mailbox, PRP_EVENT_SW2);
+    chMBPostI(&peripheralManager.mailbox, PRP_EVENT_SW2);
 
   chSysUnlock();
 }
 
-void PRP_ConfigureGPIOInterrupts(void)
+static void PRP_ConfigureGPIOInterrupts(void)
 {
   palSetLineCallback(LINE_EXT_IGNITION, PRP_IgnitionCallback, NULL);
   palEnableLineEvent(LINE_EXT_IGNITION, PAL_EVENT_MODE_BOTH_EDGES);
@@ -238,15 +218,50 @@ void PRP_ConfigureGPIOInterrupts(void)
   palSetLineCallback(LINE_SDC_CARD_DETECT, PRP_SdcDetectCallback, NULL);
   palEnableLineEvent(LINE_SDC_CARD_DETECT, PAL_EVENT_MODE_BOTH_EDGES);
 
-  palSetLineCallback(LINE_EXT_SW1, PRP_Switch1Callback, NULL);
-  // palSetLineCallback(LINE_USB_VBUS_SENSE, PRP_USBCallback, NULL);
-  palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
-
   palSetLineCallback(LINE_BT0, PRP_Button0Callback, NULL);
   palEnableLineEvent(LINE_BT0, PAL_EVENT_MODE_BOTH_EDGES);
 
+  palSetLineCallback(LINE_EXT_SW1, PRP_Switch1Callback, NULL);
+  palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
+
   palSetLineCallback(LINE_EXT_SW2, PRP_Switch2Callback, NULL);
   palEnableLineEvent(LINE_EXT_SW2, PAL_EVENT_MODE_BOTH_EDGES);
+}
+
+static void PRP_waitForSdcardAndLoadConfig(void)
+{
+  bool succeeded = false;
+
+  while (!succeeded) {
+    palSetLine(LINE_LED_2_RED);
+
+    while(!PRP_isSdcInserted()) {
+      palToggleLine(LINE_LED_2_RED);
+      chThdSleepMilliseconds(125);
+    }
+
+    palSetLine(LINE_LED_2_RED);
+
+    if (PRP_isSdcInserted()) {
+      if (SDC_Mount()) {
+        palClearLine(LINE_LED_2_RED);
+        PRP_writeSysInfo();
+        CFM_LoadConfig();
+        succeeded = true;
+      }
+    }
+  }
+
+  CFM_WaitForValidConfig();
+
+  peripheralManager.config = CFM_GetSimConfig();
+}
+
+static void PRP_setupModem(void)
+{
+  const char *pin = peripheralManager.config->pin;
+  while(!SHD_ResetAndConnectModem(pin))
+    ;
 }
 
 /*****************************************************************************/
@@ -257,67 +272,71 @@ THD_FUNCTION(PRP_Thread, arg)
   (void)arg;
   chRegSetThreadName("peripheral");
 
+  PRP_waitForSdcardAndLoadConfig();
+  PRP_setupModem();
   PRP_readInitialStates();
   PRP_collectInitialEvents();
   PRP_ConfigureGPIOInterrupts();
 
-  while(!SHD_ResetAndConnectModem("3943"))
-    ;
-
   while (true) {
     msg_t msg;
-    if (MSG_OK == chMBFetchTimeout(&manager.mailbox, &msg, TIME_INFINITE)) {
+    if (MSG_OK == chMBFetchTimeout(&peripheralManager.mailbox, &msg, TIME_INFINITE)) {
       PRP_Event_t evt = (PRP_Event_t)msg;
       switch (evt) {
-      case PRP_EVENT_SDC: {
-        manager.padState.sdc = (PAL_HIGH == palReadLine(LINE_SDC_CARD_DETECT)) ? 1 : 0;
-        if (PRP_isSdcInserted()) {
-          SDC_Mount();
-          PRP_writeSysInfo();
-          CFM_LoadConfig();
-        } else {
-          SDC_Unmount();
-        }
-        break;
-      }
-      case PRP_EVENT_USB: {
-        manager.padState.usb = (PAL_HIGH == palReadLine(LINE_USB_VBUS_SENSE)) ? 1 : 0;
-        if (PRP_isUsbConnected()) {
-          DSH_Start();
-        } else {
-          DSH_Stop();
-        }
-        break;
-      }
-      case PRP_EVENT_IGNITION: {
-        manager.padState.ign = (PAL_HIGH == palReadLine(LINE_EXT_IGNITION)) ? 1 : 0;
+      case PRP_EVENT_IGN: {
+        chThdSleepMilliseconds(20);
+        peripheralManager.padState.ign = palReadLine(LINE_EXT_IGNITION);
         if (PRP_isIgnitionOn()) {
           SYS_IgnitionOn();
         } else {
           SYS_IgnitionOff();
         }
+        palEnableLineEvent(LINE_EXT_IGNITION, PAL_EVENT_MODE_BOTH_EDGES);
+        break;
+      }  
+      case PRP_EVENT_SDC: {
+        chThdSleepMilliseconds(100);
+        peripheralManager.padState.sdc = palReadLine(LINE_SDC_CARD_DETECT);
+        if (PRP_isSdcInserted()) {
+          if (SDC_Mount()) {
+            palClearLine(LINE_LED_2_RED);
+            PRP_writeSysInfo();
+            CFM_LoadConfig();
+          } else {
+            palSetLine(LINE_LED_2_RED);
+          }
+        } else {
+          if (SDC_Unmount())
+            palSetLine(LINE_LED_2_RED);
+        }
+        palEnableLineEvent(LINE_SDC_CARD_DETECT, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }
       case PRP_EVENT_BT0: {
-        manager.padState.bt0 = (PAL_HIGH == palReadLine(LINE_BT0)) ? 1 : 0;
+        chThdSleepMilliseconds(20);
+        peripheralManager.padState.bt0 = palReadLine(LINE_BT0);
         if (PRP_isButton0Pressed()) {
           COT_OneShot();
         }
-
+        palEnableLineEvent(LINE_BT0, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }
       case PRP_EVENT_SW1: {
-        manager.padState.sw1 = (PAL_HIGH == palReadLine(LINE_EXT_SW1)) ? 1 : 0;
+        chThdSleepMilliseconds(20);
+        peripheralManager.padState.sw1 = palReadLine(LINE_EXT_SW1);
         if (PRP_isSw1Pressed()) {
           ;
         }
+        palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }
       case PRP_EVENT_SW2: {
-        manager.padState.sw2 = (PAL_HIGH == palReadLine(LINE_EXT_SW2)) ? 1 : 0;
+        chThdSleepMilliseconds(20);
+        peripheralManager.padState.sw2 = palReadLine(LINE_EXT_SW2);
         if (PRP_isSw2Pressed()) {
           ;
         }
+        palEnableLineEvent(LINE_EXT_SW2, PAL_EVENT_MODE_BOTH_EDGES);
         break;
       }
       default: {
@@ -330,13 +349,13 @@ THD_FUNCTION(PRP_Thread, arg)
 
 void PRP_Init(void)
 {
-  memset(manager.events, 0, sizeof(manager.events));
-  chMBObjectInit(&manager.mailbox, manager.events, ARRAY_LENGTH(manager.events));
-  memset(&manager.counter, 0, sizeof(manager.counter));
-  memset(&manager.padState, 0, sizeof(manager.padState));
+  memset(peripheralManager.events, 0, sizeof(peripheralManager.events));
+  chMBObjectInit(&peripheralManager.mailbox, peripheralManager.events, ARRAY_LENGTH(peripheralManager.events));
+  memset(&peripheralManager.counter, 0, sizeof(peripheralManager.counter));
+  memset(&peripheralManager.padState, 0, sizeof(peripheralManager.padState));
 
   SDC_Init();
-  DSH_Init();
 }
 
 /****************************** END OF FILE **********************************/
+
