@@ -84,10 +84,10 @@ static void CFM_LoadIniFile(void)
            CFG_INI_FILE);
 
   long tmp = ini_getl(CFG_GPS_SECTION, CFG_GPS_TIMEZONE, 0, CFG_INI_FILE);
-  configManager.config.gps.timezone = (int32_t)tmp;
+  configManager.config.gps.utcOffset = (int8_t)tmp;
 
   tmp = ini_getl(CFG_MOTION_DETECTOR_SECTION, CFG_MOTION_DETECTOR_THRESHOLD, 0, CFG_INI_FILE);
-  configManager.config.motionDetector.threshold = (int32_t)tmp;
+  configManager.config.motionDetector.threshold = (uint8_t)tmp;
 
   SDC_Unlock();        
 }

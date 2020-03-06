@@ -56,11 +56,11 @@ typedef struct SimConfig_s {
 } SimConfig_t;
 
 typedef struct GpsConfig_s {
-  int32_t timezone;
+  int8_t utcOffset;
 } GpsConfig_t;
 
 typedef struct MotionDetectorConfig_s {
-  int32_t threshold;
+  uint8_t threshold;
 } MotionDetectorConfig_t;
 
 typedef struct Config_s {

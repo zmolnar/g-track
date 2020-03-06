@@ -134,7 +134,7 @@ void MDT_loadStateMachine_1(void)
 }
 #endif
 
-void MDT_interrupt_2(void *arg)
+void MDT_int2Callback(void *arg)
 {
   (void)arg;
 
@@ -145,7 +145,7 @@ void MDT_interrupt_2(void *arg)
 
 void MDT_enableInterrupt_2(void)
 {
-  palSetLineCallback(LINE_ACC_INT2, MDT_interrupt_2, NULL);
+  palSetLineCallback(LINE_ACC_INT2, MDT_int2Callback, NULL);
   palEnableLineEvent(LINE_ACC_INT2, PAL_EVENT_MODE_FALLING_EDGE);
 }
 
@@ -161,7 +161,11 @@ void MDT_loadStateMachine_2(void)
   MDT_writeReg(LIS3DSH_AD_CTRL_REG2, LIS3DSH_CTRL_REG2_SM2_PIN | LIS3DSH_CTRL_REG2_SM2_EN);
   MDT_writeReg(LIS3DSH_AD_CTRL_REG3, LIS3DSH_CTRL_REG3_INT2_EN);
 
-  MDT_writeReg(LIS3DSH_AD_THRS1_1, 0x20);
+  uint8_t threshold = 0x20;
+  if (0 < detector.config->threshold)
+      threshold = detector.config->threshold;
+      
+  MDT_writeReg(LIS3DSH_AD_THRS1_1, threshold);
   MDT_writeReg(LIS3DSH_AD_ST2_1, 0x05);
   MDT_writeReg(LIS3DSH_AD_ST2_2, 0x11);
   MDT_writeReg(LIS3DSH_AD_MASK2_B, 0xfc);
