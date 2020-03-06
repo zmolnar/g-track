@@ -423,6 +423,7 @@ void BLT_Init(void)
   chMBObjectInit(&bluetooth.mailbox, bluetooth.commands, ARRAY_LENGTH(bluetooth.commands));
   BLS_ObjectInit(&bluetooth.stream);
   memset(&bluetooth.btevent, 0, sizeof(bluetooth.btevent));
+  shellInit();
 }
 
 void BLT_Start(void)
