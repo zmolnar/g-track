@@ -235,7 +235,8 @@ THD_FUNCTION(RPT_Thread, arg) {
   chRegSetThreadName("reporter");
 
   SYS_WaitForSuccessfulInit();
-
+  CFM_WaitForValidConfig();
+  
   reporter.config = CFM_GetGprsConfig();
 
   while(true) {

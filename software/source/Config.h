@@ -9,6 +9,7 @@
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
+#include <stdint.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -32,6 +33,12 @@
 #define CFG_SIM_PIN "pin"
 #define CFG_SIM_PIN_DEFAULT "0000"
 
+#define CFG_GPS_SECTION "gps"
+#define CFG_GPS_TIMEZONE "timezone"
+
+#define CFG_MOTION_DETECTOR_SECTION "motiondetector"
+#define CFG_MOTION_DETECTOR_THRESHOLD "threshold"
+
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
@@ -48,10 +55,20 @@ typedef struct SimConfig_s {
   char pin[5];
 } SimConfig_t;
 
+typedef struct GpsConfig_s {
+  int32_t timezone;
+} GpsConfig_t;
+
+typedef struct MotionDetectorConfig_s {
+  int32_t threshold;
+} MotionDetectorConfig_t;
+
 typedef struct Config_s {
   BluetoothConfig_t bluetooth;
   GprsConfig_t gprs;
   SimConfig_t sim;
+  GpsConfig_t gps;
+  MotionDetectorConfig_t motionDetector;
 } Config_t;
 
 /*****************************************************************************/

@@ -7,6 +7,7 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "ChainOilerThread.h"
+#include "ConfigManagerThread.h"
 #include "SystemThread.h"
 #include "Dashboard.h"
 #include "GpsReaderThread.h"
@@ -57,6 +58,7 @@ typedef struct {
   virtual_timer_t timer;
   msg_t events[10];
   mailbox_t mailbox;
+  const GpsConfig_t *config;
   GpsLockState_t lockState;
   GPS_State_t state;
   GPS_Error_t error;
@@ -328,7 +330,11 @@ THD_FUNCTION(GPS_Thread, arg)
   chRegSetThreadName("gps");
 
   SYS_WaitForSuccessfulInit();
+  CFM_WaitForValidConfig();
 
+  gps.config = CFM_GetGpsConfig();
+#warning "Add timezone handling to determine local time"
+  
   while (true) {
     msg_t msg;
     if (MSG_OK == chMBFetchTimeout(&gps.mailbox, &msg, TIME_INFINITE)) {
@@ -363,6 +369,7 @@ void GPS_Init(void)
   chVTObjectInit(&gps.timer);
   memset(gps.events, 0, sizeof(gps.events));
   chMBObjectInit(&gps.mailbox, gps.events, sizeof(gps.events) / sizeof(gps.events[0]));
+  gps.config    = NULL;
   gps.lockState = GPS_NOT_POWERED;
   gps.state     = GPS_INIT;
   gps.error     = GPS_ERR_NO_ERROR;

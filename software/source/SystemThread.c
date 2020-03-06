@@ -105,6 +105,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
     RPT_Start();
     // CLL_Start();
     newState = SYS_STATE_RIDING;
+    chSemSignal(&system.sysinitialized);
    break;
   }
   case SYS_CMD_IGNITION_OFF: {
@@ -112,6 +113,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
     COT_Stop();
     GPS_Stop();
     newState = SYS_STATE_PARKING;
+    chSemSignal(&system.sysinitialized);
     break;
   }
   default: {
@@ -121,8 +123,6 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
 
   if (SYS_STATE_INIT != newState)
     SYS_logStateChange(SYS_STATE_INIT, newState);
-
-  chSemSignal(&system.sysinitialized);
 
   return newState;
 }
@@ -211,8 +211,6 @@ THD_FUNCTION(SYS_Thread, arg)
   (void)arg;
 
   chRegSetThreadName(SYSTEM_THREAD_NAME);
-
-  system.state = SYS_STATE_INIT;
 
   while (true) {
     msg_t msg;

@@ -83,6 +83,12 @@ static void CFM_LoadIniFile(void)
            sizeof(configManager.config.sim.pin),
            CFG_INI_FILE);
 
+  long tmp = ini_getl(CFG_GPS_SECTION, CFG_GPS_TIMEZONE, 0, CFG_INI_FILE);
+  configManager.config.gps.timezone = (int32_t)tmp;
+
+  tmp = ini_getl(CFG_MOTION_DETECTOR_SECTION, CFG_MOTION_DETECTOR_THRESHOLD, 0, CFG_INI_FILE);
+  configManager.config.motionDetector.threshold = (int32_t)tmp;
+
   SDC_Unlock();        
 }
 
@@ -93,8 +99,6 @@ THD_FUNCTION(CFM_Thread, arg)
 {
   (void)arg;
   chRegSetThreadName("config-manager");
-
-  SYS_WaitForSuccessfulInit();
 
   while (true) {
     msg_t msg;
@@ -176,5 +180,16 @@ const SimConfig_t * CFM_GetSimConfig(void)
 {
   return &configManager.config.sim;
 }
+
+const GpsConfig_t * CFM_GetGpsConfig(void)
+{
+  return &configManager.config.gps;
+}
+
+const MotionDetectorConfig_t * CFM_GetMotionDetectorConfig(void)
+{
+  return &configManager.config.motionDetector;
+}
+
 
 /****************************** END OF FILE **********************************/

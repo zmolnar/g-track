@@ -9,6 +9,7 @@
 #include "hal.h"
 
 #include "MotionDetectorThread.h"
+#include "ConfigManagerThread.h"
 #include "SystemThread.h"
 #include "lis3dsh.h"
 
@@ -38,6 +39,7 @@ typedef struct MotionDetector_s {
   MDT_State_t state;
   msg_t commands[10];
   mailbox_t mailbox; 
+  const MotionDetectorConfig_t *config;
   LIS3DSHDriver lis3dsh; 
 } MotionDetector_t;
 
@@ -258,7 +260,10 @@ THD_FUNCTION(MDT_Thread, arg) {
   chRegSetThreadName("motion-detector");
 
   SYS_WaitForSuccessfulInit();
+  CFM_WaitForValidConfig();
 
+  detector.config = CFM_GetMotionDetectorConfig();
+  
   while(true) {
     msg_t msg;
     if (MSG_OK == chMBFetchTimeout(&detector.mailbox, &msg, TIME_INFINITE)) {
@@ -289,6 +294,7 @@ void MDT_Init(void)
   detector.state = MDT_STATE_INIT;
   memset(detector.commands, 0, sizeof(detector.commands));
   chMBObjectInit(&detector.mailbox, detector.commands, ARRAY_LENGTH(detector.commands));
+  detector.config = NULL;
   lis3dshObjectInit(&detector.lis3dsh);
 }
 
