@@ -334,6 +334,7 @@ void PRP_Init(void)
 {
   memset(peripheralManager.events, 0, sizeof(peripheralManager.events));
   chMBObjectInit(&peripheralManager.mailbox, peripheralManager.events, ARRAY_LENGTH(peripheralManager.events));
+  peripheralManager.config = NULL;
   memset(&peripheralManager.counter, 0, sizeof(peripheralManager.counter));
   memset(&peripheralManager.padState, 0, sizeof(peripheralManager.padState));
 
