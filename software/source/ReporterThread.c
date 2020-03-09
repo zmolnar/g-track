@@ -9,6 +9,7 @@
 #include "Dashboard.h"
 #include "ConfigManagerThread.h"
 #include "ReporterThread.h"
+#include "Record.h"
 #include "SimHandlerThread.h"
 #include "SystemThread.h"
 #include "Sim8xx.h"
@@ -18,7 +19,7 @@
 /*****************************************************************************/
 #define BUFFER_LENGTH 5
 #define URL_LENGTH 512
-#define BUFFER_WATERMARK 2
+#define BUFFER_WATERMARK 1
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -32,7 +33,7 @@ typedef enum {
 typedef enum {
   RPT_CMD_START,
   RPT_CMD_STOP,
-  RPT_CMD_GET_POSITION,
+  RPT_CMD_CREATE_RECORD,
   RPT_CMD_EMPTY_BUFFER,
   RPT_CMD_SEND_DATA,
 } RPT_Command_t;
@@ -41,10 +42,10 @@ typedef struct Reporter_s {
   RPT_State_t state;
   msg_t events[10];
   mailbox_t mailbox;
-  const GprsConfig_t *config;
-  virtual_timer_t timer;
+  const GprsConfig_t *gprsConfig;
+  const BackendConfig_t *backendConfig;
   struct PositionBuffer_s {
-    GPS_Data_t data[BUFFER_LENGTH];
+    Record_t records[BUFFER_LENGTH];
     size_t wrindex;
     size_t rdindex;
   } buffer;
@@ -70,50 +71,96 @@ Reporter_t reporter;
 /*****************************************************************************/
 static void RPT_emptyBuffer(void)
 {
-  memset(reporter.buffer.data, 0, sizeof(reporter.buffer.data));
+  memset(reporter.buffer.records, 0, sizeof(reporter.buffer.records));
   reporter.buffer.wrindex = 0;
   reporter.buffer.rdindex = 0;
 }
 
-static void RPT_pushPositionIntoBuffer(void)
+static void RPT_createRecord(Record_t *prec)
 {
-  GPS_Data_t *nextFree = &reporter.buffer.data[reporter.buffer.wrindex];
-  DSB_GetPosition(nextFree);
+  GPS_Data_t gpsData;
+  DSB_GetPosition(&gpsData);
+  
+#warning "Finalize parameters"
+  prec->deviceId = 0;
+  strncpy(prec->vehicleId, "", sizeof(prec->vehicleId));
+  prec->year = gpsData.time.year;
+  prec->month = gpsData.time.month;
+  prec->day = gpsData.time.day;
+  prec->hour = gpsData.time.hour;
+  prec->minute = gpsData.time.min;
+  prec->second = gpsData.time.sec;
+  prec->utcOffset = gpsData.utcOffset;
+  prec->latitude = gpsData.latitude;
+  prec->longitude = gpsData.longitude;
+  prec->speed = (uint32_t)gpsData.speed;
+  prec->numOfSatInUse = gpsData.gnssSatInUse;
+  prec->batteryVoltage = 0.0;
+  prec->systemMode = 0;
+}
+
+static void RPT_saveRecord(void)
+{
+  Record_t *nextFree = &reporter.buffer.records[reporter.buffer.wrindex];
+  RPT_createRecord(nextFree);
 
   reporter.buffer.wrindex = (reporter.buffer.wrindex + 1) % BUFFER_LENGTH;
   if (reporter.buffer.wrindex == reporter.buffer.rdindex)
     reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
 }
 
-static bool RPT_popOldestFromBuffer(GPS_Data_t *p)
-{
-  memset(p, 0, sizeof(*p));
-  bool result = false;
-
-  if (reporter.buffer.rdindex != reporter.buffer.wrindex) {
-    memcpy(p, &reporter.buffer.data[reporter.buffer.rdindex], sizeof(*p));
-    reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
-    result = true;
-  }
-
-  return result;
-}
-
-static bool RPT_dataNeedsToBeSent(void)
+static size_t RPT_getNumOfRecords(void)
 {
   size_t length = BUFFER_LENGTH + reporter.buffer.wrindex - reporter.buffer.rdindex;
   length %= BUFFER_LENGTH;
 
+  return length;
+}
+
+static bool RPT_dataNeedsToBeSent(void)
+{
+  size_t length = RPT_getNumOfRecords();
+
   return (BUFFER_WATERMARK <= length);
+}
+
+static Record_t * RPT_getOldestRecord(void)
+{
+  Record_t *prec = NULL;
+  
+  if (reporter.buffer.rdindex != reporter.buffer.wrindex) {
+    prec = &reporter.buffer.records[reporter.buffer.rdindex];
+  }
+
+  return prec;
+}
+
+static void RPT_popOldestRecord(void)
+{
+  if (reporter.buffer.rdindex != reporter.buffer.wrindex) {
+    reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
+  }
 }
 
 static size_t RPT_generateURL(void)
 {
-  size_t length = 0;
+  memset(reporter.url, 0, sizeof(reporter.url));
+  strncpy(reporter.url, reporter.backendConfig->url, sizeof(reporter.url));
 
+  size_t numOfRec = RPT_getNumOfRecords();
 
+  size_t n = strlen(reporter.url);
+  for (size_t i = 0; i < numOfRec; ++i) {
+    Record_t *prec = RPT_getOldestRecord();
+    n += REC_Serialize(prec, i, &reporter.url[n], sizeof(reporter.url) - 1 - n);
+    if (i < (numOfRec - 1)) {
+      strncat(reporter.url, "&", sizeof(reporter.url) - 1 - n);
+      ++n;
+    }
+    RPT_popOldestRecord();
+  }
 
-  return length;
+  return n;
 }
 
 static void RPT_IpCallback(GSM_IpEvent_t *event)
@@ -142,7 +189,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_START: {
-    const char *apn = reporter.config->apn;
+    const char *apn = reporter.gprsConfig->apn;
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
@@ -153,7 +200,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
     newState = RPT_STATE_DISABLED;
     break;
   }
-  case RPT_CMD_GET_POSITION:
+  case RPT_CMD_CREATE_RECORD:
   case RPT_CMD_EMPTY_BUFFER:
   case RPT_CMD_SEND_DATA:
   default: {
@@ -175,8 +222,8 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
     newState = RPT_STATE_DISABLED;
     break;
   }
-  case RPT_CMD_GET_POSITION: {
-    RPT_pushPositionIntoBuffer();
+  case RPT_CMD_CREATE_RECORD: {
+    RPT_saveRecord();
     if (RPT_dataNeedsToBeSent()) {
       RPT_SendData();
     }
@@ -208,14 +255,14 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_START: {
-    const char *apn = reporter.config->apn;
+    const char *apn = reporter.gprsConfig->apn;
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
     newState = RPT_STATE_ENABLED;
     break;
   }
-  case RPT_CMD_GET_POSITION:
+  case RPT_CMD_CREATE_RECORD:
   case RPT_CMD_EMPTY_BUFFER:
   case RPT_CMD_SEND_DATA:
   case RPT_CMD_STOP:
@@ -237,7 +284,8 @@ THD_FUNCTION(RPT_Thread, arg) {
   SYS_WaitForSuccessfulInit();
   CFM_WaitForValidConfig();
   
-  reporter.config = CFM_GetGprsConfig();
+  reporter.gprsConfig = CFM_GetGprsConfig();
+  reporter.backendConfig = CFM_GetBackendConfig();
 
   while(true) {
     msg_t msg;
@@ -269,9 +317,9 @@ void RPT_Init(void)
   reporter.state = RPT_STATE_INIT;
   memset(reporter.events, 0, sizeof(reporter.events));
   chMBObjectInit(&reporter.mailbox, reporter.events, ARRAY_LENGTH(reporter.events));
-  reporter.config = NULL;
-  chVTObjectInit(&reporter.timer);
-  memset(reporter.buffer.data, 0, sizeof(reporter.buffer.data));
+  reporter.gprsConfig = NULL;
+  reporter.backendConfig = NULL;
+  memset(reporter.buffer.records, 0, sizeof(reporter.buffer.records));
   reporter.buffer.wrindex = 0;
   reporter.buffer.rdindex = 0;
   memset(reporter.url, 0, sizeof(reporter.url));
@@ -303,15 +351,15 @@ void RPT_Stop(void)
   chSysUnlock();
 }
 
-void RPT_GetPositionI(void)
+void RPT_CreateRecordI(void)
 {
-  chMBPostI(&reporter.mailbox, RPT_CMD_GET_POSITION);
+  chMBPostI(&reporter.mailbox, RPT_CMD_CREATE_RECORD);
 }
 
-void RPT_GetPosition(void)
+void RPT_CreateRecord(void)
 {
   chSysLock();
-  RPT_GetPositionI();
+  RPT_CreateRecordI();
   chSysUnlock();
 }
 

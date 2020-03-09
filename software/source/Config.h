@@ -29,15 +29,21 @@
 #define CFG_GPRS_APN "apn"
 #define CFG_GPRS_APN_DEFAULT ""
 
+#define CFG_BACKEND_SECTION "backend"
+#define CFG_BACKEND_URL "url"
+#define CFG_BACKEND_URL_DEFAULT ""
+
 #define CFG_SIM_SECTION "sim"
 #define CFG_SIM_PIN "pin"
 #define CFG_SIM_PIN_DEFAULT "0000"
 
 #define CFG_GPS_SECTION "gps"
 #define CFG_GPS_UTCOFFSET "utcoffset"
+#define CFG_GPS_UTCOFFSET_DEFAULT 0
 
 #define CFG_MOTION_DETECTOR_SECTION "motiondetector"
 #define CFG_MOTION_DETECTOR_THRESHOLD "threshold"
+#define CFG_MOTION_DETECTOR_THRESHOLD_DEFAULT 0x20
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -59,6 +65,10 @@ typedef struct GpsConfig_s {
   int8_t utcOffset;
 } GpsConfig_t;
 
+typedef struct BackendConfig_s {
+  char url[128];
+} BackendConfig_t;
+
 typedef struct MotionDetectorConfig_s {
   uint8_t threshold;
 } MotionDetectorConfig_t;
@@ -66,6 +76,7 @@ typedef struct MotionDetectorConfig_s {
 typedef struct Config_s {
   BluetoothConfig_t bluetooth;
   GprsConfig_t gprs;
+  BackendConfig_t backend;
   SimConfig_t sim;
   GpsConfig_t gps;
   MotionDetectorConfig_t motionDetector;

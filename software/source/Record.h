@@ -1,16 +1,16 @@
 /**
- * @file ConfigManagerThread.h
+ * @file Record.h
  * @brief
  */
 
-#ifndef CONFIG_MANAGER_THREAD_H
-#define CONFIG_MANAGER_THREAD_H
+#ifndef RECORD_H
+#define RECORD_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "ch.h"
-#include "Config.h"
+#include <stdint.h>
+#include <stddef.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -23,6 +23,23 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
+typedef struct Record_s {
+  uint32_t deviceId;
+  char vehicleId[10];
+  uint32_t year;
+  uint32_t month;
+  uint32_t day;
+  uint32_t hour;
+  uint32_t minute;
+  uint32_t second;
+  int32_t utcOffset;
+  double latitude;
+  double longitude;
+  uint32_t speed;
+  uint32_t numOfSatInUse;
+  double batteryVoltage;
+  uint32_t systemMode;
+} Record_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
@@ -31,32 +48,8 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-THD_FUNCTION(CFM_Thread, arg);
+size_t REC_Serialize(const Record_t *rec, uint32_t id, char obuf[], size_t olen);
 
-void CFM_Init(void);
-
-void CFM_WaitForValidConfig(void);
-
-void CFM_LoadConfigI(void);
-
-void CFM_LoadConfig(void);
-
-void CFM_StoreConfigI(void);
-
-void CFM_StoreConfig(void);
-
-const BluetoothConfig_t *CFM_GetBluetoothConfig(void);
-
-const GprsConfig_t * CFM_GetGprsConfig(void);
-
-const BackendConfig_t * CFM_GetBackendConfig(void);
-
-const SimConfig_t * CFM_GetSimConfig(void);
-
-const GpsConfig_t * CFM_GetGpsConfig(void);
-
-const MotionDetectorConfig_t * CFM_GetMotionDetectorConfig(void);
-
-#endif /* CONFIG_MANAGER_THREAD_H */
+#endif /* RECORD_H */
 
 /****************************** END OF FILE **********************************/

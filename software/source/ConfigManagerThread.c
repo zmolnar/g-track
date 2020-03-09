@@ -71,10 +71,18 @@ static void CFM_LoadIniFile(void)
            CFG_INI_FILE);
 
   ini_gets(CFG_GPRS_SECTION,
-          CFG_GPRS_APN,
-          CFG_GPRS_APN_DEFAULT, configManager.config.gprs.apn,
-          sizeof(configManager.config.gprs.apn),
-          CFG_INI_FILE);
+           CFG_GPRS_APN,
+           CFG_GPRS_APN_DEFAULT, 
+           configManager.config.gprs.apn,
+           sizeof(configManager.config.gprs.apn),
+           CFG_INI_FILE);
+
+  ini_gets(CFG_BACKEND_SECTION,
+           CFG_BACKEND_URL,
+           CFG_BACKEND_URL_DEFAULT,
+           configManager.config.backend.url,
+           sizeof(configManager.config.backend.url),
+           CFG_INI_FILE);        
 
   ini_gets(CFG_SIM_SECTION,
            CFG_SIM_PIN,
@@ -83,10 +91,16 @@ static void CFM_LoadIniFile(void)
            sizeof(configManager.config.sim.pin),
            CFG_INI_FILE);
 
-  long tmp = ini_getl(CFG_GPS_SECTION, CFG_GPS_UTCOFFSET, 0, CFG_INI_FILE);
+  long tmp = ini_getl(CFG_GPS_SECTION, 
+                      CFG_GPS_UTCOFFSET, 
+                      CFG_GPS_UTCOFFSET_DEFAULT, 
+                      CFG_INI_FILE);
   configManager.config.gps.utcOffset = (int8_t)tmp;
 
-  tmp = ini_getl(CFG_MOTION_DETECTOR_SECTION, CFG_MOTION_DETECTOR_THRESHOLD, 0, CFG_INI_FILE);
+  tmp = ini_getl(CFG_MOTION_DETECTOR_SECTION, 
+                 CFG_MOTION_DETECTOR_THRESHOLD, 
+                 CFG_MOTION_DETECTOR_THRESHOLD_DEFAULT, 
+                 CFG_INI_FILE);
   configManager.config.motionDetector.threshold = (uint8_t)tmp;
 
   SDC_Unlock();        
@@ -174,6 +188,11 @@ const BluetoothConfig_t *CFM_GetBluetoothConfig(void)
 const GprsConfig_t * CFM_GetGprsConfig(void)
 {
   return &configManager.config.gprs;
+}
+
+const BackendConfig_t * CFM_GetBackendConfig(void)
+{
+  return &configManager.config.backend;
 }
 
 const SimConfig_t * CFM_GetSimConfig(void)

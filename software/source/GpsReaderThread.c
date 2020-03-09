@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include "ChainOilerThread.h"
 #include "ConfigManagerThread.h"
+#include "ReporterThread.h"
 #include "SystemThread.h"
 #include "Dashboard.h"
 #include "GpsReaderThread.h"
@@ -152,10 +153,13 @@ static void GPS_updatePosition(void)
 
   if (succeeded) {
     gps.lockState = gpsdata.isLocked ? GPS_LOCKED : GPS_SEARCHING;
+    gpsdata.utcOffset = gps.config->utcOffset;
     DSB_SetPosition(&gpsdata);
     GPS_updateClockInDashboard(&gpsdata.time);
     GPS_savePositionInLogfile(&gpsdata);
     COT_SpeedAvailable();
+    if (gpsdata.isLocked)
+      RPT_CreateRecord();
   } else {
     gps.error = GPS_ERR_UPDATE;
   }
@@ -333,7 +337,6 @@ THD_FUNCTION(GPS_Thread, arg)
   CFM_WaitForValidConfig();
 
   gps.config = CFM_GetGpsConfig();
-#warning "Add timezone handling to determine local time"
   
   while (true) {
     msg_t msg;

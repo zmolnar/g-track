@@ -42,9 +42,9 @@ void RPT_StopI(void);
 
 void RPT_Stop(void);
 
-void RPT_GetPositionI(void);
+void RPT_CreateRecordI(void);
 
-void RPT_GetPosition(void);
+void RPT_CreateRecord(void);
 
 void RPT_EmptyBufferI(void);
 

@@ -112,6 +112,7 @@ static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)
     BLT_Stop();
     COT_Stop();
     GPS_Stop();
+    RPT_Stop();
     newState = SYS_STATE_PARKING;
     chSemSignal(&system.sysinitialized);
     break;
@@ -136,6 +137,7 @@ static SYS_State_t SYS_parkingStateHandler(SYS_Command_t evt)
     GPS_Start();
     COT_Start();
     BLT_Start();
+    RPT_Start();
     newState = SYS_STATE_RIDING;
     break;
   }
@@ -160,6 +162,7 @@ static SYS_State_t SYS_ridingStateHandler(SYS_Command_t evt)
     BLT_Stop();
     COT_Stop();
     GPS_Stop();
+    RPT_Stop();
     newState = SYS_STATE_PARKING;
     break;
   }
