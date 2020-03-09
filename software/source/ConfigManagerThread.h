@@ -45,6 +45,8 @@ void CFM_StoreConfigI(void);
 
 void CFM_StoreConfig(void);
 
+const VehicleConfig_t *CFM_GetVehicleConfig(void);
+
 const BluetoothConfig_t *CFM_GetBluetoothConfig(void);
 
 const GprsConfig_t * CFM_GetGprsConfig(void);

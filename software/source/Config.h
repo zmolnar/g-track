@@ -19,6 +19,11 @@
 /* MACRO DEFINITIONS                                                         */
 /*****************************************************************************/
 #define CFG_INI_FILE "/gtrack.ini"
+
+#define CFG_VEHICLE_SECTION "vehicle"
+#define CFG_VEHICLE_ID "id"
+#define CFG_VEHICLE_ID_DEFAULT "vehicle0"
+
 #define CFG_BLUETOOTH_SECTION "bluetooth"
 #define CFG_BLUETOOTH_HOSTNAME "hostname"
 #define CFG_BLUETOOTH_HOSTNAME_DEFAULT "gtrack"
@@ -48,6 +53,10 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
+typedef struct VehicleConfig_s {
+  char id[10];
+} VehicleConfig_t;
+
 typedef struct BluetoothConfig_s {
   char hostname[20];
   char pin[5];
@@ -74,6 +83,7 @@ typedef struct MotionDetectorConfig_s {
 } MotionDetectorConfig_t;
 
 typedef struct Config_s {
+  VehicleConfig_t vehicle;
   BluetoothConfig_t bluetooth;
   GprsConfig_t gprs;
   BackendConfig_t backend;

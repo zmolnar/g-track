@@ -56,6 +56,13 @@ static void CFM_LoadIniFile(void)
 {
   SDC_Lock();
 
+  ini_gets(CFG_VEHICLE_SECTION,
+           CFG_VEHICLE_ID,
+           CFG_VEHICLE_ID_DEFAULT,
+           configManager.config.vehicle.id,
+           sizeof(configManager.config.vehicle.id),
+           CFG_INI_FILE);
+
   ini_gets(CFG_BLUETOOTH_SECTION,
            CFG_BLUETOOTH_HOSTNAME,
            CFG_BLUETOOTH_HOSTNAME_DEFAULT,
@@ -178,6 +185,11 @@ void CFM_StoreConfig(void)
   chSysLock();
   CFM_StoreConfigI();
   chSysUnlock();
+}
+
+const VehicleConfig_t *CFM_GetVehicleConfig(void)
+{
+  return &configManager.config.vehicle;
 }
 
 const BluetoothConfig_t *CFM_GetBluetoothConfig(void)

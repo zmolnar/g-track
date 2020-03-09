@@ -19,7 +19,7 @@
 /*****************************************************************************/
 #define BUFFER_LENGTH 5
 #define URL_LENGTH 512
-#define BUFFER_WATERMARK 1
+#define BUFFER_WATERMARK 2
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -42,6 +42,7 @@ typedef struct Reporter_s {
   RPT_State_t state;
   msg_t events[10];
   mailbox_t mailbox;
+  const VehicleConfig_t *vehicleConfig;
   const GprsConfig_t *gprsConfig;
   const BackendConfig_t *backendConfig;
   struct PositionBuffer_s {
@@ -83,7 +84,7 @@ static void RPT_createRecord(Record_t *prec)
   
 #warning "Finalize parameters"
   prec->deviceId = 0;
-  strncpy(prec->vehicleId, "", sizeof(prec->vehicleId));
+  strncpy(prec->vehicleId, reporter.vehicleConfig->id, sizeof(prec->vehicleId));
   prec->year = gpsData.time.year;
   prec->month = gpsData.time.month;
   prec->day = gpsData.time.day;
@@ -284,6 +285,7 @@ THD_FUNCTION(RPT_Thread, arg) {
   SYS_WaitForSuccessfulInit();
   CFM_WaitForValidConfig();
   
+  reporter.vehicleConfig = CFM_GetVehicleConfig();
   reporter.gprsConfig = CFM_GetGprsConfig();
   reporter.backendConfig = CFM_GetBackendConfig();
 
@@ -317,6 +319,7 @@ void RPT_Init(void)
   reporter.state = RPT_STATE_INIT;
   memset(reporter.events, 0, sizeof(reporter.events));
   chMBObjectInit(&reporter.mailbox, reporter.events, ARRAY_LENGTH(reporter.events));
+  reporter.vehicleConfig = NULL;
   reporter.gprsConfig = NULL;
   reporter.backendConfig = NULL;
   memset(reporter.buffer.records, 0, sizeof(reporter.buffer.records));
