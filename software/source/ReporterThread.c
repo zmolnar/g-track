@@ -19,7 +19,7 @@
 /*****************************************************************************/
 #define URL_LENGTH 512
 #define MAX_NUM_OF_RECORD_IN_URL 3
-#define BUFFER_WATERMARK 2
+#define BUFFER_WATERMARK 3
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -108,6 +108,7 @@ static size_t RPT_generateURL(void)
   strncpy(reporter.url, reporter.backendConfig->url, sizeof(reporter.url));
 
   size_t numOfRec = REC_GetSize(&reporter.records);
+
   if (MAX_NUM_OF_RECORD_IN_URL < numOfRec)
     numOfRec = MAX_NUM_OF_RECORD_IN_URL;
 

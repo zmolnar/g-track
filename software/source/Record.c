@@ -82,6 +82,7 @@ void REC_EmptyBuffer(RecordBuffer_t *this)
 void REC_PushRecord(RecordBuffer_t *this, Record_t *new)
 {
   this->records[this->wrindex].record = *new;
+  this->records[this->wrindex].isSent = false;
 
   INCREMENT_INDEX(this->wrindex);
   if (this->wrindex == this->rdindex)
@@ -103,6 +104,8 @@ bool REC_PopRecordIfSent(RecordBuffer_t *this)
   if (REC_GetSize(this)) {
     Item_t *pitem = &this->records[this->rdindex];
     if (pitem->isSent) {
+	  memset(&pitem->record, 0, sizeof(pitem->record));
+	  pitem->isSent = false;	
       INCREMENT_INDEX(this->rdindex);
       result = true;
     }
