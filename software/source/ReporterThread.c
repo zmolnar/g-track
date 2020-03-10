@@ -20,6 +20,7 @@
 #define BUFFER_LENGTH 5
 #define URL_LENGTH 512
 #define BUFFER_WATERMARK 2
+#define MAX_NUM_OF_RECORD_IN_URL 3
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -81,8 +82,8 @@ static void RPT_createRecord(Record_t *prec)
 {
   GPS_Data_t gpsData;
   DSB_GetPosition(&gpsData);
-  
-#warning "Finalize parameters"
+
+  prec->isBeingSent = false;
   prec->deviceId = 0;
   strncpy(prec->vehicleId, reporter.vehicleConfig->id, sizeof(prec->vehicleId));
   prec->year = gpsData.time.year;
@@ -125,22 +126,17 @@ static bool RPT_dataNeedsToBeSent(void)
   return (BUFFER_WATERMARK <= length);
 }
 
-static Record_t * RPT_getOldestRecord(void)
+static Record_t * RPT_getNextRecordToSend(size_t offset)
 {
   Record_t *prec = NULL;
   
-  if (reporter.buffer.rdindex != reporter.buffer.wrindex) {
-    prec = &reporter.buffer.records[reporter.buffer.rdindex];
+  if (offset < RPT_getNumOfRecords()) {
+    size_t index = reporter.buffer.rdindex + offset;
+    index %= BUFFER_LENGTH;
+    prec = &reporter.buffer.records[index];
   }
 
   return prec;
-}
-
-static void RPT_popOldestRecord(void)
-{
-  if (reporter.buffer.rdindex != reporter.buffer.wrindex) {
-    reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
-  }
 }
 
 static size_t RPT_generateURL(void)
@@ -149,19 +145,37 @@ static size_t RPT_generateURL(void)
   strncpy(reporter.url, reporter.backendConfig->url, sizeof(reporter.url));
 
   size_t numOfRec = RPT_getNumOfRecords();
+  if (MAX_NUM_OF_RECORD_IN_URL < numOfRec)
+    numOfRec = MAX_NUM_OF_RECORD_IN_URL;
 
   size_t n = strlen(reporter.url);
   for (size_t i = 0; i < numOfRec; ++i) {
-    Record_t *prec = RPT_getOldestRecord();
+
+    Record_t *prec = RPT_getNextRecordToSend(i);
+    prec->isBeingSent = true;
+
     n += REC_Serialize(prec, i, &reporter.url[n], sizeof(reporter.url) - 1 - n);
     if (i < (numOfRec - 1)) {
       strncat(reporter.url, "&", sizeof(reporter.url) - 1 - n);
       ++n;
     }
-    RPT_popOldestRecord();
   }
 
   return n;
+}
+
+static void RPT_removeSentRecords(void)
+{
+  bool finished = false;
+  
+  while(RPT_getNumOfRecords() && !finished) {
+    Record_t *prec = &reporter.buffer.records[reporter.buffer.rdindex];
+    if (prec->isBeingSent) {
+      reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
+    } else {
+      finished = true;
+    }
+  }
 }
 
 static void RPT_IpCallback(GSM_IpEvent_t *event)
@@ -194,6 +208,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
+    RPT_emptyBuffer();
     newState = RPT_STATE_ENABLED;
     break;
   }
@@ -238,7 +253,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
     break;
   }
   case RPT_CMD_EMPTY_BUFFER: {
-    RPT_emptyBuffer();
+    RPT_removeSentRecords();
     break;
   }
   case RPT_CMD_START:
@@ -260,6 +275,7 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
+    RPT_emptyBuffer();
     newState = RPT_STATE_ENABLED;
     break;
   }

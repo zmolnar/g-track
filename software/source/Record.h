@@ -11,6 +11,7 @@
 /*****************************************************************************/
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
@@ -24,6 +25,7 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef struct Record_s {
+  bool isBeingSent;
   uint32_t deviceId;
   char vehicleId[10];
   uint32_t year;
