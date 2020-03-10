@@ -207,6 +207,9 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   }
   case RPT_CMD_ERASE_SENT_RECORDS: {
     RPT_removeSentRecords();
+    if (RPT_dataNeedsToBeSent()) {
+      RPT_SendData();
+    }
     break;
   }
   case RPT_CMD_START:
