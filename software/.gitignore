@@ -1,1 +1,3 @@
 *.jdebug*
+**test/build/**
+**test/vendor/**

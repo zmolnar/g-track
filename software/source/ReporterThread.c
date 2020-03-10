@@ -17,10 +17,9 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define BUFFER_LENGTH 5
 #define URL_LENGTH 512
-#define BUFFER_WATERMARK 2
 #define MAX_NUM_OF_RECORD_IN_URL 3
+#define BUFFER_WATERMARK 2
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -35,7 +34,7 @@ typedef enum {
   RPT_CMD_START,
   RPT_CMD_STOP,
   RPT_CMD_CREATE_RECORD,
-  RPT_CMD_EMPTY_BUFFER,
+  RPT_CMD_ERASE_SENT_RECORDS,
   RPT_CMD_SEND_DATA,
 } RPT_Command_t;
 
@@ -46,11 +45,7 @@ typedef struct Reporter_s {
   const VehicleConfig_t *vehicleConfig;
   const GprsConfig_t *gprsConfig;
   const BackendConfig_t *backendConfig;
-  struct PositionBuffer_s {
-    Record_t records[BUFFER_LENGTH];
-    size_t wrindex;
-    size_t rdindex;
-  } buffer;
+  RecordBuffer_t records;
   char url[URL_LENGTH];
 } Reporter_t;
 
@@ -71,19 +66,11 @@ Reporter_t reporter;
 /*****************************************************************************/
 /* DEFINITION OF LOCAL FUNCTIONS                                             */
 /*****************************************************************************/
-static void RPT_emptyBuffer(void)
-{
-  memset(reporter.buffer.records, 0, sizeof(reporter.buffer.records));
-  reporter.buffer.wrindex = 0;
-  reporter.buffer.rdindex = 0;
-}
-
 static void RPT_createRecord(Record_t *prec)
 {
   GPS_Data_t gpsData;
   DSB_GetPosition(&gpsData);
 
-  prec->isBeingSent = false;
   prec->deviceId = 0;
   strncpy(prec->vehicleId, reporter.vehicleConfig->id, sizeof(prec->vehicleId));
   prec->year = gpsData.time.year;
@@ -103,40 +90,16 @@ static void RPT_createRecord(Record_t *prec)
 
 static void RPT_saveRecord(void)
 {
-  Record_t *nextFree = &reporter.buffer.records[reporter.buffer.wrindex];
-  RPT_createRecord(nextFree);
-
-  reporter.buffer.wrindex = (reporter.buffer.wrindex + 1) % BUFFER_LENGTH;
-  if (reporter.buffer.wrindex == reporter.buffer.rdindex)
-    reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
-}
-
-static size_t RPT_getNumOfRecords(void)
-{
-  size_t length = BUFFER_LENGTH + reporter.buffer.wrindex - reporter.buffer.rdindex;
-  length %= BUFFER_LENGTH;
-
-  return length;
+  Record_t record;
+  RPT_createRecord(&record);
+  REC_PushRecord(&reporter.records, &record);
 }
 
 static bool RPT_dataNeedsToBeSent(void)
 {
-  size_t length = RPT_getNumOfRecords();
+  size_t size = REC_GetSize(&reporter.records);
 
-  return (BUFFER_WATERMARK <= length);
-}
-
-static Record_t * RPT_getNextRecordToSend(size_t offset)
-{
-  Record_t *prec = NULL;
-  
-  if (offset < RPT_getNumOfRecords()) {
-    size_t index = reporter.buffer.rdindex + offset;
-    index %= BUFFER_LENGTH;
-    prec = &reporter.buffer.records[index];
-  }
-
-  return prec;
+  return (BUFFER_WATERMARK <= size);
 }
 
 static size_t RPT_generateURL(void)
@@ -144,16 +107,14 @@ static size_t RPT_generateURL(void)
   memset(reporter.url, 0, sizeof(reporter.url));
   strncpy(reporter.url, reporter.backendConfig->url, sizeof(reporter.url));
 
-  size_t numOfRec = RPT_getNumOfRecords();
+  size_t numOfRec = REC_GetSize(&reporter.records);
   if (MAX_NUM_OF_RECORD_IN_URL < numOfRec)
     numOfRec = MAX_NUM_OF_RECORD_IN_URL;
 
   size_t n = strlen(reporter.url);
   for (size_t i = 0; i < numOfRec; ++i) {
-
-    Record_t *prec = RPT_getNextRecordToSend(i);
-    prec->isBeingSent = true;
-
+    Record_t *prec;
+    REC_GetNextRecordAndMarkAsSent(&reporter.records, &prec);
     n += REC_Serialize(prec, i, &reporter.url[n], sizeof(reporter.url) - 1 - n);
     if (i < (numOfRec - 1)) {
       strncat(reporter.url, "&", sizeof(reporter.url) - 1 - n);
@@ -166,16 +127,8 @@ static size_t RPT_generateURL(void)
 
 static void RPT_removeSentRecords(void)
 {
-  bool finished = false;
-  
-  while(RPT_getNumOfRecords() && !finished) {
-    Record_t *prec = &reporter.buffer.records[reporter.buffer.rdindex];
-    if (prec->isBeingSent) {
-      reporter.buffer.rdindex = (reporter.buffer.rdindex + 1) % BUFFER_LENGTH;
-    } else {
-      finished = true;
-    }
-  }
+  while(REC_PopRecordIfSent(&reporter.records))
+    ;
 }
 
 static void RPT_IpCallback(GSM_IpEvent_t *event)
@@ -187,7 +140,7 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
   }
   case IP_EVENT_HTTP_ACTION: {
     if (200 == event->payload.httpaction.httpStatus) {
-      RPT_EmptyBuffer();
+      RPT_EraseSentRecords();
     } 
     break;
   }
@@ -208,7 +161,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
-    RPT_emptyBuffer();
+    REC_EmptyBuffer(&reporter.records);
     newState = RPT_STATE_ENABLED;
     break;
   }
@@ -217,7 +170,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
     break;
   }
   case RPT_CMD_CREATE_RECORD:
-  case RPT_CMD_EMPTY_BUFFER:
+  case RPT_CMD_ERASE_SENT_RECORDS:
   case RPT_CMD_SEND_DATA:
   default: {
     break;
@@ -252,7 +205,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
     }
     break;
   }
-  case RPT_CMD_EMPTY_BUFFER: {
+  case RPT_CMD_ERASE_SENT_RECORDS: {
     RPT_removeSentRecords();
     break;
   }
@@ -275,12 +228,12 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
-    RPT_emptyBuffer();
+    REC_EmptyBuffer(&reporter.records);
     newState = RPT_STATE_ENABLED;
     break;
   }
   case RPT_CMD_CREATE_RECORD:
-  case RPT_CMD_EMPTY_BUFFER:
+  case RPT_CMD_ERASE_SENT_RECORDS:
   case RPT_CMD_SEND_DATA:
   case RPT_CMD_STOP:
   default: {
@@ -338,9 +291,7 @@ void RPT_Init(void)
   reporter.vehicleConfig = NULL;
   reporter.gprsConfig = NULL;
   reporter.backendConfig = NULL;
-  memset(reporter.buffer.records, 0, sizeof(reporter.buffer.records));
-  reporter.buffer.wrindex = 0;
-  reporter.buffer.rdindex = 0;
+  REC_EmptyBuffer(&reporter.records);
   memset(reporter.url, 0, sizeof(reporter.url));
 
   SIM_RegisterIpCallback(&SIM868, RPT_IpCallback);
@@ -382,15 +333,15 @@ void RPT_CreateRecord(void)
   chSysUnlock();
 }
 
-void RPT_EmptyBufferI(void)
+void RPT_EraseSentRecordsI(void)
 {
-  chMBPostI(&reporter.mailbox, RPT_CMD_EMPTY_BUFFER);
+  chMBPostI(&reporter.mailbox, RPT_CMD_ERASE_SENT_RECORDS);
 }
 
-void RPT_EmptyBuffer(void)
+void RPT_EraseSentRecords(void)
 {
   chSysLock();
-  RPT_EmptyBufferI();
+  RPT_EraseSentRecordsI();
   chSysUnlock();
 }
 

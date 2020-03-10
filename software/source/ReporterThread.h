@@ -46,9 +46,9 @@ void RPT_CreateRecordI(void);
 
 void RPT_CreateRecord(void);
 
-void RPT_EmptyBufferI(void);
+void RPT_EraseSentRecordsI(void);
 
-void RPT_EmptyBuffer(void);
+void RPT_EraseSentRecords(void);
 
 void RPT_SendDataI(void);
 
