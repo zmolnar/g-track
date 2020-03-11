@@ -203,11 +203,13 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
     if (RPT_dataNeedsToBeSent()) {
       RPT_generateURL();
       SIM_IpHttpGet(&SIM868, reporter.url);
+      palSetLine(LINE_EXT_LED);
     }
     break;
   }
   case RPT_CMD_ERASE_SENT_RECORDS: {
     RPT_removeSentRecords();
+    palClearLine(LINE_EXT_LED);
     if (RPT_dataNeedsToBeSent()) {
       RPT_SendData();
     }
