@@ -104,8 +104,8 @@ bool REC_PopRecordIfSent(RecordBuffer_t *this)
   if (REC_GetSize(this)) {
     Item_t *pitem = &this->records[this->rdindex];
     if (pitem->isSent) {
-	  memset(&pitem->record, 0, sizeof(pitem->record));
-	  pitem->isSent = false;	
+	    memset(&pitem->record, 0, sizeof(pitem->record));
+	    pitem->isSent = false;	
       INCREMENT_INDEX(this->rdindex);
       result = true;
     }
@@ -132,6 +132,24 @@ bool REC_GetNextRecordAndMarkAsSent(RecordBuffer_t *this, Record_t **next)
   }
 
   return result;
+}
+
+size_t REC_CancelLastTransaction(RecordBuffer_t *this)
+{
+  size_t count = 0;
+  size_t size = REC_GetSize(this);
+
+  size_t i;
+  for (i = 0; i <= size; ++i) {
+    size_t index = (this->rdindex + i) % BUFFER_LENGTH;
+    Item_t *pitem = &this->records[index];
+    if (pitem->isSent) {
+      pitem->isSent = false;
+      ++count;
+    }
+  }
+
+  return count;
 }
 
 /****************************** END OF FILE **********************************/

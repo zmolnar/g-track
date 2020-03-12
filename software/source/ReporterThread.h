@@ -54,6 +54,11 @@ void RPT_SendDataI(void);
 
 void RPT_SendData(void);
 
+void RPT_ResendDataI(void);
+
+void RPT_ResendData(void);
+
+
 #endif /* REPORTER_THREAD_H */
 
 /****************************** END OF FILE **********************************/

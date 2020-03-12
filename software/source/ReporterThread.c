@@ -36,6 +36,7 @@ typedef enum {
   RPT_CMD_CREATE_RECORD,
   RPT_CMD_ERASE_SENT_RECORDS,
   RPT_CMD_SEND_DATA,
+  RPT_CMD_RESEND_DATA,
 } RPT_Command_t;
 
 typedef struct Reporter_s {
@@ -47,6 +48,8 @@ typedef struct Reporter_s {
   const BackendConfig_t *backendConfig;
   RecordBuffer_t records;
   char url[URL_LENGTH];
+  bool transactionIsPending;
+  bool stopIsPostponed;
 } Reporter_t;
 
 /*****************************************************************************/
@@ -142,7 +145,9 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
   case IP_EVENT_HTTP_ACTION: {
     if (200 == event->payload.httpaction.httpStatus) {
       RPT_EraseSentRecords();
-    } 
+    } else {
+      RPT_ResendData();
+    }
     break;
   }
   case IP_EVENT_NO_EVENT:
@@ -158,11 +163,13 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_START: {
+    REC_EmptyBuffer(&reporter.records);
+    reporter.transactionIsPending = false;
+    reporter.stopIsPostponed = false;
     const char *apn = reporter.gprsConfig->apn;
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
-    REC_EmptyBuffer(&reporter.records);
     newState = RPT_STATE_ENABLED;
     break;
   }
@@ -173,6 +180,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
   case RPT_CMD_CREATE_RECORD:
   case RPT_CMD_ERASE_SENT_RECORDS:
   case RPT_CMD_SEND_DATA:
+  case RPT_CMD_RESEND_DATA:
   default: {
     break;
   }
@@ -187,9 +195,13 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_STOP: {
-    SIM_IpHttpStop(&SIM868);
-    SIM_IpClose(&SIM868);
-    newState = RPT_STATE_DISABLED;
+    if (!reporter.transactionIsPending) {
+      SIM_IpHttpStop(&SIM868);
+      SIM_IpClose(&SIM868);
+      newState = RPT_STATE_DISABLED;
+    } else {
+      reporter.stopIsPostponed = true;
+    }
     break;
   }
   case RPT_CMD_CREATE_RECORD: {
@@ -203,13 +215,33 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
     if (RPT_dataNeedsToBeSent()) {
       RPT_generateURL();
       SIM_IpHttpGet(&SIM868, reporter.url);
+      reporter.transactionIsPending = true;
     }
     break;
   }
   case RPT_CMD_ERASE_SENT_RECORDS: {
     RPT_removeSentRecords();
-    if (RPT_dataNeedsToBeSent()) {
-      RPT_SendData();
+    reporter.transactionIsPending = false;
+    if (reporter.stopIsPostponed) {
+      reporter.stopIsPostponed = false;
+      RPT_Stop();
+    } else {
+      if (RPT_dataNeedsToBeSent()) {
+        RPT_SendData();
+      }
+    }
+    break;
+  }
+  case RPT_CMD_RESEND_DATA: {
+    REC_CancelLastTransaction(&reporter.records);
+    reporter.transactionIsPending = false;
+    if (reporter.stopIsPostponed) {
+      reporter.stopIsPostponed = false;
+      RPT_Stop();
+    } else {
+      if (RPT_dataNeedsToBeSent()) {
+        RPT_SendData();
+      }
     }
     break;
   }
@@ -228,17 +260,20 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_START: {
+    REC_EmptyBuffer(&reporter.records);
+    reporter.transactionIsPending = false;
+    reporter.stopIsPostponed = false;
     const char *apn = reporter.gprsConfig->apn;
     SIM_IpSetup(&SIM868, apn);
     SIM_IpOpen(&SIM868);
     SIM_IpHttpStart(&SIM868);
-    REC_EmptyBuffer(&reporter.records);
     newState = RPT_STATE_ENABLED;
     break;
   }
   case RPT_CMD_CREATE_RECORD:
   case RPT_CMD_ERASE_SENT_RECORDS:
   case RPT_CMD_SEND_DATA:
+  case RPT_CMD_RESEND_DATA:
   case RPT_CMD_STOP:
   default: {
     break;
@@ -297,6 +332,8 @@ void RPT_Init(void)
   reporter.backendConfig = NULL;
   REC_EmptyBuffer(&reporter.records);
   memset(reporter.url, 0, sizeof(reporter.url));
+  reporter.transactionIsPending = false;
+  reporter.stopIsPostponed = false;
 
   SIM_RegisterIpCallback(&SIM868, RPT_IpCallback);
 }
@@ -358,6 +395,18 @@ void RPT_SendData(void)
 {
   chSysLock();
   RPT_SendDataI();
+  chSysUnlock();
+}
+
+void RPT_ResendDataI(void)
+{
+  chMBPostI(&reporter.mailbox, RPT_CMD_RESEND_DATA);
+}
+
+void RPT_ResendData(void)
+{
+  chSysLock();
+  RPT_ResendDataI();
   chSysUnlock();
 }
 

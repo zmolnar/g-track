@@ -137,3 +137,32 @@ void test_REC_GetNextRecordAndMarkAsSent(void)
 	TEST_ASSERT_EQUAL(0, recbuf.rdindex);
 }
 
+void test_REC_CancelLastTransaction(void)
+{
+  Record_t record;
+	RecordBuffer_t recbuf;
+	
+	REC_EmptyBuffer(&recbuf);
+	
+	size_t i;
+	for (i = 0; i < 3; ++i)  {
+		REC_PushRecord(&recbuf, &record);
+		recbuf.records[i].isSent = true;
+	}
+
+	for (; i < BUFFER_LENGTH-1; ++i) {
+		REC_PushRecord(&recbuf, &record);
+		recbuf.records[i].isSent = false;
+	}
+
+  size_t count = REC_CancelLastTransaction(&recbuf);
+  TEST_ASSERT_EQUAL(3, count);
+
+  size_t size = REC_GetSize(&recbuf);
+  TEST_ASSERT_EQUAL(BUFFER_LENGTH-2, count);
+  
+  for (i = 0; i <= size; ++i) {
+    TEST_ASSERT_EQUAL(0, recbuf.records[i].isSent);
+  }
+}
+

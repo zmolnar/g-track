@@ -74,6 +74,8 @@ bool REC_PopRecordIfSent(RecordBuffer_t *this);
 
 bool REC_GetNextRecordAndMarkAsSent(RecordBuffer_t *this, Record_t **next);
 
+size_t REC_CancelLastTransaction(RecordBuffer_t *this);
+
 #endif /* RECORD_H */
 
 /****************************** END OF FILE **********************************/
