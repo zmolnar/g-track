@@ -58,6 +58,9 @@ void RPT_ResendDataI(void);
 
 void RPT_ResendData(void);
 
+void RPT_ReconnectI(void);
+
+void RPT_Reconnect(void);
 
 #endif /* REPORTER_THREAD_H */
 

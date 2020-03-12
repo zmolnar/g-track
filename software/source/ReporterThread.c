@@ -20,6 +20,7 @@
 #define URL_LENGTH 512
 #define MAX_NUM_OF_RECORD_IN_URL 3
 #define BUFFER_WATERMARK 3
+#define RECONNECT_PERIOD 60000
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -28,6 +29,7 @@ typedef enum {
   RPT_STATE_INIT,
   RPT_STATE_ENABLED,
   RPT_STATE_DISABLED,
+  RPT_STATE_RECONNECTING,
 } RPT_State_t;
 
 typedef enum {
@@ -37,12 +39,14 @@ typedef enum {
   RPT_CMD_ERASE_SENT_RECORDS,
   RPT_CMD_SEND_DATA,
   RPT_CMD_RESEND_DATA,
+  RPT_CMD_RECONNECT,
 } RPT_Command_t;
 
 typedef struct Reporter_s {
   RPT_State_t state;
   msg_t events[10];
   mailbox_t mailbox;
+  virtual_timer_t timer;
   const VehicleConfig_t *vehicleConfig;
   const GprsConfig_t *gprsConfig;
   const BackendConfig_t *backendConfig;
@@ -139,7 +143,7 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
 {
   switch(event->type) {
   case IP_EVENT_NET_DISCONNECTED: {
-    // TODO implement net disconnect handler.
+    RPT_Reconnect();
     break;
   }
   case IP_EVENT_HTTP_ACTION: {
@@ -181,6 +185,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
   case RPT_CMD_ERASE_SENT_RECORDS:
   case RPT_CMD_SEND_DATA:
   case RPT_CMD_RESEND_DATA:
+  case RPT_CMD_RECONNECT:
   default: {
     break;
   }
@@ -245,6 +250,19 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
     }
     break;
   }
+  case RPT_CMD_RECONNECT: {
+    REC_CancelLastTransaction(&reporter.records);
+    reporter.transactionIsPending = false;
+    if (reporter.stopIsPostponed) {
+      reporter.stopIsPostponed = false;
+      RPT_Stop();
+    } else {
+      RPT_Reconnect();
+      newState = RPT_STATE_RECONNECTING;
+    }
+
+    break;
+  }
   case RPT_CMD_START:
   default: {
     break;
@@ -275,6 +293,7 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
   case RPT_CMD_SEND_DATA:
   case RPT_CMD_RESEND_DATA:
   case RPT_CMD_STOP:
+  case RPT_CMD_RECONNECT:
   default: {
     break;
   }
@@ -282,6 +301,52 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 
   return newState;
 }
+
+
+static void RPT_reconnectTimerCallback(void *p)
+{
+  (void)p;
+  RPT_Reconnect();
+}
+
+static RPT_State_t RPT_ReconnectingStateHandler(RPT_Command_t cmd)
+{
+  RPT_State_t newState = RPT_STATE_RECONNECTING;
+
+  switch(cmd) {
+  case RPT_CMD_RECONNECT: {
+    const char *apn = reporter.gprsConfig->apn;
+    if (SIM_IpSetup(&SIM868, apn)) {
+      if (SIM_IpOpen(&SIM868)) {
+        if (SIM_IpHttpStart(&SIM868)) {
+          RPT_SendData();
+          newState = RPT_STATE_ENABLED;
+        }
+      }
+    }
+
+    if (RPT_STATE_RECONNECTING == newState) {
+      chVTSet(&reporter.timer, TIME_MS2I(RECONNECT_PERIOD), RPT_reconnectTimerCallback, NULL);
+    }
+    break;
+  }
+  case RPT_CMD_STOP: {
+    newState = RPT_STATE_DISABLED;
+    break;
+  }
+  case RPT_CMD_CREATE_RECORD:
+  case RPT_CMD_ERASE_SENT_RECORDS:
+  case RPT_CMD_SEND_DATA:
+  case RPT_CMD_RESEND_DATA:
+  case RPT_CMD_START:  
+  default: {
+    break;
+  }
+  }  
+
+  return newState;
+}
+
 
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
@@ -314,6 +379,10 @@ THD_FUNCTION(RPT_Thread, arg) {
         reporter.state = RPT_DisabledStateHandler(cmd);
         break;
       }
+      case RPT_STATE_RECONNECTING: {
+        reporter.state = RPT_ReconnectingStateHandler(cmd);
+        break;
+      }
       default: {
         break;
       }
@@ -327,6 +396,7 @@ void RPT_Init(void)
   reporter.state = RPT_STATE_INIT;
   memset(reporter.events, 0, sizeof(reporter.events));
   chMBObjectInit(&reporter.mailbox, reporter.events, ARRAY_LENGTH(reporter.events));
+  chVTObjectInit(&reporter.timer);
   reporter.vehicleConfig = NULL;
   reporter.gprsConfig = NULL;
   reporter.backendConfig = NULL;
@@ -409,5 +479,18 @@ void RPT_ResendData(void)
   RPT_ResendDataI();
   chSysUnlock();
 }
+
+void RPT_ReconnectI(void)
+{
+  chMBPostI(&reporter.mailbox, RPT_CMD_RECONNECT);
+}
+
+void RPT_Reconnect(void)
+{
+  chSysLock();
+  RPT_ReconnectI();
+  chSysUnlock();
+}
+
 
 /****************************** END OF FILE **********************************/
