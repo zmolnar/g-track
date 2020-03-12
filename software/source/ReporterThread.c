@@ -147,6 +147,7 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
     break;
   }
   case IP_EVENT_HTTP_ACTION: {
+    palClearLine(LINE_EXT_LED);
     if (200 == event->payload.httpaction.httpStatus) {
       RPT_EraseSentRecords();
     } else {
@@ -221,6 +222,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
       RPT_generateURL();
       SIM_IpHttpGet(&SIM868, reporter.url);
       reporter.transactionIsPending = true;
+      palSetLine(LINE_EXT_LED);
     }
     break;
   }
