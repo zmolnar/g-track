@@ -57,6 +57,31 @@ void test_REC_GetSize(void)
 	}	
 }
 
+void test_REC_GetNumOfUnsentRecords(void)
+{
+	Record_t record;
+	RecordBuffer_t recbuf;
+	
+	REC_EmptyBuffer(&recbuf);
+	
+	size_t i;
+	
+	// 3 sent records
+	for (i = 0; i < 3; ++i) {
+		REC_PushRecord(&recbuf, &record);
+		recbuf.records[i].isSent = true;
+	}
+	
+	// 2 not sent records
+	for (i = 3; i < 5; ++i) {
+		REC_PushRecord(&recbuf, &record);
+		recbuf.records[i].isSent = false;
+	}
+
+	size_t count = REC_GetNumOfUnsentRecords(&recbuf);
+	TEST_ASSERT_EQUAL(2, count);
+}
+
 void test_REC_PopRecordIfSent(void)
 {
 	Record_t record;
@@ -118,51 +143,43 @@ void test_REC_GetNextRecordAndMarkAsSent(void)
 		REC_PushRecord(&recbuf, &record);
 		recbuf.records[i].isSent = false;
 	}
-	
-	Record_t *prec = NULL;
-	TEST_ASSERT(REC_GetNextRecordAndMarkAsSent(&recbuf, &prec));
-	TEST_ASSERT_EQUAL_PTR(&recbuf.records[3], prec);
-	TEST_ASSERT(recbuf.records[3].isSent);
-	TEST_ASSERT_EQUAL(4, recbuf.wrindex);
-	TEST_ASSERT_EQUAL(0, recbuf.rdindex);
-	
-	TEST_ASSERT(REC_GetNextRecordAndMarkAsSent(&recbuf, &prec));
-	TEST_ASSERT_EQUAL_PTR(&recbuf.records[4], prec);
-	TEST_ASSERT(recbuf.records[4].isSent);
-	TEST_ASSERT_EQUAL(4, recbuf.wrindex);
-	TEST_ASSERT_EQUAL(0, recbuf.rdindex);
-	
-	TEST_ASSERT_FALSE(REC_GetNextRecordAndMarkAsSent(&recbuf, &prec));
-	TEST_ASSERT_EQUAL(4, recbuf.wrindex);
-	TEST_ASSERT_EQUAL(0, recbuf.rdindex);
+
+	for (i = 3; i < BUFFER_LENGTH - 1; ++i)	{
+		Record_t *prec = NULL;
+		TEST_ASSERT(REC_GetNextRecordAndMarkAsSent(&recbuf, &prec));
+		TEST_ASSERT_EQUAL_PTR(&recbuf.records[i], prec);
+		TEST_ASSERT(recbuf.records[i].isSent);
+		TEST_ASSERT_EQUAL(BUFFER_LENGTH -1, recbuf.wrindex);
+		TEST_ASSERT_EQUAL(0, recbuf.rdindex);
+	}
 }
 
 void test_REC_CancelLastTransaction(void)
 {
-  Record_t record;
+	Record_t record;
 	RecordBuffer_t recbuf;
-	
+
 	REC_EmptyBuffer(&recbuf);
-	
+
 	size_t i;
-	for (i = 0; i < 3; ++i)  {
+	for (i = 0; i < 3; ++i) {
 		REC_PushRecord(&recbuf, &record);
 		recbuf.records[i].isSent = true;
 	}
 
-	for (; i < BUFFER_LENGTH-1; ++i) {
+	for (i = 3; i < BUFFER_LENGTH - 1; ++i) {
 		REC_PushRecord(&recbuf, &record);
 		recbuf.records[i].isSent = false;
 	}
 
-  size_t count = REC_CancelLastTransaction(&recbuf);
-  TEST_ASSERT_EQUAL(3, count);
+	size_t count = REC_CancelLastTransaction(&recbuf);
+	TEST_ASSERT_EQUAL(3, count);
 
-  size_t size = REC_GetSize(&recbuf);
-  TEST_ASSERT_EQUAL(BUFFER_LENGTH-2, count);
-  
-  for (i = 0; i <= size; ++i) {
-    TEST_ASSERT_EQUAL(0, recbuf.records[i].isSent);
-  }
+	size_t size = REC_GetSize(&recbuf);
+	TEST_ASSERT_EQUAL(BUFFER_LENGTH - 1, size);
+
+	for (i = 0; i <= size; ++i)	{
+		TEST_ASSERT_EQUAL(0, recbuf.records[i].isSent);
+	}
 }
 

@@ -97,6 +97,23 @@ size_t REC_GetSize(RecordBuffer_t *this)
   return length;
 }
 
+size_t REC_GetNumOfUnsentRecords(RecordBuffer_t *this)
+{
+  size_t size = REC_GetSize(this);
+  size_t i, index;
+  for (i = 0; i <= size; ++i) {
+    index = (this->rdindex + i) % BUFFER_LENGTH;
+    Item_t *pitem = &this->records[index];
+    if (!pitem->isSent)
+      break;
+  }
+
+  size_t count = BUFFER_LENGTH + this->wrindex - index;
+  count %= BUFFER_LENGTH;
+
+  return count;
+}
+
 bool REC_PopRecordIfSent(RecordBuffer_t *this)
 {
   bool result = false;

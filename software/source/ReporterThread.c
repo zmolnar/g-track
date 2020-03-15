@@ -104,9 +104,9 @@ static void RPT_saveRecord(void)
 
 static bool RPT_dataNeedsToBeSent(void)
 {
-  size_t size = REC_GetSize(&reporter.records);
+  size_t count = REC_GetNumOfUnsentRecords(&reporter.records);
 
-  return (BUFFER_WATERMARK <= size);
+  return (BUFFER_WATERMARK <= count);
 }
 
 static size_t RPT_generateURL(void)
@@ -212,7 +212,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   }
   case RPT_CMD_CREATE_RECORD: {
     RPT_saveRecord();
-    if (RPT_dataNeedsToBeSent()) {
+    if (!reporter.transactionIsPending) {
       RPT_SendData();
     }
     break;

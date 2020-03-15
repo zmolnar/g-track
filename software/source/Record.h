@@ -70,6 +70,8 @@ void REC_PushRecord(RecordBuffer_t *this, Record_t *new);
 
 size_t REC_GetSize(RecordBuffer_t *this);
 
+size_t REC_GetNumOfUnsentRecords(RecordBuffer_t *this);
+
 bool REC_PopRecordIfSent(RecordBuffer_t *this);
 
 bool REC_GetNextRecordAndMarkAsSent(RecordBuffer_t *this, Record_t **next);

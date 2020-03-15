@@ -12,7 +12,7 @@
   :build_root: build
 #  :release_build: TRUE
   :test_file_prefix: test_
-  :which_ceedling: vendor/ceedling
+#  :which_ceedling: vendor/ceedling
   :default_tasks:
     - test:all
 
@@ -81,7 +81,7 @@
 
 :plugins:
   :load_paths:
-    - vendor/ceedling/plugins
+  #  - vendor/ceedling/plugins
   :enabled:
     - stdout_pretty_tests_report
     - module_generator
