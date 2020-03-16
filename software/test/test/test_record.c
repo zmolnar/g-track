@@ -28,14 +28,15 @@ void test_REC_Serialize(void)
   record.longitude = 23.998;
   record.speed = 233;
   record.numOfSatInUse = 12;
+  record.gsmSignalStrehgth = 22.1;
   record.batteryVoltage = 14.4;
   record.systemMode = 2;
 
   char obuf[128];
 
-  size_t n = REC_Serialize(&record, 3, obuf, sizeof(obuf));
+  size_t n = REC_Serialize(&record, 0, obuf, sizeof(obuf));
 
-  const char *expected = "record[3]=676543,SNKL987,2020-03-16 08:57:54,-2,48.342000,23.998000,233,12,14.400000,2";
+  const char *expected = "record[0]=2020-03-16 08:57:54,-2,676543,SNKL987,48.342000,23.998000,233,12,22.100000,14.400000,2";
   TEST_ASSERT_EQUAL_STRING(expected, obuf);
 }
 

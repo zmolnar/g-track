@@ -52,10 +52,8 @@ size_t REC_Serialize(const Record_t *rec, uint32_t id, char obuf[], size_t olen)
 {
   memset(obuf, 0, olen);
   SNPRINTF(obuf, olen,
-             "record[%d]=%d,%s,%04d-%02d-%02d %02d:%02d:%02d,%d,%f,%f,%d,%d,%f,%d",
+             "record[%d]=%04d-%02d-%02d %02d:%02d:%02d,%d,%d,%s,%f,%f,%d,%d,%f,%f,%d",
              id,
-             rec->deviceId,
-             rec->vehicleId,
              rec->year,
              rec->month,
              rec->day,
@@ -63,10 +61,13 @@ size_t REC_Serialize(const Record_t *rec, uint32_t id, char obuf[], size_t olen)
              rec->minute,
              rec->second,
              rec->utcOffset,
+             rec->deviceId,
+             rec->vehicleId,
              rec->latitude,
              rec->longitude,
              rec->speed,
              rec->numOfSatInUse,
+             rec->gsmSignalStrehgth,
              rec->batteryVoltage,
              rec->systemMode
              );

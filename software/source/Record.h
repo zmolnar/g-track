@@ -38,6 +38,7 @@ typedef struct Record_s {
   double latitude;
   double longitude;
   uint32_t speed;
+  double gsmSignalStrehgth;
   uint32_t numOfSatInUse;
   double batteryVoltage;
   uint32_t systemMode;

@@ -92,6 +92,7 @@ static void RPT_createRecord(Record_t *prec)
   prec->speed = (uint32_t)gpsData.speed;
   prec->numOfSatInUse = gpsData.gnssSatInUse;
   prec->batteryVoltage = 0.0;
+  prec->gsmSignalStrehgth = 0.0;
   prec->systemMode = 0;
 }
 
