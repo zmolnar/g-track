@@ -27,7 +27,6 @@
 /*****************************************************************************/
 const ShellCommand BL_Commands[] = {
     {"tree", SDC_Tree},
-    {"status", SHC_GetSystemStatus},
     {NULL, NULL},
 };
 

@@ -35,14 +35,6 @@
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
 typedef enum {
-  GPS_ERR_NO_ERROR,
-  GPS_ERR_POWER_ON,
-  GPS_ERR_POWER_OFF,
-  GPS_ERR_UPDATE,
-  GPS_ERR_IN_RESPONSE,
-} GPS_Error_t;
-
-typedef enum {
   GPS_CMD_START,
   GPS_CMD_STOP,
   GPS_CMD_UPDATE,
@@ -52,7 +44,6 @@ typedef enum {
   GPS_INIT,
   GPS_ENABLED,
   GPS_DISABLED,
-  GPS_ERROR,
 } GPS_State_t;
 
 typedef struct {
@@ -62,7 +53,6 @@ typedef struct {
   const GpsConfig_t *config;
   GpsLockState_t lockState;
   GPS_State_t state;
-  GPS_Error_t error;
 } GPS_Reader_t;
 
 /*****************************************************************************/
@@ -152,16 +142,19 @@ static void GPS_updatePosition(void)
   bool succeeded     = SIM_GpsReadPosition(&SIM868, &gpsdata);
 
   if (succeeded) {
-    gps.lockState = gpsdata.isLocked ? GPS_LOCKED : GPS_SEARCHING;
-    gpsdata.utcOffset = gps.config->utcOffset;
-    DSB_SetPosition(&gpsdata);
-    GPS_updateClockInDashboard(&gpsdata.time);
-    GPS_savePositionInLogfile(&gpsdata);
-    COT_SpeedAvailable();
-    if (gpsdata.isLocked)
+    if (gpsdata.isLocked) {
+      gps.lockState     = GPS_LOCKED;
+      gpsdata.utcOffset = gps.config->utcOffset;
+      DSB_SetPosition(&gpsdata);
+      GPS_updateClockInDashboard(&gpsdata.time);
+      GPS_savePositionInLogfile(&gpsdata);
+      COT_SpeedAvailable();
       RPT_CreateRecord();
+    } else {
+      gps.lockState = GPS_SEARCHING;
+    }
   } else {
-    gps.error = GPS_ERR_UPDATE;
+    gps.lockState = GPS_ERROR;
   }
 }
 
@@ -192,7 +185,6 @@ static const char *GPS_getStateString(GPS_State_t state)
       [GPS_INIT]     = "INIT",
       [GPS_ENABLED]  = "ENABLED",
       [GPS_DISABLED] = "DISABLED",
-      [GPS_ERROR]    = "ERROR",
   };
 
   return stateStrs[(size_t)state];
@@ -211,14 +203,12 @@ static GPS_State_t GPS_initStateHandler(GPS_Command_t cmd)
 
   switch (cmd) {
   case GPS_CMD_START: {
-    if (SIM_GpsStart(&SIM868)) {
-      GPS_startTimer();
-      gps.lockState = GPS_SEARCHING;
-      newState      = GPS_ENABLED;
-    } else {
-      newState  = GPS_ERROR;
-      gps.error = GPS_ERR_POWER_ON;
+    while (!SIM_GpsStart(&SIM868)) {
+      chThdSleepMilliseconds(1000);
     }
+    GPS_startTimer();
+    gps.lockState = GPS_SEARCHING;
+    newState      = GPS_ENABLED;
     break;
   }
   case GPS_CMD_STOP: {
@@ -243,22 +233,16 @@ static GPS_State_t GPS_enabledStateHandler(GPS_Command_t cmd)
 
   switch (cmd) {
   case GPS_CMD_STOP: {
-    GPS_stopTimer();
-    if (SIM_GpsStop(&SIM868)) {
-      gps.lockState = GPS_NOT_POWERED;
-      newState      = GPS_DISABLED;
-    } else {
-      newState  = GPS_ERROR;
-      gps.error = GPS_ERR_POWER_OFF;
+    while (!SIM_GpsStop(&SIM868)) {
+      chThdSleepMilliseconds(1000);
     }
+    GPS_stopTimer();
+    gps.lockState = GPS_NOT_POWERED;
+    newState      = GPS_DISABLED;
     break;
   }
   case GPS_CMD_UPDATE: {
     GPS_updatePosition();
-    if (GPS_ERR_NO_ERROR != gps.error) {
-      GPS_stopTimer();
-      newState = GPS_ERROR;
-    }
     break;
   }
   case GPS_CMD_START:
@@ -279,14 +263,13 @@ static GPS_State_t GPS_disabledStateHandler(GPS_Command_t cmd)
 
   switch (cmd) {
   case GPS_CMD_START: {
-    if (SIM_GpsStart(&SIM868)) {
-      GPS_startTimer();
-      gps.lockState = GPS_SEARCHING;
-      newState      = GPS_ENABLED;
-    } else {
-      newState  = GPS_ERROR;
-      gps.error = GPS_ERR_POWER_ON;
+    while (!SIM_GpsStart(&SIM868)) {
+      chThdSleepMilliseconds(1000);
     }
+    GPS_startTimer();
+    gps.lockState = GPS_SEARCHING;
+    newState      = GPS_ENABLED;
+    break;
   }
   case GPS_CMD_STOP:
   case GPS_CMD_UPDATE:
@@ -297,30 +280,6 @@ static GPS_State_t GPS_disabledStateHandler(GPS_Command_t cmd)
 
   if (GPS_DISABLED != newState)
     GPS_logStateChange(GPS_DISABLED, newState);
-
-  return newState;
-}
-
-static GPS_State_t GPS_errorStateHandler(GPS_Command_t cmd)
-{
-  GPS_State_t newState = GPS_ERROR;
-
-  switch (cmd) {
-  case GPS_CMD_STOP: {
-    newState      = GPS_INIT;
-    gps.lockState = GPS_NOT_POWERED;
-    gps.error     = GPS_ERR_NO_ERROR;
-    break;
-  }
-  case GPS_CMD_START:
-  case GPS_CMD_UPDATE:
-  default: {
-    break;
-  }
-  }
-
-  if (GPS_ERROR != newState)
-    GPS_logStateChange(GPS_ERROR, newState);
 
   return newState;
 }
@@ -355,10 +314,6 @@ THD_FUNCTION(GPS_Thread, arg)
         gps.state = GPS_disabledStateHandler(cmd);
         break;
       }
-      case GPS_ERROR: {
-        gps.state = GPS_errorStateHandler(cmd);
-        break;
-      }
       default: {
         break;
       }
@@ -375,7 +330,6 @@ void GPS_Init(void)
   gps.config    = NULL;
   gps.lockState = GPS_NOT_POWERED;
   gps.state     = GPS_INIT;
-  gps.error     = GPS_ERR_NO_ERROR;
 }
 
 void GPS_Start(void)
@@ -395,24 +349,6 @@ void GPS_Stop(void)
 GpsLockState_t GPS_GetLockState(void)
 {
   return gps.lockState;
-}
-
-const char *GPS_GetStateString(void)
-{
-  return GPS_getStateString(gps.state);
-}
-
-const char *GPS_GetErrorString(void)
-{
-  static const char *errorStr[] = {
-      [GPS_ERR_NO_ERROR]    = "NO_ERROR",
-      [GPS_ERR_POWER_ON]    = "START FAIL",
-      [GPS_ERR_POWER_OFF]   = "STOP FAIL",
-      [GPS_ERR_UPDATE]      = "UPDATE FAIL",
-      [GPS_ERR_IN_RESPONSE] = "INVALID RESPONSE",
-  };
-
-  return errorStr[(size_t)gps.error];
 }
 
 /****************************** END OF FILE **********************************/

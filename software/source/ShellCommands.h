@@ -30,7 +30,6 @@
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void SHC_GetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[]);
 
 #endif /* SHELL_COMMANDS_H */
 

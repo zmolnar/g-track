@@ -27,6 +27,7 @@ typedef enum {
   GPS_NOT_POWERED,
   GPS_SEARCHING,
   GPS_LOCKED,
+  GPS_ERROR,
 } GpsLockState_t;
 
 /*****************************************************************************/
@@ -41,9 +42,6 @@ void GPS_Init(void);
 void GPS_Start(void);
 void GPS_Stop(void);
 GpsLockState_t GPS_GetLockState(void);
-
-const char *GPS_GetStateString(void);
-const char *GPS_GetErrorString(void);
 
 #endif /* GPS_READER_THREAD_H */
 

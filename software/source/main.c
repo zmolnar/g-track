@@ -78,6 +78,13 @@ static THD_FUNCTION(HeartBeatThread, arg)
       chThdSleepMilliseconds(1700);
       break;
     }
+    case GPS_ERROR: {
+      palClearLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(100);
+      palSetLine(LINE_LED_3_GREEN);
+      chThdSleepMilliseconds(100);
+      break;
+    }
     default: {
       chThdSleepSeconds(1);
       break;

@@ -42,48 +42,5 @@
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void SHC_GetSystemStatus(BaseSequentialStream *chp, int argc, char *argv[])
-{
-  (void)argc;
-  (void)argv;
-
-  GPS_Time_t dt = {0};
-  DSB_GetTime(&dt);
-
-  chprintf(chp, SHELL_NEWLINE_STR);
-  chprintf(chp,
-           "RTC: %02d-%02d-%d %02d:%02d:%02d",
-           dt.month,
-           dt.day,
-           dt.year,
-           dt.hour,
-           dt.min,
-           dt.sec);
-  chprintf(chp, SHELL_NEWLINE_STR SHELL_NEWLINE_STR);
-
-  chprintf(chp,
-           "%10s    %10s    %10s" SHELL_NEWLINE_STR SHELL_NEWLINE_STR,
-           "thread",
-           "state",
-           "error");
-
-  chprintf(chp,
-           "%10s    %10s    %10s" SHELL_NEWLINE_STR,
-           SYSTEM_THREAD_NAME,
-           SYS_GetStateString(),
-           SYS_GetErrorString());
-
-  chprintf(chp,
-           "%10s    %10s    %10s" SHELL_NEWLINE_STR,
-           GPS_READER_THREAD_NAME,
-           GPS_GetStateString(),
-           GPS_GetErrorString());
-
-  chprintf(chp,
-           "%10s    %10s    %10s" SHELL_NEWLINE_STR,
-           CHAIN_OILER_THREAD_NAME,
-           COT_GetStateString(),
-           COT_GetErrorString());
-}
 
 /****************************** END OF FILE **********************************/
