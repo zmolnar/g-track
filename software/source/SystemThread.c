@@ -35,7 +35,6 @@ typedef enum {
   SYS_STATE_PARKING,
   SYS_STATE_RIDING,
   SYS_STATE_TRACKING,
-  SYS_STATE_ERROR,
 } SYS_State_t;
 
 typedef enum {
@@ -43,17 +42,10 @@ typedef enum {
   SYS_CMD_IGNITION_OFF,
 } SYS_Command_t;
 
-typedef enum {
-  SYS_ERR_NO_ERROR,
-  SYS_ERR_MODEM_POWER_ON,
-  SYS_ERR_MODEM_POWER_OFF,
-} SYS_Error_t;
-
 typedef struct System_s {
   msg_t events[10];
   mailbox_t mailbox;
   SYS_State_t state;
-  SYS_Error_t error;
   semaphore_t sysinitialized;
 } System_t;
 
@@ -80,7 +72,6 @@ static const char *SYS_getStateString(SYS_State_t state)
       [SYS_STATE_PARKING]  = "PARKING",
       [SYS_STATE_RIDING]   = "RIDING",
       [SYS_STATE_TRACKING] = "TRACKING",
-      [SYS_STATE_ERROR]    = "ERROR",
   };
 
   return stateStrs[(size_t)state];
@@ -184,28 +175,6 @@ static SYS_State_t SYS_trackingStateHandler(SYS_Command_t evt)
   return SYS_STATE_TRACKING;
 }
 
-static SYS_State_t SYS_errorStateHandler(SYS_Command_t evt)
-{
-  SYS_State_t newState = SYS_STATE_ERROR;
-
-  switch (evt) {
-  case SYS_CMD_IGNITION_OFF: {
-    system.error = SYS_ERR_NO_ERROR;
-    newState     = SYS_STATE_INIT;
-    break;
-  }
-  case SYS_CMD_IGNITION_ON:
-  default: {
-    break;
-  }
-  }
-
-  if (SYS_STATE_ERROR != newState)
-    SYS_logStateChange(SYS_STATE_ERROR, newState);
-
-  return newState;
-}
-
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -236,10 +205,6 @@ THD_FUNCTION(SYS_Thread, arg)
         system.state = SYS_trackingStateHandler(cmd);
         break;
       }
-      case SYS_STATE_ERROR: {
-        system.state = SYS_errorStateHandler(cmd);
-        break;
-      }
       default: {
         ;
       }
@@ -253,7 +218,6 @@ void SYS_Init(void)
   memset(&system.events, 0, sizeof(system.events));
   chMBObjectInit(&system.mailbox, system.events, ARRAY_LENGTH(system.events));
   system.state = SYS_STATE_INIT;
-  system.error = SYS_ERR_NO_ERROR;
   chSemObjectInit(&system.sysinitialized, 0);
 }
 
@@ -277,22 +241,6 @@ void SYS_IgnitionOff(void)
   chSysLock();
   chMBPostI(&system.mailbox, SYS_CMD_IGNITION_OFF);
   chSysUnlock();
-}
-
-const char *SYS_GetStateString(void)
-{
-  return SYS_getStateString(system.state);
-}
-
-const char *SYS_GetErrorString(void)
-{
-  static const char *const errorStrs[] = {
-      [SYS_ERR_NO_ERROR]        = "NO_ERROR",
-      [SYS_ERR_MODEM_POWER_ON]  = "MODEM POWER ON",
-      [SYS_ERR_MODEM_POWER_OFF] = "MODEM POWER OFF",
-  };
-
-  return errorStrs[(size_t)system.error];
 }
 
 /****************************** END OF FILE **********************************/
