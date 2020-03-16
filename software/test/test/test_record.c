@@ -2,6 +2,8 @@
 #include "unity.h"
 #include "Record.h"
 
+#include <string.h>
+
 void setUp(void)
 {
 }
@@ -10,6 +12,32 @@ void tearDown(void)
 {
 }
 
+void test_REC_Serialize(void)
+{
+  Record_t record;
+  record.deviceId = 676543;
+  strcpy(record.vehicleId, "SNKL987");
+  record.year = 2020;
+  record.month = 03;
+  record.day = 16;
+  record.hour = 8;
+  record.minute = 57;
+  record.second = 54;
+  record.utcOffset = -2;
+  record.latitude = 48.342;
+  record.longitude = 23.998;
+  record.speed = 233;
+  record.numOfSatInUse = 12;
+  record.batteryVoltage = 14.4;
+  record.systemMode = 2;
+
+  char obuf[128];
+
+  size_t n = REC_Serialize(&record, 3, obuf, sizeof(obuf));
+
+  const char *expected = "record[3]=676543,SNKL987,2020-03-16 08:57:54,-2,48.342000,23.998000,233,12,14.400000,2";
+  TEST_ASSERT_EQUAL_STRING(expected, obuf);
+}
 
 void test_REC_PushRecord(void)
 {
