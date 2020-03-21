@@ -98,7 +98,7 @@ static void GPS_savePositionInLogfile(GPS_Data_t *pdata)
              pdata->gpsSatInView,
              pdata->gnssSatInView,
              pdata->gnssSatInUse);
-  LOG_Write(GPS_LOGFILE, entry);
+  LOG_AppendToFile(GPS_LOGFILE, entry);
 }
 
 static bool GPS_isClockUpdateNeeded(GPS_Time_t *gpsTime)
@@ -194,7 +194,7 @@ static void GPS_logStateChange(GPS_State_t from, GPS_State_t to)
 {
   char entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s", GPS_getStateString(from), GPS_getStateString(to));
-  LOG_Write(GPS_LOGFILE, entry);
+  LOG_AppendToFile(GPS_LOGFILE, entry);
 }
 
 static GPS_State_t GPS_initStateHandler(GPS_Command_t cmd)

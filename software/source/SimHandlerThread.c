@@ -7,6 +7,8 @@
 /* INCLUDES                                                                  */
 /*****************************************************************************/
 #include "SimHandlerThread.h"
+#include "Fifo.h"
+#include "Logger.h"
 #include "hal.h"
 
 /*****************************************************************************/
@@ -14,6 +16,7 @@
 /*****************************************************************************/
 #define PARSER_STACK_SIZE THD_WORKING_AREA_SIZE(2048)
 #define READER_STACK_SIZE THD_WORKING_AREA_SIZE(128)
+#define LOGGER_STACK_SIZE THD_WORKING_AREA_SIZE(2048)
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -27,9 +30,12 @@ typedef enum {
 
 typedef struct SimHandler_s {
   SHD_State_t state;
+  Fifo_t messageLog;
   semaphore_t parserSync;
+  semaphore_t loggerSync;
   thread_reference_t reader;
   thread_reference_t parser;
+  thread_reference_t logger;
   semaphore_t pinRequested;
   semaphore_t SIMUnlocked;
 } SimHandler_t;
@@ -63,6 +69,7 @@ static void SHD_serialPut(char c)
 {
   ITM_SendChar(c);
   sdPut(&SD1, c);
+  FIFO_PushChar(&simHandler.messageLog, c);
 }
 
 static void SHD_PowerPulse(void)
@@ -120,7 +127,9 @@ void SHD_Init(void)
 {
   palSetLine(LINE_WAVESHARE_POWER);
   simHandler.state = SHD_STATE_INIT;
+  FIFO_ObjectInit(&simHandler.messageLog);
   chSemObjectInit(&simHandler.parserSync, 0);
+  chSemObjectInit(&simHandler.loggerSync, 0);
   simHandler.reader = NULL;
   simHandler.parser = NULL;
   chSemObjectInit(&simHandler.SIMUnlocked, 0);
@@ -134,9 +143,11 @@ void SHD_Init(void)
   SIM_RegisterModemCallback(&SIM868, SHD_ModemCallback);
   sdStart(&SD1, &sdConfig);
   simHandler.parser = chThdCreateFromHeap(
-      NULL, PARSER_STACK_SIZE, "simparser", NORMALPRIO + 1, SimParserThread, &SIM868);
+      NULL, PARSER_STACK_SIZE, "simparser", NORMALPRIO + 3, SimParserThread, &SIM868);
   simHandler.reader = chThdCreateFromHeap(
-      NULL, READER_STACK_SIZE, "simreader", NORMALPRIO + 1, SimReaderThread, &SIM868);
+      NULL, READER_STACK_SIZE, "simreader", NORMALPRIO + 2, SimReaderThread, &SIM868);
+  simHandler.logger = chThdCreateFromHeap(
+      NULL, LOGGER_STACK_SIZE, "simlogger", NORMALPRIO + 1, SimLoggerThread, NULL);  
 }
 
 bool SHD_ResetModem(void)
@@ -194,15 +205,18 @@ THD_FUNCTION(SimReaderThread, arg)
     if ((MSG_TIMEOUT != c) && (MSG_RESET != c)) {
       ITM_SendChar(c);
       SIM_ProcessChar(modem, (char)c);
+      FIFO_PushChar(&simHandler.messageLog, c);  
 
       do {
         c = sdGetTimeout(&SD1, chTimeMS2I(10));
         if (c != MSG_TIMEOUT) {
           ITM_SendChar(c);
           SIM_ProcessChar(modem, (char)c);
+          FIFO_PushChar(&simHandler.messageLog, c);
         }
       } while (c != MSG_TIMEOUT);
 
+      chSemReset(&simHandler.loggerSync, 1);
       chSemSignal(&simHandler.parserSync);
     }
   }
@@ -222,5 +236,24 @@ THD_FUNCTION(SimParserThread, arg)
 
   chThdExit(MSG_OK);
 }
+
+THD_FUNCTION(SimLoggerThread, arg)
+{
+  (void)arg;
+  
+  while (!chThdShouldTerminateX()) {
+    msg_t c = chSemWaitTimeout(&simHandler.loggerSync, chTimeMS2I(100));
+    if (MSG_OK == c) {
+      while(FIFO_GetLength(&simHandler.messageLog)) {
+        Fifo_Data_t data = FIFO_GetData(&simHandler.messageLog); 
+        LOG_WriteBuffer("sim868.log", data.data, data.length);
+        FIFO_PopData(&simHandler.messageLog, data.length);
+      }
+    }
+  }
+
+  chThdExit(MSG_OK);
+}
+
 
 /****************************** END OF FILE **********************************/

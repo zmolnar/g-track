@@ -95,7 +95,7 @@ static void BLT_logStateChange(BLT_State_t from, BLT_State_t to)
 {
   char entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s", BLT_getStateString(from), BLT_getStateString(to));
-  LOG_Write(BLT_LOGFILE, entry);
+  LOG_AppendToFile(BLT_LOGFILE, entry);
 }
 
 static void BLT_startShell(void)

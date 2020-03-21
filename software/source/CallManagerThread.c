@@ -109,7 +109,7 @@ static void CLL_processUrc(void)
 
   SIM_ClearUrcMessage(&SIM8D1);
 
-  LOG_Write("/urc.log", urcbuf);
+  LOG_AppendToFile("/urc.log", urcbuf);
   if (0 == strcasecmp(urcbuf, "\r\n+CPIN: READY\r\n"))
     cpinReady = true;
   else if (0 == strcasecmp(urcbuf, "\r\nCall Ready\r\n"))

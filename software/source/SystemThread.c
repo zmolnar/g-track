@@ -81,7 +81,7 @@ static void SYS_logStateChange(SYS_State_t from, SYS_State_t to)
 {
   char entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s", SYS_getStateString(from), SYS_getStateString(to));
-  LOG_Write(SYS_LOGFILE, entry);
+  LOG_AppendToFile(SYS_LOGFILE, entry);
 }
 
 static SYS_State_t SYS_initStateHandler(SYS_Command_t evt)

@@ -1,20 +1,23 @@
 /**
- * @file SimHandlerThread.h
+ * @file Fifo.h
  * @brief
  */
 
-#ifndef SIM_HANDLER_THREAD_H
-#define SIM_HANDLER_THREAD_H
+#ifndef FIFO_H
+#define FIFO_H
 
 /*****************************************************************************/
 /* INCLUDES                                                                  */
 /*****************************************************************************/
-#include "ch.h"
-#include "Sim8xx.h"
+#include <stddef.h>
+#include <stdbool.h>
+
+#include <ch.h>
 
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
+#define FIFO_LENGTH       256
 
 /*****************************************************************************/
 /* MACRO DEFINITIONS                                                         */
@@ -23,29 +26,36 @@
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
 /*****************************************************************************/
+typedef struct Fifo_s {
+  mutex_t lock;
+  char buffer[FIFO_LENGTH];
+  size_t wrindex;
+  size_t rdindex;
+} Fifo_t;
+
+typedef struct Fifo_Data_s {
+  const char *data;
+  size_t length;
+} Fifo_Data_t;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL VARIABLES                                           */
 /*****************************************************************************/
-extern Sim8xx_t SIM868;
 
 /*****************************************************************************/
 /* DECLARATION OF GLOBAL FUNCTIONS                                           */
 /*****************************************************************************/
-void SHD_Init(void);
+void FIFO_ObjectInit(Fifo_t *this);
 
-bool SHD_ResetModem(void);
+bool FIFO_PushChar(Fifo_t *this, char c);
 
-bool SHD_ResetAndConnectModem(const char *pin);
+Fifo_Data_t FIFO_GetData(Fifo_t *this);
 
-bool SHD_DisconnectModem(void);
+bool FIFO_PopData(Fifo_t *this, size_t length);
 
-THD_FUNCTION(SimParserThread, arg);
+size_t FIFO_GetLength(Fifo_t *this);
 
-THD_FUNCTION(SimReaderThread, arg);
 
-THD_FUNCTION(SimLoggerThread, arg);
-
-#endif /* SIM_HANDLER_THREAD_H */
+#endif /* FIFO_H */
 
 /****************************** END OF FILE **********************************/

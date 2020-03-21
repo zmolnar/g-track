@@ -220,7 +220,7 @@ static void COT_logStateChange(COT_State_t from, COT_State_t to)
   char entry[32] = {0};
   chsnprintf(entry, sizeof(entry), "%s -> %s",
              COT_getStateString(from), COT_getStateString(to));
-  LOG_Write(COT_LOGFILE, entry);
+  LOG_AppendToFile(COT_LOGFILE, entry);
 }
 
 static void COT_logPeriodData(void)
@@ -228,7 +228,7 @@ static void COT_logPeriodData(void)
   char entry[100] = {0};
   chsnprintf(entry, sizeof(entry), "%.2f km/h %d sec", 
              chainOiler.period.speed, chainOiler.period.length);
-  LOG_Write(COT_LOGFILE, entry);
+  LOG_AppendToFile(COT_LOGFILE, entry);
 }
 
 static COT_State_t COT_initStateHandler(COT_Command_t cmd)

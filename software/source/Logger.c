@@ -57,7 +57,12 @@ static void LOG_createTimeStamp(char timestamp[], size_t length)
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
-void LOG_Write(const char *file, const char *entry)
+void LOG_AppendToFile(const char *file, const char *entry)
+{
+  LOG_WriteBuffer(file, entry, strlen(entry));
+}
+
+void LOG_WriteBuffer(const char *file, const char ibuf[], size_t ilen)
 {
   char timestamp[25] = {0};
   LOG_createTimeStamp(timestamp, sizeof(timestamp));
@@ -67,18 +72,19 @@ void LOG_Write(const char *file, const char *entry)
   if (FR_OK == f_open(&logfile, file, FA_OPEN_APPEND | FA_WRITE)) {
     UINT bw = 0;
     f_write(&logfile, timestamp, strlen(timestamp), &bw);
-    f_write(&logfile, entry, strlen(entry), &bw);
+    f_write(&logfile, ibuf, ilen, &bw);
     f_write(&logfile, "\n", 1, &bw);
     f_close(&logfile);
   }
   SDC_Unlock();
+
 }
 
-void LOG_Overwrite(const char *file, const char *entry)
+void LOG_OverWriteFile(const char *file, const char *entry)
 {
   SDC_Lock();
   FIL logfile;
-  if (FR_OK == f_open(&logfile, file, FA_OPEN_APPEND | FA_WRITE)) {
+  if (FR_OK == f_open(&logfile, file, FA_CREATE_ALWAYS | FA_WRITE)) {
     UINT bw = 0;
     f_write(&logfile, entry, strlen(entry), &bw);
     f_write(&logfile, "\n", 1, &bw);

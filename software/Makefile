@@ -143,6 +143,7 @@ CSRC = $(ALLCSRC) \
        source/ReporterThread.c \
        source/Config.c \
        source/Record.c \
+       source/Fifo.c \
        $(CONFDIR)/usbcfg.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

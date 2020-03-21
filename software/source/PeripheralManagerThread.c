@@ -105,7 +105,7 @@ static void PRP_writeSysInfo(void)
 #endif
 #endif
 
-  LOG_Overwrite(PRP_SYS_FILE, sysinfo);
+  LOG_OverWriteFile(PRP_SYS_FILE, sysinfo);
 }
 
 void PRP_IgnitionCallback(void *p) 
