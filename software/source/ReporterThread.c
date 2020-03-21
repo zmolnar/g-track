@@ -8,6 +8,7 @@
 /*****************************************************************************/
 #include "Dashboard.h"
 #include "ConfigManagerThread.h"
+#include "SystemThread.h"
 #include "ReporterThread.h"
 #include "Record.h"
 #include "SimHandlerThread.h"
@@ -92,8 +93,8 @@ static void RPT_createRecord(Record_t *prec)
   prec->speed = (uint32_t)gpsData.speed;
   prec->numOfSatInUse = gpsData.gnssSatInUse;
   prec->batteryVoltage = 0.0;
-  prec->gsmSignalStrehgth = 0.0;
-  prec->systemMode = 0;
+  prec->gsmSignalStrehgth = SIM_GetSignalStrength(&SIM868);
+  prec->systemMode = SYS_GetSystemState();
 }
 
 static void RPT_saveRecord(void)
@@ -163,6 +164,22 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
   }
 }
 
+static bool RPT_StartIpConnection(void)
+{
+  bool result     = false;
+  const char *apn = reporter.gprsConfig->apn;
+
+  if (SIM_IpSetup(&SIM868, apn)) {
+    if (SIM_IpOpen(&SIM868)) {
+      if (SIM_IpHttpStart(&SIM868)) {
+        result = true;
+      } 
+    }
+  }
+
+  return result;
+}
+
 static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
 {
   RPT_State_t newState = RPT_STATE_INIT;
@@ -172,11 +189,12 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
     REC_EmptyBuffer(&reporter.records);
     reporter.transactionIsPending = false;
     reporter.stopIsPostponed = false;
-    const char *apn = reporter.gprsConfig->apn;
-    SIM_IpSetup(&SIM868, apn);
-    SIM_IpOpen(&SIM868);
-    SIM_IpHttpStart(&SIM868);
-    newState = RPT_STATE_ENABLED;
+    if (RPT_StartIpConnection()) {
+      newState = RPT_STATE_ENABLED;
+    } else {
+      RPT_Start();
+      chThdSleepMilliseconds(1000);
+    }
     break;
   }
   case RPT_CMD_STOP: {
@@ -284,11 +302,12 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
     REC_EmptyBuffer(&reporter.records);
     reporter.transactionIsPending = false;
     reporter.stopIsPostponed = false;
-    const char *apn = reporter.gprsConfig->apn;
-    SIM_IpSetup(&SIM868, apn);
-    SIM_IpOpen(&SIM868);
-    SIM_IpHttpStart(&SIM868);
-    newState = RPT_STATE_ENABLED;
+    if (RPT_StartIpConnection()) {
+      newState = RPT_STATE_ENABLED;
+    } else {
+      RPT_Start();
+      chThdSleepMilliseconds(1000);
+    }
     break;
   }
   case RPT_CMD_CREATE_RECORD:

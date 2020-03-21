@@ -229,6 +229,11 @@ void SYS_WaitForSuccessfulInit(void)
   chSemSignal(&system.sysinitialized);
 }
 
+uint32_t SYS_GetSystemState(void)
+{
+  return (uint32_t)system.state;
+}
+
 void SYS_IgnitionOn(void)
 {
   chSysLock();

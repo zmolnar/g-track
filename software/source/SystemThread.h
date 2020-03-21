@@ -47,6 +47,11 @@ void SYS_Init(void);
 void SYS_WaitForSuccessfulInit(void);
 
 /**
+ * 
+ */
+uint32_t SYS_GetSystemState(void);
+
+/**
  * @brief Notifies the system module that the ignition was set on.
  */
 void SYS_IgnitionOn(void);
