@@ -37,6 +37,7 @@ typedef struct PeripheralManager_s {
   msg_t events[10];
   mailbox_t mailbox;
   const SimConfig_t *config;
+  virtual_timer_t sw1timer;
   struct EventCounter_s {
     uint32_t ign;
     uint32_t sdc;
@@ -243,6 +244,15 @@ static void PRP_setupModem(void)
     ;
 }
 
+static void PRP_sw1TimerCallback(void *p)
+{
+  (void)p;
+
+  if (PRP_isSw1Pressed()) {
+    COT_ForceStart();
+  }
+}
+
 /*****************************************************************************/
 /* DEFINITION OF GLOBAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -306,7 +316,18 @@ THD_FUNCTION(PRP_Thread, arg)
         chThdSleepMilliseconds(20);
         peripheralManager.padState.sw1 = palReadLine(LINE_EXT_SW1);
         if (PRP_isSw1Pressed()) {
-          ;
+          chSysLock();
+          chVTSetI(&peripheralManager.sw1timer, TIME_MS2I(980),PRP_sw1TimerCallback, NULL);
+          chSysUnlock();
+        } else {
+          chSysLock();
+          if (chVTIsArmedI(&peripheralManager.sw1timer)) {
+            chVTResetI(&peripheralManager.sw1timer);
+            COT_OneShotI();
+          } else {
+            COT_ForceStopI();
+          }
+          chSysUnlock();
         }
         palSetLineCallback(LINE_EXT_SW1, PRP_Switch1Callback, NULL);
         palEnableLineEvent(LINE_EXT_SW1, PAL_EVENT_MODE_BOTH_EDGES);
@@ -335,6 +356,7 @@ void PRP_Init(void)
   memset(peripheralManager.events, 0, sizeof(peripheralManager.events));
   chMBObjectInit(&peripheralManager.mailbox, peripheralManager.events, ARRAY_LENGTH(peripheralManager.events));
   peripheralManager.config = NULL;
+  chVTObjectInit(&peripheralManager.sw1timer);
   memset(&peripheralManager.counter, 0, sizeof(peripheralManager.counter));
   memset(&peripheralManager.padState, 0, sizeof(peripheralManager.padState));
 
