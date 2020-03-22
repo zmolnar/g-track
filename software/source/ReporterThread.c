@@ -9,6 +9,7 @@
 #include "Dashboard.h"
 #include "ConfigManagerThread.h"
 #include "SystemThread.h"
+#include "Logger.h"
 #include "ReporterThread.h"
 #include "Record.h"
 #include "SimHandlerThread.h"
@@ -22,6 +23,7 @@
 #define MAX_NUM_OF_RECORD_IN_URL 3
 #define BUFFER_WATERMARK 3
 #define RECONNECT_PERIOD 60000
+#define REPORTER_LOGFILE "/reporter.log"
 
 /*****************************************************************************/
 /* TYPE DEFINITIONS                                                          */
@@ -150,9 +152,14 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
   }
   case IP_EVENT_HTTP_ACTION: {
     palClearLine(LINE_EXT_LED);
-    if (200 == event->payload.httpaction.httpStatus) {
+    int32_t status = event->payload.httpaction.httpStatus;
+    if (200 == status) {
       RPT_EraseSentRecords();
-    } else {
+    } 
+    else if (600 <= status) {
+      RPT_Reconnect();
+    } 
+    else {
       RPT_ResendData();
     }
     break;
@@ -261,6 +268,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   case RPT_CMD_RESEND_DATA: {
     REC_CancelLastTransaction(&reporter.records);
     reporter.transactionIsPending = false;
+    LOG_AppendToFile(REPORTER_LOGFILE, "Sending data failed, resend records.");
     if (reporter.stopIsPostponed) {
       reporter.stopIsPostponed = false;
       RPT_Stop();
@@ -274,6 +282,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   case RPT_CMD_RECONNECT: {
     REC_CancelLastTransaction(&reporter.records);
     reporter.transactionIsPending = false;
+    LOG_AppendToFile(REPORTER_LOGFILE, "GPRS connection is lost, try to reconnect.");
     if (reporter.stopIsPostponed) {
       reporter.stopIsPostponed = false;
       RPT_Stop();
@@ -337,17 +346,12 @@ static RPT_State_t RPT_ReconnectingStateHandler(RPT_Command_t cmd)
 
   switch(cmd) {
   case RPT_CMD_RECONNECT: {
-    const char *apn = reporter.gprsConfig->apn;
-    if (SIM_IpSetup(&SIM868, apn)) {
-      if (SIM_IpOpen(&SIM868)) {
-        if (SIM_IpHttpStart(&SIM868)) {
-          RPT_SendData();
-          newState = RPT_STATE_ENABLED;
-        }
-      }
-    }
-
-    if (RPT_STATE_RECONNECTING == newState) {
+    if (RPT_StartIpConnection()) {
+      LOG_AppendToFile(REPORTER_LOGFILE, "Reconnect to GPRS succeeded.");
+      RPT_SendData();
+      newState = RPT_STATE_ENABLED;
+    } else {
+      LOG_AppendToFile(REPORTER_LOGFILE, "Reconnect to GPRS failed.");
       chVTSet(&reporter.timer, TIME_MS2I(RECONNECT_PERIOD), RPT_reconnectTimerCallback, NULL);
     }
     break;
