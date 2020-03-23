@@ -249,7 +249,9 @@ static void PRP_sw1TimerCallback(void *p)
   (void)p;
 
   if (PRP_isSw1Pressed()) {
-    COT_ForceStart();
+    chSysLockFromISR();
+    COT_ForceStartI();
+    chSysUnlockFromISR();
   }
 }
 

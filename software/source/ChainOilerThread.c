@@ -60,6 +60,7 @@ typedef enum {
   COT_CMD_FORCE_STOP,      /**< Exit force mode.*/
   COT_CMD_SPEED_AVAILABLE, /**< Speed is avaible to read.*/ 
   COT_CMD_SHOOT,           /**< Release one oil drop.*/
+  COT_CMD_ONE_SHOT,        /**< Release one oil drop without any test.*/
 } COT_Command_t;
 
 /**
@@ -249,6 +250,7 @@ static COT_State_t COT_initStateHandler(COT_Command_t cmd)
   case COT_CMD_FORCE_STOP:
   case COT_CMD_SPEED_AVAILABLE:
   case COT_CMD_SHOOT:
+  case COT_CMD_ONE_SHOT:
     break;
   }
 
@@ -273,6 +275,7 @@ static COT_State_t COT_disabledStateHandler(COT_Command_t cmd)
   case COT_CMD_FORCE_STOP:
   case COT_CMD_SPEED_AVAILABLE:
   case COT_CMD_SHOOT:
+  case COT_CMD_ONE_SHOT:
     break;
   }
 
@@ -312,6 +315,10 @@ static COT_State_t COT_enabledStateHandler(COT_Command_t cmd)
     }
     break;
   }
+  case COT_CMD_ONE_SHOT: {
+    OLP_ReleaseOneDrop();
+    break;
+  }
   case COT_CMD_START:
   case COT_CMD_FORCE_STOP:
   default:
@@ -343,6 +350,7 @@ static COT_State_t COT_forcedStateHandler(COT_Command_t cmd)
   case COT_CMD_FORCE_START:
   case COT_CMD_SPEED_AVAILABLE:
   case COT_CMD_SHOOT:
+  case COT_CMD_ONE_SHOT:
   default:
     break;
   }
@@ -467,7 +475,7 @@ void COT_ForceStop(void)
 
 void COT_OneShotI(void)
 {
-  chMBPostI(&chainOiler.mailbox, COT_CMD_SHOOT);
+  chMBPostI(&chainOiler.mailbox, COT_CMD_ONE_SHOT);
 }
 
 void COT_OneShot(void)
