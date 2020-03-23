@@ -246,7 +246,8 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   case RPT_CMD_SEND_DATA: {
     if (RPT_dataNeedsToBeSent()) {
       RPT_generateURL();
-      SIM_IpHttpGet(&SIM868, reporter.url);
+      while (!SIM_IpHttpGet(&SIM868, reporter.url))
+        chThdSleepMilliseconds(1000);
       reporter.transactionIsPending = true;
       palSetLine(LINE_EXT_LED);
     }
