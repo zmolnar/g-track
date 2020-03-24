@@ -69,6 +69,7 @@ static LIS3DSHConfig lis3dshConfig = {
     .accoutputdatarate = LIS3DSH_ACC_ODR_50HZ,
 };
 
+#if 0
 static PWMConfig beepConfig = {
     .frequency = 1000000,
     .period    = 1000,
@@ -83,7 +84,7 @@ static PWMConfig beepConfig = {
     .cr2  = 0,
     .dier = 0,
 };
-
+#endif
 /*****************************************************************************/
 /* DECLARATION OF LOCAL FUNCTIONS                                            */
 /*****************************************************************************/
@@ -176,11 +177,13 @@ void MDT_loadStateMachine_2(void)
 
 void MDT_beep(void)
 {
+#if 0
   pwmStart(&PWMD2, &beepConfig);
   pwmEnableChannel(&PWMD2, 2, PWM_PERCENTAGE_TO_WIDTH(&PWMD2, 5000));
   chThdSleepMilliseconds(20);
   pwmDisableChannel(&PWMD2, 2);
   pwmStop(&PWMD2);
+#endif  
 }
 
 MDT_State_t MDT_initStateHandler(MDT_Command_t cmd) {
