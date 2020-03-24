@@ -188,19 +188,24 @@ void COT_processSpeedAndReloadTimer(void)
 
     if (elapsedTime < periodLength) {
       time_msecs_t timeToWait = periodLength - elapsedTime;
-      chVTReset(&chainOiler.period.timer);
-      chVTSet(&chainOiler.period.timer,
-              TIME_MS2I(timeToWait),
-              COT_timerCallbackI,
-              NULL);
+      chSysLock();
+      chVTResetI(&chainOiler.period.timer);
+      chVTSetI(&chainOiler.period.timer,
+               TIME_MS2I(timeToWait),
+               COT_timerCallbackI,
+               NULL);
+      chSysUnlock();
     } else {
       chSysLock();
+      chVTResetI(&chainOiler.period.timer);
       chMBPostI(&chainOiler.mailbox, COT_CMD_SHOOT);
       chSysUnlock();
     }
   } else {
     AVG_Clear(&chainOiler.speedAverager);
-    chVTReset(&chainOiler.period.timer);
+    chSysLock();
+    chVTResetI(&chainOiler.period.timer);
+    chSysUnlock();
   }
 }
 
@@ -307,9 +312,9 @@ static COT_State_t COT_enabledStateHandler(COT_Command_t cmd)
   }
   case COT_CMD_SHOOT: {
     double speed = COT_getSpeed();
-    if (0 < speed) {
-      COT_logPeriodData();
+    if (SPEED_MIN < speed) {
       chainOiler.period.start = chVTGetSystemTimeX();
+      COT_logPeriodData();
       AVG_Clear(&chainOiler.speedAverager);
       OLP_ReleaseOneDrop();
     }
