@@ -22,7 +22,7 @@
 #define URL_LENGTH 512
 #define MAX_NUM_OF_RECORD_IN_URL 3
 #define BUFFER_WATERMARK 3
-#define RECONNECT_PERIOD 60000
+#define RECONNECT_PERIOD 20000
 #define REPORTER_LOGFILE "/reporter.log"
 
 /*****************************************************************************/
@@ -341,30 +341,46 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
 static void RPT_reconnectTimerCallback(void *p)
 {
   (void)p;
-  RPT_Reconnect();
+  
+  chSysLockFromISR();
+  RPT_ReconnectI();
+  chSysUnlockFromISR();
 }
 
 static RPT_State_t RPT_ReconnectingStateHandler(RPT_Command_t cmd)
 {
   RPT_State_t newState = RPT_STATE_RECONNECTING;
+  static size_t retryCounter = 0;
 
   switch(cmd) {
   case RPT_CMD_RECONNECT: {
     if (RPT_StartIpConnection()) {
+      retryCounter = 0;
       LOG_AppendToFile(REPORTER_LOGFILE, "Reconnect to GPRS succeeded.");
       RPT_SendData();
       newState = RPT_STATE_ENABLED;
     } else {
-      LOG_AppendToFile(REPORTER_LOGFILE, "Reconnect to GPRS failed.");
-      chVTSet(&reporter.timer, TIME_MS2I(RECONNECT_PERIOD), RPT_reconnectTimerCallback, NULL);
+      if (retryCounter < 2) {
+        ++retryCounter;
+        chVTSet(&reporter.timer, TIME_MS2I(1000), RPT_reconnectTimerCallback, NULL);
+      } else {
+        retryCounter = 0;
+        chVTSet(&reporter.timer, TIME_MS2I(RECONNECT_PERIOD), RPT_reconnectTimerCallback, NULL);
+        LOG_AppendToFile(REPORTER_LOGFILE, "Reconnect to GPRS failed.");
+      }
     }
+
     break;
   }
   case RPT_CMD_STOP: {
+    retryCounter = 0;
     newState = RPT_STATE_DISABLED;
     break;
   }
-  case RPT_CMD_CREATE_RECORD:
+  case RPT_CMD_CREATE_RECORD:  {
+    RPT_saveRecord();
+    break;
+  }
   case RPT_CMD_ERASE_SENT_RECORDS:
   case RPT_CMD_SEND_DATA:
   case RPT_CMD_RESEND_DATA:
