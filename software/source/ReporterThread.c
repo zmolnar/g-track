@@ -291,6 +291,8 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
       reporter.stopIsPostponed = false;
       RPT_Stop();
     } else {
+      SIM_IpHttpStop(&SIM868);
+      SIM_IpClose(&SIM868);
       RPT_Reconnect();
       newState = RPT_STATE_RECONNECTING;
     }
