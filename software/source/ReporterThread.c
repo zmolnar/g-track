@@ -156,9 +156,6 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
     if (200 == status) {
       RPT_EraseSentRecords();
     } 
-    else if (600 <= status) {
-      RPT_Reconnect();
-    } 
     else {
       RPT_ResendData();
     }
@@ -238,20 +235,20 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   }
   case RPT_CMD_CREATE_RECORD: {
     RPT_saveRecord();
-    if (!reporter.transactionIsPending) {
-      RPT_SendData();
-    }
+    RPT_SendData();
     break;
   }
   case RPT_CMD_SEND_DATA: {
-    if (RPT_dataNeedsToBeSent()) {
-      RPT_generateURL();
-      if (SIM_IpHttpGet(&SIM868, reporter.url)) {
-        reporter.transactionIsPending = true;
-        palSetLine(LINE_EXT_LED);
-      } else {
-        REC_CancelLastTransaction(&reporter.records);
-        LOG_AppendToFile(REPORTER_LOGFILE, "HTTP GET failed, cancel transaction.");
+    if (!reporter.transactionIsPending) {
+      if (RPT_dataNeedsToBeSent()) {
+        RPT_generateURL();
+        if (SIM_IpHttpGet(&SIM868, reporter.url)) {
+          reporter.transactionIsPending = true;
+          palSetLine(LINE_EXT_LED);
+        } else {
+          REC_CancelLastTransaction(&reporter.records);
+          LOG_AppendToFile(REPORTER_LOGFILE, "HTTP GET failed, cancel transaction.");
+        }
       }
     }
     break;
@@ -276,11 +273,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
     if (reporter.stopIsPostponed) {
       reporter.stopIsPostponed = false;
       RPT_Stop();
-    } else {
-      if (RPT_dataNeedsToBeSent()) {
-        RPT_SendData();
-      }
-    }
+    } 
     break;
   }
   case RPT_CMD_RECONNECT: {

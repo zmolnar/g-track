@@ -162,7 +162,6 @@ static void GPS_timerCallback(void *p)
 {
   (void)p;
   chSysLockFromISR();
-  chVTSetI(&gps.timer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), GPS_timerCallback, NULL);
   chMBPostI(&gps.mailbox, GPS_CMD_UPDATE);
   chSysUnlockFromISR();
 }
@@ -242,6 +241,7 @@ static GPS_State_t GPS_enabledStateHandler(GPS_Command_t cmd)
     break;
   }
   case GPS_CMD_UPDATE: {
+    GPS_startTimer();
     GPS_updatePosition();
     break;
   }
