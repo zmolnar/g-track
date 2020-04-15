@@ -50,13 +50,9 @@ void RPT_EraseSentRecordsI(void);
 
 void RPT_EraseSentRecords(void);
 
-void RPT_SendDataI(void);
+void RPT_CancelLastTransactionI(void);
 
-void RPT_SendData(void);
-
-void RPT_ResendDataI(void);
-
-void RPT_ResendData(void);
+void RPT_CancelLastTransaction(void);
 
 void RPT_ReconnectI(void);
 

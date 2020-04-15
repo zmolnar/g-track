@@ -19,9 +19,10 @@
 /*****************************************************************************/
 /* DEFINED CONSTANTS                                                         */
 /*****************************************************************************/
-#define URL_LENGTH 512
+#define URL_MAX_LENGTH 512
 #define MAX_NUM_OF_RECORD_IN_URL 3
 #define BUFFER_WATERMARK 3
+#define RECONNECT_DELAY 1000
 #define RECONNECT_PERIOD 20000
 #define REPORTER_LOGFILE "/reporter.log"
 
@@ -32,7 +33,7 @@ typedef enum {
   RPT_STATE_INIT,
   RPT_STATE_ENABLED,
   RPT_STATE_DISABLED,
-  RPT_STATE_RECONNECTING,
+  RPT_STATE_CONNECTING,
 } RPT_State_t;
 
 typedef enum {
@@ -40,8 +41,7 @@ typedef enum {
   RPT_CMD_STOP,
   RPT_CMD_CREATE_RECORD,
   RPT_CMD_ERASE_SENT_RECORDS,
-  RPT_CMD_SEND_DATA,
-  RPT_CMD_RESEND_DATA,
+  RPT_CMD_CANCEL_LAST_TRANSACTION,
   RPT_CMD_RECONNECT,
 } RPT_Command_t;
 
@@ -54,7 +54,7 @@ typedef struct Reporter_s {
   const GprsConfig_t *gprsConfig;
   const BackendConfig_t *backendConfig;
   RecordBuffer_t records;
-  char url[URL_LENGTH];
+  char url[URL_MAX_LENGTH];
   bool transactionIsPending;
   bool stopIsPostponed;
 } Reporter_t;
@@ -137,13 +137,29 @@ static size_t RPT_generateURL(void)
   return n;
 }
 
+static void RPT_sendDataFromBuffer(void)
+{
+  if (!reporter.transactionIsPending) {
+    if (RPT_dataNeedsToBeSent()) {
+      RPT_generateURL();
+      if (SIM_IpHttpGet(&SIM868, reporter.url)) {
+        reporter.transactionIsPending = true;
+        palSetLine(LINE_EXT_LED);
+      } else {
+        REC_CancelLastTransaction(&reporter.records);
+        LOG_AppendToFile(REPORTER_LOGFILE, "HTTP GET failed, cancel transaction.");
+      }
+    }
+  }
+}
+
 static void RPT_removeSentRecords(void)
 {
   while(REC_PopRecordIfSent(&reporter.records))
     ;
 }
 
-static void RPT_IpCallback(GSM_IpEvent_t *event)
+static void RPT_ipCallback(GSM_IpEvent_t *event)
 {
   switch(event->type) {
   case IP_EVENT_NET_DISCONNECTED: {
@@ -157,7 +173,7 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
       RPT_EraseSentRecords();
     } 
     else {
-      RPT_ResendData();
+      RPT_CancelLastTransaction();
     }
     break;
   }
@@ -168,7 +184,7 @@ static void RPT_IpCallback(GSM_IpEvent_t *event)
   }
 }
 
-static bool RPT_StartIpConnection(void)
+static bool RPT_startIpConnection(void)
 {
   bool result     = false;
   const char *apn = reporter.gprsConfig->apn;
@@ -184,7 +200,16 @@ static bool RPT_StartIpConnection(void)
   return result;
 }
 
-static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
+static void RPT_reconnectTimerCallback(void *p)
+{
+  (void)p;
+  
+  chSysLockFromISR();
+  RPT_ReconnectI();
+  chSysUnlockFromISR();
+}
+
+static RPT_State_t RPT_initStateHandler(RPT_Command_t cmd)
 {
   RPT_State_t newState = RPT_STATE_INIT;
 
@@ -193,11 +218,13 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
     REC_EmptyBuffer(&reporter.records);
     reporter.transactionIsPending = false;
     reporter.stopIsPostponed = false;
-    if (RPT_StartIpConnection()) {
+    if (RPT_startIpConnection()) {
       newState = RPT_STATE_ENABLED;
     } else {
-      RPT_Start();
-      chThdSleepMilliseconds(1000);
+      chSysLock();
+      chVTSetI(&reporter.timer, TIME_MS2I(RECONNECT_DELAY), RPT_reconnectTimerCallback, NULL);
+      chSysUnlock();
+      newState = RPT_STATE_CONNECTING;
     }
     break;
   }
@@ -207,8 +234,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
   }
   case RPT_CMD_CREATE_RECORD:
   case RPT_CMD_ERASE_SENT_RECORDS:
-  case RPT_CMD_SEND_DATA:
-  case RPT_CMD_RESEND_DATA:
+  case RPT_CMD_CANCEL_LAST_TRANSACTION:
   case RPT_CMD_RECONNECT:
   default: {
     break;
@@ -218,7 +244,7 @@ static RPT_State_t RPT_InitStateHandler(RPT_Command_t cmd)
   return newState;
 }
 
-static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
+static RPT_State_t RPT_enabledStateHandler(RPT_Command_t cmd)
 {
   RPT_State_t newState = RPT_STATE_ENABLED;
 
@@ -235,22 +261,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   }
   case RPT_CMD_CREATE_RECORD: {
     RPT_saveRecord();
-    RPT_SendData();
-    break;
-  }
-  case RPT_CMD_SEND_DATA: {
-    if (!reporter.transactionIsPending) {
-      if (RPT_dataNeedsToBeSent()) {
-        RPT_generateURL();
-        if (SIM_IpHttpGet(&SIM868, reporter.url)) {
-          reporter.transactionIsPending = true;
-          palSetLine(LINE_EXT_LED);
-        } else {
-          REC_CancelLastTransaction(&reporter.records);
-          LOG_AppendToFile(REPORTER_LOGFILE, "HTTP GET failed, cancel transaction.");
-        }
-      }
-    }
+    RPT_sendDataFromBuffer();
     break;
   }
   case RPT_CMD_ERASE_SENT_RECORDS: {
@@ -261,12 +272,12 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
       RPT_Stop();
     } else {
       if (RPT_dataNeedsToBeSent()) {
-        RPT_SendData();
+        RPT_sendDataFromBuffer();
       }
     }
     break;
   }
-  case RPT_CMD_RESEND_DATA: {
+  case RPT_CMD_CANCEL_LAST_TRANSACTION: {
     REC_CancelLastTransaction(&reporter.records);
     reporter.transactionIsPending = false;
     LOG_AppendToFile(REPORTER_LOGFILE, "Sending data failed, resend records.");
@@ -287,7 +298,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
       SIM_IpHttpStop(&SIM868);
       SIM_IpClose(&SIM868);
       RPT_Reconnect();
-      newState = RPT_STATE_RECONNECTING;
+      newState = RPT_STATE_CONNECTING;
     }
 
     break;
@@ -301,7 +312,7 @@ static RPT_State_t RPT_EnabledStateHandler(RPT_Command_t cmd)
   return newState;
 }
 
-static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
+static RPT_State_t RPT_disabledStateHandler(RPT_Command_t cmd)
 {
   RPT_State_t newState = RPT_STATE_DISABLED;
 
@@ -310,18 +321,20 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
     REC_EmptyBuffer(&reporter.records);
     reporter.transactionIsPending = false;
     reporter.stopIsPostponed = false;
-    if (RPT_StartIpConnection()) {
+    if (RPT_startIpConnection()) {
       newState = RPT_STATE_ENABLED;
     } else {
-      RPT_Start();
-      chThdSleepMilliseconds(1000);
+      chSysLock();
+      chVTSetI(&reporter.timer, TIME_MS2I(RECONNECT_DELAY), RPT_reconnectTimerCallback, NULL);
+      chSysUnlock();
+      newState = RPT_STATE_CONNECTING;
     }
+
     break;
   }
   case RPT_CMD_CREATE_RECORD:
   case RPT_CMD_ERASE_SENT_RECORDS:
-  case RPT_CMD_SEND_DATA:
-  case RPT_CMD_RESEND_DATA:
+  case RPT_CMD_CANCEL_LAST_TRANSACTION:
   case RPT_CMD_STOP:
   case RPT_CMD_RECONNECT:
   default: {
@@ -332,35 +345,29 @@ static RPT_State_t RPT_DisabledStateHandler(RPT_Command_t cmd)
   return newState;
 }
 
-
-static void RPT_reconnectTimerCallback(void *p)
+static RPT_State_t RPT_connectingStateHandler(RPT_Command_t cmd)
 {
-  (void)p;
-  
-  chSysLockFromISR();
-  RPT_ReconnectI();
-  chSysUnlockFromISR();
-}
-
-static RPT_State_t RPT_ReconnectingStateHandler(RPT_Command_t cmd)
-{
-  RPT_State_t newState = RPT_STATE_RECONNECTING;
+  RPT_State_t newState = RPT_STATE_CONNECTING;
   static size_t retryCounter = 0;
 
   switch(cmd) {
   case RPT_CMD_RECONNECT: {
-    if (RPT_StartIpConnection()) {
+    if (RPT_startIpConnection()) {
       retryCounter = 0;
+      RPT_sendDataFromBuffer();
       LOG_AppendToFile(REPORTER_LOGFILE, "Reconnect to GPRS succeeded.");
-      RPT_SendData();
       newState = RPT_STATE_ENABLED;
     } else {
       if (retryCounter < 2) {
         ++retryCounter;
-        chVTSet(&reporter.timer, TIME_MS2I(1000), RPT_reconnectTimerCallback, NULL);
+        chSysLock();
+        chVTSetI(&reporter.timer, TIME_MS2I(RECONNECT_DELAY), RPT_reconnectTimerCallback, NULL);
+        chSysUnlock();
       } else {
         retryCounter = 0;
-        chVTSet(&reporter.timer, TIME_MS2I(RECONNECT_PERIOD), RPT_reconnectTimerCallback, NULL);
+        chSysLock();
+        chVTSetI(&reporter.timer, TIME_MS2I(RECONNECT_PERIOD), RPT_reconnectTimerCallback, NULL);
+        chSysUnlock();
         LOG_AppendToFile(REPORTER_LOGFILE, "Reconnect to GPRS failed.");
       }
     }
@@ -377,8 +384,7 @@ static RPT_State_t RPT_ReconnectingStateHandler(RPT_Command_t cmd)
     break;
   }
   case RPT_CMD_ERASE_SENT_RECORDS:
-  case RPT_CMD_SEND_DATA:
-  case RPT_CMD_RESEND_DATA:
+  case RPT_CMD_CANCEL_LAST_TRANSACTION:
   case RPT_CMD_START:  
   default: {
     break;
@@ -409,19 +415,19 @@ THD_FUNCTION(RPT_Thread, arg) {
       RPT_Command_t cmd = (RPT_Command_t)msg;
       switch(reporter.state) {
       case RPT_STATE_INIT: {
-        reporter.state = RPT_InitStateHandler(cmd);
+        reporter.state = RPT_initStateHandler(cmd);
         break;
       }
       case RPT_STATE_ENABLED: {
-        reporter.state = RPT_EnabledStateHandler(cmd);
+        reporter.state = RPT_enabledStateHandler(cmd);
         break;
       }
       case RPT_STATE_DISABLED: {
-        reporter.state = RPT_DisabledStateHandler(cmd);
+        reporter.state = RPT_disabledStateHandler(cmd);
         break;
       }
-      case RPT_STATE_RECONNECTING: {
-        reporter.state = RPT_ReconnectingStateHandler(cmd);
+      case RPT_STATE_CONNECTING: {
+        reporter.state = RPT_connectingStateHandler(cmd);
         break;
       }
       default: {
@@ -446,7 +452,7 @@ void RPT_Init(void)
   reporter.transactionIsPending = false;
   reporter.stopIsPostponed = false;
 
-  SIM_RegisterIpCallback(&SIM868, RPT_IpCallback);
+  SIM_RegisterIpCallback(&SIM868, RPT_ipCallback);
 }
 
 void RPT_StartI(void)
@@ -497,27 +503,15 @@ void RPT_EraseSentRecords(void)
   chSysUnlock();
 }
 
-void RPT_SendDataI(void)
+void RPT_CancelLastTransactionI(void)
 {
-  chMBPostI(&reporter.mailbox, RPT_CMD_SEND_DATA);
+  chMBPostI(&reporter.mailbox, RPT_CMD_CANCEL_LAST_TRANSACTION);
 }
 
-void RPT_SendData(void)
+void RPT_CancelLastTransaction(void)
 {
   chSysLock();
-  RPT_SendDataI();
-  chSysUnlock();
-}
-
-void RPT_ResendDataI(void)
-{
-  chMBPostI(&reporter.mailbox, RPT_CMD_RESEND_DATA);
-}
-
-void RPT_ResendData(void)
-{
-  chSysLock();
-  RPT_ResendDataI();
+  RPT_CancelLastTransactionI();
   chSysUnlock();
 }
 
