@@ -168,7 +168,9 @@ static void GPS_timerCallback(void *p)
 
 static void GPS_startTimer(void)
 {
-  chVTSet(&gps.timer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), GPS_timerCallback, NULL);
+  chSysLock();
+  chVTSetI(&gps.timer, chTimeMS2I(GPS_UPDATE_PERIOD_IN_MS), GPS_timerCallback, NULL);
+  chSysUnlock();
 }
 
 static void GPS_stopTimer(void)
